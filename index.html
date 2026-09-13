@@ -200,14 +200,17 @@ hr{border:0;border-top:1px solid var(--line);margin:0}
 }
 
 .honsu-retsu{margin-top:26px}
-.honsu-atai{font-family:var(--mono);font-size:26px;font-weight:700;color:var(--suburi)}
+.honsu-atai{font-family:var(--mono);font-size:26px;font-weight:700}
+.undou.p-suburi .honsu-atai{color:var(--suburi)}
+.undou.p-shoko .honsu-atai{color:var(--shoko)}
 .kazu-btn-retsu{display:flex;gap:8px;justify-content:center;margin-top:12px}
 .kazu-btn-retsu.minus{margin-top:8px}
 .kazu-btn-retsu button{
   padding:9px 14px;border:1px solid var(--line);border-radius:6px;
   background:var(--panel);font-size:13px;color:var(--text);font-family:var(--mono);
 }
-.kazu-btn-retsu.plus button{color:var(--suburi);border-color:rgba(0,240,192,.3)}
+.undou.p-suburi .kazu-btn-retsu.plus button{color:var(--suburi);border-color:rgba(0,229,196,.3)}
+.undou.p-shoko .kazu-btn-retsu.plus button{color:var(--shoko);border-color:rgba(58,180,255,.3)}
 .kazu-btn-retsu.minus button{color:var(--text-dim)}
 
 .sosa-retsu{display:flex;gap:10px;margin-top:36px}
@@ -226,6 +229,7 @@ hr{border:0;border-top:1px solid var(--line);margin:0}
   box-shadow:0 0 14px rgba(255,209,102,.25);
 }
 .hosei-hint{font-size:11px;color:var(--text-dim);margin:-8px 0 14px}
+.kazu-hint{font-size:11px;color:var(--text-dim);margin:10px 0 0}
 .shuryo-koumoku{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px}
 .shuryo-koumoku .atai{font-family:var(--mono);font-size:17px;color:var(--text)}
 .shuryo-koumoku .hosei-nyu{
@@ -323,8 +327,11 @@ const Kioku = (() => {
                      ダーク×ネオンのデザイン刷新／達成演出
    v1.3  2026-09-13  配色テーマを「爽やか系」「派手系」の2種類に分け、
                      ホーム画面右上でいつでも切り替え可能に（設定に保存）
+   v1.4  2026-09-13  一段昇降にも回数カウント（＋/－ボタン）を追加。
+                     素振り・昇降ともに「時間」と「数えられた分の回数」を
+                     両方記録できるように（数えにくい時は時間だけでも良い）
    ------------------------------------------------------------------ */
-const APP_VERSION = "1.3";
+const APP_VERSION = "1.4";
 
 const KEY_KIROKU  = "bokuto.kiroku.v1";
 const KEY_SETTEI  = "bokuto.settei.v1";
@@ -399,7 +406,7 @@ function kirokuKaku(hizuke, henko){
   const zenbu = kirokuZenbu();
   const moto = zenbu[hizuke] || {
     date:hizuke, weightKg:null, waistCm:null, suburiMin:0, suburiCount:null,
-    shokoMigiMin:0, shokoHidariMin:0, fatigue:null, pain:[], legModeUsed:null
+    shokoMigiMin:0, shokoHidariMin:0, shokoCount:null, fatigue:null, pain:[], legModeUsed:null
   };
   zenbu[hizuke] = Object.assign(moto, henko);
   kirokuHozon(zenbu);
@@ -848,6 +855,7 @@ function undouKaishi(legModeSentaku){
     suburiClock: { accumulatedMs:0, runningSince: phase === "suburi" ? Date.now() : null },
     shokoClock:  { accumulatedMs:0, runningSince: phase === "shoko"  ? Date.now() : null },
     suburiCount: 0,
+    shokoCount: 0,
     menuSuburiMin: menu.suburi,
     menuShokoMin: menu.shoko,
     suburiGoalFlashed: false,
@@ -929,19 +937,14 @@ function egakuUndou(){
       </div>
       ${ima_tassei ? `<div class="tassei-badge">目標達成！</div>` : ""}
 
-      ${isSuburi ? `
-        <p class="honsu-retsu"><span class="honsu-atai">${s.suburiCount}本</span></p>
-        <div class="kazu-btn-retsu plus">
-          <button data-add="10">＋10</button>
-          <button data-add="50">＋50</button>
-          <button data-add="100">＋100</button>
-        </div>
-        <div class="kazu-btn-retsu minus">
-          <button data-add="-10">－10</button>
-          <button data-add="-50">－50</button>
-          <button data-add="-100">－100</button>
-        </div>
-      ` : ""}
+      <p class="honsu-retsu"><span class="honsu-atai">${isSuburi ? s.suburiCount : s.shokoCount}${isSuburi ? "本" : "回"}</span></p>
+      <div class="kazu-btn-retsu plus">
+        ${(isSuburi ? [10,50,100] : [1,10,50]).map(n => `<button data-add="${n}">＋${n}</button>`).join("")}
+      </div>
+      <div class="kazu-btn-retsu minus">
+        ${(isSuburi ? [10,50,100] : [1,10,50]).map(n => `<button data-add="${-n}">－${n}</button>`).join("")}
+      </div>
+      ${isSuburi ? "" : `<p class="kazu-hint">歩いたりして数えられない時は、無理に数えず時間だけ記録すればOKです。</p>`}
       <div class="sosa-retsu">
         <button id="ichijiBtn" class="ichiji-btn">${ugoiteiru ? "一時停止" : "再開"}</button>
         <button id="owariBtn" class="owari-btn">運動を終える</button>
@@ -954,16 +957,15 @@ function egakuUndou(){
     document.getElementById("tabShoko").addEventListener("click", () => phaseKirikae("shoko"));
   }
 
-  if (isSuburi){
-    app.querySelectorAll(".kazu-btn-retsu button").forEach(b => {
-      b.addEventListener("click", () => {
-        const s2 = sessionYomu(); if (!s2) return;
-        s2.suburiCount = Math.max(0, s2.suburiCount + Number(b.dataset.add));
-        sessionKaku(s2);
-        hyouji();
-      });
+  app.querySelectorAll(".kazu-btn-retsu button").forEach(b => {
+    b.addEventListener("click", () => {
+      const s2 = sessionYomu(); if (!s2) return;
+      const field = isSuburi ? "suburiCount" : "shokoCount";
+      s2[field] = Math.max(0, s2[field] + Number(b.dataset.add));
+      sessionKaku(s2);
+      hyouji();
     });
-  }
+  });
 
   document.getElementById("ichijiBtn").addEventListener("click", () => {
     const s2 = sessionYomu(); if (!s2) return;
@@ -1055,6 +1057,7 @@ function egakuShuryo(){
         <span>一段昇降</span>
         <input class="hosei-nyu" id="shokoHoseiNyu" type="number" inputmode="numeric" min="0" step="1" value="${esc(shokoMinHyouji)}" aria-label="一段昇降の分数（補正可）">
       </div>
+      ${s.shokoCount ? `<div class="shuryo-koumoku"><span>回数</span><span class="atai">${s.shokoCount}回</span></div>` : ""}
       <div class="shuryo-koumoku"><span>合計</span><span class="atai">${soukeiMin}分</span></div>
       <p class="hosei-hint">タイマーの分数が実際と違う場合は、上の数字を書き換えてください。</p>
       <p class="shuryo-kcal">消費 約${kcal}kcal（目安）</p>
@@ -1119,6 +1122,7 @@ function hozonOwariSuru(){
     suburiCount: s.suburiCount || null,
     shokoMigiMin: Math.round(wake.migiMs / 60000),
     shokoHidariMin: Math.round(wake.hidariMs / 60000),
+    shokoCount: s.shokoCount || null,
     fatigue: erabaretaHirouido,
     pain: erabaretaItami.slice(),
     legModeUsed: s.legMode
