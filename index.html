@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="素振り">
+<meta name="theme-color" content="#FBFAF7">
+<title>素振り＋一段昇降</title>
+<style>
+:root{
+  --kiji:#FBFAF7;      /* 生成 背景 */
+  --sumi:#23262B;      /* 墨 文字 */
+  --usuzumi:#6C7178;   /* 薄墨 副文字 */
+  --ai:#1F4E79;        /* 藍 主色 */
+  --awaai:#E7EEF5;     /* 淡藍 面 */
+  --keisen:#DFDCD4;    /* 罫 */
+  --shu:#A63A24;       /* 朱 注意 */
+  --mincho:"Hiragino Mincho ProN","Yu Mincho","YuMincho",serif;
+  --gothic:"Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--kiji);color:var(--sumi);font-family:var(--gothic)}
+body{
+  font-size:15px;line-height:1.7;
+  padding:0 20px calc(40px + env(safe-area-inset-bottom));
+  max-width:30rem;margin:0 auto;
+}
+button{font-family:inherit;font-size:inherit;color:inherit;border:0;background:none;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:2px solid var(--ai);outline-offset:2px}
+
+/* ── 日付 ── */
+.hizuke{
+  padding:28px 0 0;font-family:var(--mincho);font-size:14px;
+  color:var(--usuzumi);letter-spacing:.08em;
+}
+
+/* ── 体重 ── */
+.taiju{padding:14px 0 26px}
+.taiju-kazu{
+  font-family:var(--mincho);font-size:62px;line-height:1;
+  letter-spacing:-.01em;font-weight:400;
+}
+.taiju-kazu .tani{font-size:22px;margin-left:4px;color:var(--usuzumi)}
+.taiju-mikeisoku{font-family:var(--mincho);font-size:34px;color:var(--usuzumi);line-height:1.3}
+.taiju-shita{margin-top:14px;display:flex;gap:26px;flex-wrap:wrap}
+.kumi{line-height:1.45}
+.kumi dt{font-size:12px;color:var(--usuzumi);margin:0}
+.kumi dd{margin:0;font-family:var(--mincho);font-size:20px}
+.kensu{font-size:11px;color:var(--usuzumi);font-family:var(--gothic)}
+
+/* ── 入力 ── */
+.nyuryoku{display:flex;gap:8px;align-items:center;margin-top:18px}
+.nyuryoku input{
+  font-family:var(--mincho);font-size:26px;width:5.4em;
+  padding:6px 10px;border:1px solid var(--keisen);border-radius:2px;
+  background:#fff;color:var(--sumi);text-align:right;
+}
+.nyuryoku .tani{color:var(--usuzumi);font-size:15px}
+.hozon{
+  margin-left:auto;padding:9px 20px;background:var(--ai);color:#fff;
+  border-radius:2px;letter-spacing:.04em;
+}
+.hozon:disabled{background:var(--keisen);color:#fff;cursor:default}
+.yobikake{margin-top:16px;color:var(--usuzumi);font-size:13px}
+
+/* ── 仕切り ── */
+hr{border:0;border-top:1px solid var(--keisen);margin:0}
+
+/* ── 今日のメニュー ── */
+.kondate{padding:24px 0 0}
+.midashi{font-family:var(--mincho);font-size:17px;margin:0 0 12px;font-weight:400}
+.shurui{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--keisen)}
+.shurui:last-of-type{border-bottom:0}
+.shurui .fun{font-family:var(--mincho);font-size:19px}
+.shurui .nashi{color:var(--shu);font-size:14px;font-family:var(--gothic)}
+.chosei{
+  margin-top:12px;padding:10px 12px;background:var(--awaai);
+  border-radius:2px;font-size:13px;line-height:1.6;
+}
+.chosei.itami{background:#F6E9E5;color:var(--shu)}
+.ashi{margin-top:10px;font-size:13px;color:var(--usuzumi)}
+
+/* ── 開始ボタン ── */
+.kaishi{
+  display:block;width:100%;margin-top:22px;padding:17px;
+  background:var(--ai);color:#fff;border-radius:2px;
+  font-size:17px;letter-spacing:.14em;font-family:var(--mincho);
+}
+.kaishi:disabled{background:#fff;color:var(--usuzumi);border:1px solid var(--keisen);letter-spacing:.04em;font-size:14px}
+
+/* ── 今週 ── */
+.konshu{padding:26px 0 0}
+.masu{display:flex;gap:6px;margin:10px 0 0}
+.hi{flex:1;text-align:center}
+.hi .yobi{font-size:11px;color:var(--usuzumi)}
+.hi .shirushi{
+  margin-top:4px;height:30px;border-radius:2px;border:1px solid var(--keisen);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--mincho);font-size:13px;color:var(--usuzumi);background:#fff;
+}
+.hi.jisshi .shirushi{background:var(--ai);border-color:var(--ai);color:#fff}
+.hi.kyuyo .shirushi{background:var(--awaai);border-color:var(--awaai);color:var(--ai)}
+.hi.kyo .yobi{color:var(--ai)}
+.shukei{margin-top:12px;font-size:13px;color:var(--usuzumi)}
+
+.chui{margin-top:30px;font-size:12px;color:var(--usuzumi);line-height:1.7}
+@media (prefers-reduced-motion:no-preference){
+  .hozon,.kaishi{transition:opacity .15s}
+}
+.hozon:active,.kaishi:active{opacity:.7}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+"use strict";
+/* ===========================================================
+   木刀素振り＋一段昇降　管理アプリ
+   実装1：データ層／ホーム画面／体重入力
+   仕様書 v1 準拠。カロリー・グラム換算は非表示（10章）。
+   =========================================================== */
+
+/* ---------- 保存層 -------------------------------------------------
+   localStorage を使う。使えない環境（プレビュー枠など）では
+   メモリに退避して、画面が壊れないようにする。              */
+const Kioku = (() => {
+  let tsukaeru = true;
+  try { localStorage.setItem("__t","1"); localStorage.removeItem("__t"); }
+  catch { tsukaeru = false; }
+  const memori = {};
+  return {
+    tsukaeru,
+    yomu(key, kitei){
+      try{
+        const s = tsukaeru ? localStorage.getItem(key) : memori[key];
+        return s ? JSON.parse(s) : kitei;
+      }catch{ return kitei; }
+    },
+    kaku(key, atai){
+      const s = JSON.stringify(atai);
+      if (tsukaeru) { try{ localStorage.setItem(key, s); }catch{} }
+      else memori[key] = s;
+    }
+  };
+})();
+
+const KEY_KIROKU = "bokuto.kiroku.v1";
+const KEY_SETTEI = "bokuto.settei.v1";
+
+/* ---------- 設定 --------------------------------------------------- */
+const KITEI_SETTEI = {
+  kaishiBi: null,             // 初回起動時に決まる
+  kaishiTaiju: 75.0,
+  mokuhyoShukan: -1.0,        // kg / 週
+  kirikaeFun: 1,              // 一段昇降の左右切替（1 or 2 分）
+  kiteiLegMode: "kogo",       // kogo / migi / hidari
+  // 曜日別の基本メニュー（仕様書6章）0=日
+  shukan: [
+    { suburi:13, shoko:18, sonota:5  },  // 日（軽め）
+    { suburi:25, shoko:20, sonota:10 },  // 月
+    { suburi:20, shoko:25, sonota:10 },  // 火
+    { suburi:15, shoko:20, sonota:10 },  // 水
+    { suburi:25, shoko:20, sonota:10 },  // 木
+    { suburi:20, shoko:25, sonota:10 },  // 金
+    { suburi:30, shoko:20, sonota:10 },  // 土
+  ]
+};
+
+function setteiYomu(){
+  const s = Object.assign({}, KITEI_SETTEI, Kioku.yomu(KEY_SETTEI, {}));
+  if (!s.kaishiBi){ s.kaishiBi = kyoNoHizuke(); Kioku.kaku(KEY_SETTEI, s); }
+  return s;
+}
+function setteiKaku(s){ Kioku.kaku(KEY_SETTEI, s); }
+
+/* ---------- 記録 ---------------------------------------------------
+   DailyRecord = {
+     date, weightKg, suburiMin, suburiCount,
+     shokoMigiMin, shokoHidariMin, fatigue, pain[]
+   }
+   ※ 7日平均・週合計・消費カロリー等は保存しない。常に再計算する。 */
+function kirokuZenbu(){ return Kioku.yomu(KEY_KIROKU, {}); }
+function kirokuHozon(zenbu){ Kioku.kaku(KEY_KIROKU, zenbu); }
+function kirokuToru(hizuke){ return kirokuZenbu()[hizuke] || null; }
+
+function kirokuKaku(hizuke, henko){
+  const zenbu = kirokuZenbu();
+  const moto = zenbu[hizuke] || {
+    date:hizuke, weightKg:null, suburiMin:0, suburiCount:null,
+    shokoMigiMin:0, shokoHidariMin:0, fatigue:null, pain:[]
+  };
+  zenbu[hizuke] = Object.assign(moto, henko);
+  kirokuHozon(zenbu);
+  return zenbu[hizuke];
+}
+
+/* ---------- 日付ユーティリティ ------------------------------------- */
+function kyoNoHizuke(){ return hizukeMoji(new Date()); }
+function hizukeMoji(d){
+  const p = n => String(n).padStart(2,"0");
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`;
+}
+function hizukeZurasu(moji, nichi){
+  const [y,m,d] = moji.split("-").map(Number);
+  const dt = new Date(y, m-1, d + nichi);
+  return hizukeMoji(dt);
+}
+function yobiBango(moji){
+  const [y,m,d] = moji.split("-").map(Number);
+  return new Date(y, m-1, d).getDay();
+}
+const YOBI = ["日","月","火","水","木","金","土"];
+
+/* ---------- 体重の集計 ---------------------------------------------
+   7日平均は「直近7日のうち測定できた日」で計算し、件数も返す。 */
+function idoHeikin(hizuke, nissu = 7){
+  const zenbu = kirokuZenbu();
+  let goukei = 0, kensu = 0;
+  for (let i = 0; i < nissu; i++){
+    const r = zenbu[hizukeZurasu(hizuke, -i)];
+    if (r && typeof r.weightKg === "number"){ goukei += r.weightKg; kensu++; }
+  }
+  return kensu ? { heikin: goukei / kensu, kensu } : { heikin: null, kensu: 0 };
+}
+function saishinTaiju(hizuke){
+  const zenbu = kirokuZenbu();
+  for (let i = 0; i < 30; i++){
+    const r = zenbu[hizukeZurasu(hizuke, -i)];
+    if (r && typeof r.weightKg === "number") return r.weightKg;
+  }
+  return null;
+}
+
+/* ---------- 翌日メニュー調整（仕様書9章）---------------------------
+   前日の記録だけを入力とする純粋関数。保存しない。
+   複数該当したときは最も少ない値を採用する。                     */
+const ITAMI_UDE   = ["kata","hiji","tekubi"];
+const ITAMI_ASHI  = ["hiza","ashikubi"];
+
+function kyoNoMenu(hizuke, settei){
+  const kihon = settei.shukan[yobiBango(hizuke)];
+  let suburi = kihon.suburi, shoko = kihon.shoko;
+  const riyu = [];
+  let kaifukuBi = false, itamiAri = false;
+
+  const zenjitsu = kirokuToru(hizukeZurasu(hizuke, -1));
+  if (zenjitsu){
+    const f = zenjitsu.fatigue;
+    if (f === 4){
+      suburi = Math.round(suburi * 0.8); shoko = Math.round(shoko * 0.8);
+      riyu.push("昨日の疲労度4のため20%減らしています。");
+    } else if (f === 5){
+      kaifukuBi = true;
+      riyu.push("昨日の疲労度5。今日は回復日をおすすめします。");
+    }
+
+    const itami = zenjitsu.pain || [];
+    if (itami.some(p => ITAMI_UDE.includes(p))){
+      suburi = 0; itamiAri = true;
+      riyu.push("腕・肩に痛みがあったため素振りを止めています。");
+    }
+    if (itami.some(p => ITAMI_ASHI.includes(p))){
+      shoko = 0; itamiAri = true;
+      riyu.push("脚に痛みがあったため一段昇降を止めています。");
+    }
+    if (itami.includes("koshi")){
+      suburi = Math.min(suburi, Math.round(kihon.suburi * 0.5));
+      shoko  = Math.min(shoko,  Math.round(kihon.shoko  * 0.5));
+      itamiAri = true;
+      riyu.push("腰に痛みがあったため両方の負荷を下げています。");
+    }
+
+    // 痛みが2日以上続いていれば、前日の実績を超えない
+    const zenzenjitsu = kirokuToru(hizukeZurasu(hizuke, -2));
+    const tsuzuku = zenzenjitsu && (zenzenjitsu.pain||[]).length && itami.length;
+    if (tsuzuku){
+      const zenShoko = (zenjitsu.shokoMigiMin||0) + (zenjitsu.shokoHidariMin||0);
+      suburi = Math.min(suburi, zenjitsu.suburiMin || 0);
+      shoko  = Math.min(shoko,  zenShoko);
+      itamiAri = true;
+      riyu.push("痛みが続いています。運動量は増やしません。");
+    }
+  }
+
+  if (kaifukuBi){ suburi = 0; shoko = 0; }
+  return { suburi, shoko, sonota: kihon.sonota, riyu, kaifukuBi, itamiAri };
+}
+
+/* ---------- 今週の実施状況 -----------------------------------------
+   記録あり・運動0分＝休養日。記録なし＝未記録。区別する。        */
+function konshuNoHi(hizuke){
+  const youbi = yobiBango(hizuke);
+  const getsuyo = hizukeZurasu(hizuke, youbi === 0 ? -6 : -(youbi - 1));
+  const zenbu = kirokuZenbu();
+  const hibi = [];
+  for (let i = 0; i < 7; i++){
+    const d = hizukeZurasu(getsuyo, i);
+    const r = zenbu[d];
+    const fun = r ? (r.suburiMin||0) + (r.shokoMigiMin||0) + (r.shokoHidariMin||0) : 0;
+    hibi.push({
+      hizuke: d,
+      yobi: YOBI[yobiBango(d)],
+      jotai: !r ? "mikiroku" : (fun > 0 ? "jisshi" : "kyuyo"),
+      fun,
+      kyo: d === hizuke,
+      mirai: d > hizuke
+    });
+  }
+  return hibi;
+}
+
+/* ===========================================================
+   画面
+   =========================================================== */
+const app = document.getElementById("app");
+let nyuryokuChu = null;   // 体重入力欄の一時値
+
+function esc(s){ return String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+function kg(n){ return n.toFixed(1); }
+function fuKi(n){ return (n > 0 ? "+" : n < 0 ? "−" : "±") + Math.abs(n).toFixed(1); }
+
+function egaku(){
+  const settei = setteiYomu();
+  const kyo = kyoNoHizuke();
+  const kiroku = kirokuToru(kyo);
+  const taiju = kiroku && typeof kiroku.weightKg === "number" ? kiroku.weightKg : null;
+
+  const konshuHeikin = idoHeikin(kyo);
+  const senshuHeikin = idoHeikin(hizukeZurasu(kyo, -7));
+  const sa = (konshuHeikin.heikin !== null && senshuHeikin.heikin !== null)
+    ? konshuHeikin.heikin - senshuHeikin.heikin : null;
+  const kaishiKara = (konshuHeikin.heikin !== null)
+    ? konshuHeikin.heikin - settei.kaishiTaiju : null;
+
+  const menu = kyoNoMenu(kyo, settei);
+  const hibi = konshuNoHi(kyo);
+  const jisshiSu = hibi.filter(h => h.jotai === "jisshi").length;
+  const kyuyoSu  = hibi.filter(h => h.jotai === "kyuyo").length;
+
+  const [y,m,d] = kyo.split("-");
+  const hizukeHyoji = `${Number(m)}月${Number(d)}日（${YOBI[yobiBango(kyo)]}）`;
+
+  const atai = nyuryokuChu !== null ? nyuryokuChu
+             : (taiju !== null ? kg(taiju) : "");
+
+  app.innerHTML = `
+  <p class="hizuke">${hizukeHyoji}</p>
+
+  <section class="taiju">
+    ${taiju !== null
+      ? `<div class="taiju-kazu">${kg(taiju)}<span class="tani">kg</span></div>`
+      : `<div class="taiju-mikeisoku">風呂上がりに測る</div>`}
+
+    ${konshuHeikin.heikin !== null ? `
+    <div class="taiju-shita">
+      <dl class="kumi">
+        <dt>7日平均</dt>
+        <dd>${kg(konshuHeikin.heikin)}<span class="kensu">　${konshuHeikin.kensu}日分</span></dd>
+      </dl>
+      ${sa !== null ? `
+      <dl class="kumi">
+        <dt>先週比</dt>
+        <dd>${fuKi(sa)}</dd>
+      </dl>` : ""}
+      ${kaishiKara !== null ? `
+      <dl class="kumi">
+        <dt>開始から</dt>
+        <dd>${fuKi(kaishiKara)}</dd>
+      </dl>` : ""}
+    </div>` : ""}
+
+    <div class="nyuryoku">
+      <input id="taijuNyu" type="number" inputmode="decimal" step="0.1" min="20" max="200"
+             value="${esc(atai)}" placeholder="––.–" aria-label="風呂上がりの体重（kg）">
+      <span class="tani">kg</span>
+      <button class="hozon" id="hozonBtn">${taiju !== null ? "書き直す" : "記録する"}</button>
+    </div>
+    ${konshuHeikin.heikin === null && taiju === null
+      ? `<p class="yobikake">最初の1回を入れると、平均の計算が始まります。</p>` : ""}
+  </section>
+
+  <hr>
+
+  <section class="kondate">
+    <h2 class="midashi">今日のこと</h2>
+    ${menu.kaifukuBi ? `
+      <p class="chosei itami">${esc(menu.riyu[0])}</p>
+    ` : `
+      <div class="shurui">
+        <span>木刀素振り</span>
+        <span class="${menu.suburi ? "fun" : "nashi"}">${menu.suburi ? menu.suburi + "分" : "今日は休む"}</span>
+      </div>
+      <div class="shurui">
+        <span>一段昇降</span>
+        <span class="${menu.shoko ? "fun" : "nashi"}">${menu.shoko ? menu.shoko + "分" : "今日は休む"}</span>
+      </div>
+      <div class="shurui">
+        <span>準備・整理</span>
+        <span class="fun">${menu.sonota}分</span>
+      </div>
+      ${menu.riyu.length ? `<p class="chosei ${menu.itamiAri ? "itami" : ""}">${menu.riyu.map(esc).join("<br>")}</p>` : ""}
+      ${(menu.suburi || menu.shoko) ? `
+        <p class="ashi">一段昇降は${
+          settei.kiteiLegMode === "kogo" ? `${settei.kirikaeFun}分ごとに左右交替`
+          : settei.kiteiLegMode === "migi" ? "右足先行のみ" : "左足先行のみ"
+        }</p>` : ""}
+    `}
+    <button class="kaishi" disabled>運動画面は実装2で追加します</button>
+  </section>
+
+  <section class="konshu">
+    <h2 class="midashi">今週</h2>
+    <div class="masu">
+      ${hibi.map(h => `
+        <div class="hi ${h.jotai} ${h.kyo ? "kyo" : ""}">
+          <div class="yobi">${h.yobi}</div>
+          <div class="shirushi">${
+            h.jotai === "jisshi" ? Math.round(h.fun)
+            : h.jotai === "kyuyo" ? "休"
+            : h.mirai ? "" : "・"
+          }</div>
+        </div>`).join("")}
+    </div>
+    <p class="shukei">実施 ${jisshiSu}日${kyuyoSu ? `・休養 ${kyuyoSu}日` : ""}</p>
+  </section>
+
+  <p class="chui">
+    体重は日ごとに水分で±0.5kgほど動きます。見るのは7日平均のほうです。
+    ${Kioku.tsukaeru ? "" : "<br>この画面では記録が保存されません。ファイルを保存してブラウザで開いてください。"}
+  </p>
+  `;
+
+  const nyu = document.getElementById("taijuNyu");
+  nyu.addEventListener("input", e => { nyuryokuChu = e.target.value; });
+  nyu.addEventListener("keydown", e => { if (e.key === "Enter") hozonSuru(); });
+  document.getElementById("hozonBtn").addEventListener("click", hozonSuru);
+}
+
+function hozonSuru(){
+  const nyu = document.getElementById("taijuNyu");
+  const v = parseFloat(nyu.value);
+  if (!isFinite(v) || v < 20 || v > 200){
+    nyu.focus(); nyu.select();
+    return;
+  }
+  kirokuKaku(kyoNoHizuke(), { weightKg: Math.round(v * 10) / 10 });
+
+  // 初回入力を開始時体重にそろえる
+  const s = setteiYomu();
+  const zenbu = kirokuZenbu();
+  const kensu = Object.values(zenbu).filter(r => typeof r.weightKg === "number").length;
+  if (kensu === 1){ s.kaishiTaiju = Math.round(v * 10) / 10; s.kaishiBi = kyoNoHizuke(); setteiKaku(s); }
+
+  nyuryokuChu = null;
+  nyu.blur();
+  egaku();
+}
+
+egaku();
+</script>
+</body>
+</html>
