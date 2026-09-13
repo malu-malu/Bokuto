@@ -273,6 +273,76 @@ hr{border:0;border-top:1px solid var(--line);margin:0}
 .shukei{margin-top:12px;font-size:12px;color:var(--text-dim)}
 
 .chui{margin-top:32px;font-size:11px;color:var(--text-dim);line-height:1.7}
+
+/* ── 推移画面 ── */
+.suii-header{display:flex;align-items:center;gap:10px;padding:26px 0 4px}
+.modoru-btn{font-size:13px;color:var(--text-dim);letter-spacing:.04em}
+.suii-title{font-size:13px;font-weight:700;letter-spacing:.12em;color:var(--text-dim)}
+
+.renzoku-panel{
+  margin-top:18px;padding:22px 18px;border-radius:10px;text-align:center;
+  background:var(--panel);border:1px solid var(--line);
+  position:relative;overflow:hidden;
+}
+.renzoku-panel::before{
+  content:"";position:absolute;inset:-40%;
+  background:conic-gradient(from 0deg, var(--suburi), var(--shoko), var(--suburi));
+  opacity:.10;animation:renzokuKaiten 8s linear infinite;
+}
+@keyframes renzokuKaiten{to{transform:rotate(360deg)}}
+.renzoku-kazu{
+  position:relative;font-family:var(--mono);font-size:52px;font-weight:800;line-height:1;
+  background:linear-gradient(90deg,var(--suburi),var(--shoko));-webkit-background-clip:text;
+  background-clip:text;color:transparent;
+}
+.renzoku-tani{position:relative;font-size:13px;color:var(--text-dim);margin-top:6px}
+
+.midashi-suii{font-size:12px;margin:26px 0 12px;font-weight:700;letter-spacing:.16em;color:var(--text-dim);text-transform:uppercase}
+
+.heatmap-wrap{overflow-x:auto;padding-bottom:4px}
+.heatmap{display:grid;grid-auto-flow:column;grid-template-rows:repeat(7,1fr);gap:3px;width:max-content}
+.heat-cell{width:13px;height:13px;border-radius:3px;background:var(--panel2)}
+.heat-cell.heat-0{background:var(--panel2)}
+.heat-cell.heat-1{background:var(--suburi);opacity:.28}
+.heat-cell.heat-2{background:var(--suburi);opacity:.5}
+.heat-cell.heat-3{background:var(--suburi);opacity:.75}
+.heat-cell.heat-4{background:var(--suburi);opacity:1;box-shadow:0 0 6px var(--suburi)}
+.heat-cell.kyo{outline:1.5px solid var(--accent);outline-offset:1px}
+.heat-cell.mirai{visibility:hidden}
+.heatmap-hanrei{display:flex;align-items:center;gap:4px;margin-top:8px;font-size:10px;color:var(--text-dim)}
+.heatmap-hanrei .heat-cell{width:10px;height:10px}
+
+.metric-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.metric-tabs button{
+  padding:8px 12px;border-radius:14px;font-size:12px;border:1px solid var(--line);
+  background:var(--panel);color:var(--text-dim);
+}
+.metric-tabs button.eranda{background:var(--accent-dim);border-color:var(--accent);color:var(--accent);font-weight:700}
+.kikan-tabs{display:flex;gap:6px;margin-top:10px}
+.kikan-tabs button{
+  flex:1;padding:7px 4px;border-radius:6px;font-size:12px;border:1px solid var(--line);
+  background:var(--panel);color:var(--text-dim);
+}
+.kikan-tabs button.eranda{background:var(--panel2);border-color:var(--text-dim);color:var(--text);font-weight:700}
+
+.suii-chart-wrap{margin-top:16px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 10px 6px}
+.suii-chart-wrap svg{display:block;width:100%;height:auto;overflow:visible}
+.suii-line{fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;
+  stroke-dasharray:2000;stroke-dashoffset:2000;animation:suiiKaku 1.1s ease forwards}
+@keyframes suiiKaku{to{stroke-dashoffset:0}}
+.suii-ten{animation:tenPop .4s ease backwards}
+@keyframes tenPop{from{opacity:0;r:0}to{opacity:1}}
+.suii-ima{animation:imaPulse 1.6s ease-in-out infinite}
+@keyframes imaPulse{0%,100%{opacity:1}50%{opacity:.35}}
+.suii-atai-hyoji{display:flex;justify-content:space-between;align-items:baseline;padding:2px 4px 10px;font-size:11px;color:var(--text-dim)}
+.suii-atai-hyoji .ima{font-family:var(--mono);font-size:20px;color:var(--text);font-weight:700}
+.suii-nashi{padding:30px 0;text-align:center;color:var(--text-dim);font-size:13px}
+
+.suii-link{
+  display:block;width:100%;margin-top:14px;padding:12px;text-align:center;
+  border-radius:8px;border:1px solid var(--line);background:var(--panel);
+  color:var(--text-dim);font-size:13px;letter-spacing:.04em;
+}
 @media (prefers-reduced-motion:no-preference){
   .hozon,.kaishi,.hozon-owari,.phase-tab{transition:opacity .15s,transform .1s}
 }
@@ -330,8 +400,12 @@ const Kioku = (() => {
    v1.4  2026-09-13  一段昇降にも回数カウント（＋/－ボタン）を追加。
                      素振り・昇降ともに「時間」と「数えられた分の回数」を
                      両方記録できるように（数えにくい時は時間だけでも良い）
+   v1.5  2026-09-13  「推移」画面を新設：継続日数（ストリーク）、
+                     16週間分のヒートマップ、指標（合計時間／体重／
+                     素振り本数／昇降回数）と期間（2週間／1ヶ月／全期間）
+                     を切り替えられる折れ線グラフ
    ------------------------------------------------------------------ */
-const APP_VERSION = "1.4";
+const APP_VERSION = "1.5";
 
 const KEY_KIROKU  = "bokuto.kiroku.v1";
 const KEY_SETTEI  = "bokuto.settei.v1";
@@ -586,12 +660,123 @@ function konshuNoHi(hizuke){
   return hibi;
 }
 
+/* ---------- 推移画面のためのデータ加工 ------------------------------
+   継続日数・ヒートマップ・折れ線グラフに使うデータをここでまとめる。 */
+function hiNoGoukeiFun(r){
+  return r ? (r.suburiMin||0) + (r.shokoMigiMin||0) + (r.shokoHidariMin||0) : 0;
+}
+
+function genzaiRenzokuNissu(){
+  const kyo = kyoNoHizuke();
+  const kyoRecord = kirokuToru(kyo);
+  let hi = hiNoGoukeiFun(kyoRecord) > 0 ? kyo : hizukeZurasu(kyo, -1);
+  let kazu = 0;
+  while (hiNoGoukeiFun(kirokuToru(hi)) > 0){
+    kazu++;
+    hi = hizukeZurasu(hi, -1);
+  }
+  return kazu;
+}
+
+/* 直近 shuu 週間分（月曜始まり）を、週×曜日のグリッドで返す。 */
+function heatmapDeta(shuu){
+  const kyo = kyoNoHizuke();
+  const youbi = yobiBango(kyo);
+  const konshuGetsuyo = hizukeZurasu(kyo, youbi === 0 ? -6 : -(youbi - 1));
+  const hajimeGetsuyo = hizukeZurasu(konshuGetsuyo, -(shuu - 1) * 7);
+  const shuuretsu = [];
+  for (let w = 0; w < shuu; w++){
+    const getsuyo = hizukeZurasu(hajimeGetsuyo, w * 7);
+    const hibi = [];
+    for (let i = 0; i < 7; i++){
+      const d = hizukeZurasu(getsuyo, i);
+      const fun = hiNoGoukeiFun(kirokuToru(d));
+      hibi.push({ hizuke:d, fun, kyo: d === kyo, mirai: d > kyo });
+    }
+    shuuretsu.push(hibi);
+  }
+  return shuuretsu;
+}
+function funLevel(fun){
+  if (fun <= 0) return 0;
+  if (fun < 15) return 1;
+  if (fun < 30) return 2;
+  if (fun < 50) return 3;
+  return 4;
+}
+
+/* 折れ線グラフ用の系列データ。null は「その日のデータなし」。 */
+function suiiKeiretsu(metric, nissu){
+  const kyo = kyoNoHizuke();
+  const hajime = hizukeZurasu(kyo, -(nissu - 1));
+  const ten = [];
+  for (let i = 0; i < nissu; i++){
+    const d = hizukeZurasu(hajime, i);
+    const r = kirokuToru(d);
+    let atai = null;
+    if (metric === "goukei"){
+      atai = r ? hiNoGoukeiFun(r) : 0;
+    } else if (metric === "taiju"){
+      const h = idoHeikin(d, 7, "weightKg");
+      atai = h.heikin;
+    } else if (metric === "suburiHonsu"){
+      atai = (r && typeof r.suburiCount === "number") ? r.suburiCount : (r ? 0 : null);
+    } else if (metric === "shokoKaisu"){
+      atai = (r && typeof r.shokoCount === "number") ? r.shokoCount : (r ? 0 : null);
+    }
+    ten.push({ hizuke:d, atai });
+  }
+  return ten;
+}
+function zenkikanNissu(){
+  const zenbu = kirokuZenbu();
+  const hizukeIchiran = Object.keys(zenbu);
+  if (!hizukeIchiran.length) return 30;
+  const kaishi = hizukeIchiran.reduce((a,b) => a < b ? a : b);
+  const kyo = kyoNoHizuke();
+  const [y1,m1,d1] = kaishi.split("-").map(Number);
+  const [y2,m2,d2] = kyo.split("-").map(Number);
+  const saNissu = Math.round((new Date(y2,m2-1,d2) - new Date(y1,m1-1,d1)) / 86400000) + 1;
+  return Math.max(7, saNissu);
+}
+
+/* SVG折れ線グラフの座標を組み立てる。幅・高さはviewBox基準。 */
+function suiiSvgTsukuru(ten, iro){
+  const W = 300, H = 110, YOYU = 12;
+  const arienai = ten.filter(t => t.atai !== null && t.atai !== undefined);
+  if (arienai.length < 2){
+    return null;
+  }
+  const atais = arienai.map(t => t.atai);
+  let min = Math.min(...atais), max = Math.max(...atais);
+  if (min === max){ min -= 1; max += 1; }
+  const n = ten.length;
+  const x = i => (n <= 1) ? 0 : (i / (n - 1)) * W;
+  const y = v => H - YOYU - ((v - min) / (max - min)) * (H - YOYU * 2);
+
+  let d = "";
+  const tenSvg = [];
+  ten.forEach((t, i) => {
+    if (t.atai === null || t.atai === undefined) return;
+    const px = x(i), py = y(t.atai);
+    d += (d === "" ? "M" : " L") + px.toFixed(1) + " " + py.toFixed(1);
+    tenSvg.push({ px, py, saigo: i === n - 1 });
+  });
+
+  const last = arienai[arienai.length - 1].atai;
+  const first = arienai[0].atai;
+
+  return { W, H, d, tenSvg, iro, saishinAtai: last, hajimeAtai: first };
+}
+
 /* ===========================================================
    画面
    =========================================================== */
 const app = document.getElementById("app");
 
 let gamen = "home";
+let suiiMetric = "goukei";     // "goukei" | "taiju" | "suburiHonsu" | "shokoKaisu"
+let suiiKikan = "1kagetsu";    // "2shukan" | "1kagetsu" | "zenkikan"
 let nyuryokuChu = null;
 let uesutoNyuryokuChu = null;
 let legModeErabi = null;
@@ -609,6 +794,7 @@ function seisu(v, kitei){ const n = parseInt(v,10); return isFinite(n) && n >= 0
 function hyouji(){
   if (gamen === "undou") egakuUndou();
   else if (gamen === "shuryo") egakuShuryo();
+  else if (gamen === "suii") egakuSuii();
   else egaku();
 }
 
@@ -769,6 +955,8 @@ function egaku(){
     <p class="shukei">実施 ${jisshiSu}日${kyuyoSu ? `・休養 ${kyuyoSu}日` : ""}</p>
   </section>
 
+  <button class="suii-link" id="suiiLinkBtn">推移をもっと見る →</button>
+
   <p class="chui">
     体重は日ごとに水分で±0.5kgほど動きます。見るのは7日平均のほうです。
     ${Kioku.tsukaeru ? "" : "<br>この画面では記録が保存されません。ファイルを保存してブラウザで開いてください。"}
@@ -778,6 +966,7 @@ function egaku(){
   app.querySelectorAll(".teema-kirikae button").forEach(b => {
     b.addEventListener("click", () => teemaKirikae(b.dataset.teema));
   });
+  document.getElementById("suiiLinkBtn").addEventListener("click", () => { gamen = "suii"; hyouji(); });
 
   const nyu = document.getElementById("taijuNyu");
   nyu.addEventListener("input", e => { nyuryokuChu = e.target.value; });
@@ -836,6 +1025,97 @@ function uesutoHozonSuru(){
   uesutoNyuryokuChu = null;
   nyu.blur();
   hyouji();
+}
+
+/* ---------- 推移画面 --------------------------------------------------
+   継続日数（ストリーク）・ヒートマップ・切替式の折れ線グラフを
+   1画面にまとめる。全部見たいが、ごちゃつかせないための構成。 */
+const SHIHYO_TEIGI = {
+  goukei:      { label:"合計時間",   tani:"分", iroHen:"suburi" },
+  taiju:       { label:"体重",       tani:"kg", iroHen:"accent" },
+  suburiHonsu: { label:"素振り本数", tani:"本", iroHen:"suburi" },
+  shokoKaisu:  { label:"昇降回数",   tani:"回", iroHen:"shoko" }
+};
+const KIKAN_TEIGI = {
+  "2shukan":  { label:"2週間",   nissu: 14 },
+  "1kagetsu": { label:"1ヶ月",   nissu: 30 },
+  "zenkikan": { label:"全期間",  nissu: null }
+};
+
+function egakuSuii(){
+  undouTaimaaTomeru();
+  const renzoku = genzaiRenzokuNissu();
+  const heatmap = heatmapDeta(16);
+
+  const kikanTeigi = KIKAN_TEIGI[suiiKikan];
+  const nissu = kikanTeigi.nissu || zenkikanNissu();
+  const ten = suiiKeiretsu(suiiMetric, nissu);
+  const shihyo = SHIHYO_TEIGI[suiiMetric];
+  const svgIro = `var(--${shihyo.iroHen})`;
+  const zu = suiiSvgTsukuru(ten, svgIro);
+
+  app.innerHTML = `
+  <div class="suii-header">
+    <button class="modoru-btn" id="modoruBtn">← 戻る</button>
+    <span class="suii-title">推移</span>
+  </div>
+
+  <div class="renzoku-panel">
+    <div class="renzoku-kazu">${renzoku}</div>
+    <p class="renzoku-tani">日連続</p>
+  </div>
+
+  <h2 class="midashi-suii">日々の実施状況</h2>
+  <div class="heatmap-wrap">
+    <div class="heatmap">
+      ${heatmap.map(shuu => shuu.map(h => `
+        <div class="heat-cell heat-${funLevel(h.fun)} ${h.kyo ? 'kyo' : ''} ${h.mirai ? 'mirai' : ''}" title="${h.hizuke}　${h.fun}分"></div>
+      `).join("")).join("")}
+    </div>
+  </div>
+  <div class="heatmap-hanrei">
+    <span>少</span>
+    <div class="heat-cell heat-0"></div><div class="heat-cell heat-1"></div>
+    <div class="heat-cell heat-2"></div><div class="heat-cell heat-3"></div><div class="heat-cell heat-4"></div>
+    <span>多</span>
+  </div>
+
+  <h2 class="midashi-suii">推移グラフ</h2>
+  <div class="metric-tabs">
+    ${Object.entries(SHIHYO_TEIGI).map(([k,v]) => `
+      <button data-metric="${k}" class="${suiiMetric===k ? 'eranda':''}">${v.label}</button>
+    `).join("")}
+  </div>
+  <div class="kikan-tabs">
+    ${Object.entries(KIKAN_TEIGI).map(([k,v]) => `
+      <button data-kikan="${k}" class="${suiiKikan===k ? 'eranda':''}">${v.label}</button>
+    `).join("")}
+  </div>
+
+  <div class="suii-chart-wrap">
+    ${zu ? `
+      <div class="suii-atai-hyoji">
+        <span>${nissu}日間</span>
+        <span class="ima">${Math.round(zu.saishinAtai * 10) / 10}${shihyo.tani}</span>
+      </div>
+      <svg viewBox="0 0 ${zu.W} ${zu.H}" preserveAspectRatio="none">
+        <path class="suii-line" d="${zu.d}" stroke="${zu.iro}"></path>
+        ${zu.tenSvg.map((t,i) => t.saigo
+          ? `<circle class="suii-ten suii-ima" cx="${t.px}" cy="${t.py}" r="4" fill="${zu.iro}"></circle>`
+          : `<circle class="suii-ten" cx="${t.px}" cy="${t.py}" r="2" fill="${zu.iro}" style="animation-delay:${i*15}ms"></circle>`
+        ).join("")}
+      </svg>
+    ` : `<p class="suii-nashi">まだデータが足りません。記録が増えるとここにグラフが出ます。</p>`}
+  </div>
+  `;
+
+  document.getElementById("modoruBtn").addEventListener("click", () => { gamen = "home"; hyouji(); });
+  app.querySelectorAll("[data-metric]").forEach(b => {
+    b.addEventListener("click", () => { suiiMetric = b.dataset.metric; hyouji(); });
+  });
+  app.querySelectorAll("[data-kikan]").forEach(b => {
+    b.addEventListener("click", () => { suiiKikan = b.dataset.kikan; hyouji(); });
+  });
 }
 
 /* ---------- 運動画面 -------------------------------------------------
