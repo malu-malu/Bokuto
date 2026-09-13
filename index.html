@@ -36,6 +36,14 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--ai);outline-off
   color:var(--usuzumi);letter-spacing:.08em;
 }
 
+/* ── 再開バナー ── */
+.modoshi-banner{
+  margin-top:16px;padding:14px 16px;background:var(--awaai);border-radius:2px;
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+}
+.modoshi-banner p{margin:0;font-size:14px;color:var(--ai)}
+.modoshi-banner button{padding:9px 18px;background:var(--ai);color:#fff;border-radius:2px;font-size:13px;white-space:nowrap}
+
 /* ── 体重 ── */
 .taiju{padding:14px 0 26px}
 .taiju-kazu{
@@ -65,6 +73,15 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--ai);outline-off
 .hozon:disabled{background:var(--keisen);color:#fff;cursor:default}
 .yobikake{margin-top:16px;color:var(--usuzumi);font-size:13px}
 
+/* ── ウエスト（体重より控えめな扱い） ── */
+.uesuto{margin-top:22px;padding-top:18px;border-top:1px solid var(--keisen)}
+.uesuto-atai-retsu{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+.uesuto-label{font-size:12px;color:var(--usuzumi)}
+.uesuto-genzai{font-family:var(--mincho);font-size:26px}
+.uesuto-genzai small{font-size:14px;color:var(--usuzumi);margin-left:2px;font-family:var(--gothic)}
+.uesuto-heikin{font-size:12px;color:var(--usuzumi)}
+.uesuto .nyuryoku{margin-top:10px}
+
 /* ── 仕切り ── */
 hr{border:0;border-top:1px solid var(--keisen);margin:0}
 
@@ -80,15 +97,67 @@ hr{border:0;border-top:1px solid var(--keisen);margin:0}
   border-radius:2px;font-size:13px;line-height:1.6;
 }
 .chosei.itami{background:#F6E9E5;color:var(--shu)}
-.ashi{margin-top:10px;font-size:13px;color:var(--usuzumi)}
+
+/* ── 左右モード選択 ── */
+.legmode-retsu{display:flex;gap:8px;margin-top:16px}
+.legmode-retsu button{
+  flex:1;padding:9px 4px;border:1px solid var(--keisen);border-radius:2px;
+  background:#fff;font-size:13px;color:var(--usuzumi);
+}
+.legmode-retsu button.eranda{background:var(--ai);border-color:var(--ai);color:#fff}
+.legmode-chui{margin-top:8px;font-size:12px;color:var(--shu)}
 
 /* ── 開始ボタン ── */
 .kaishi{
-  display:block;width:100%;margin-top:22px;padding:17px;
+  display:block;width:100%;margin-top:20px;padding:17px;
   background:var(--ai);color:#fff;border-radius:2px;
   font-size:17px;letter-spacing:.14em;font-family:var(--mincho);
 }
-.kaishi:disabled{background:#fff;color:var(--usuzumi);border:1px solid var(--keisen);letter-spacing:.04em;font-size:14px}
+
+/* ── 運動画面 ── */
+.undou{padding:44px 0 10px;text-align:center}
+.undou-midashi{font-family:var(--mincho);font-size:20px;margin:0}
+.undou-ashi{margin:8px 0 0;font-size:15px;color:var(--ai);font-family:var(--mincho)}
+.undou-taimaa{
+  font-family:var(--mincho);font-size:64px;line-height:1;
+  margin:24px 0 4px;letter-spacing:-.01em;font-variant-numeric:tabular-nums;
+}
+.undou-mokuhyo{font-size:13px;color:var(--usuzumi);margin:0}
+.honsu-retsu{margin-top:28px}
+.honsu-atai{font-family:var(--mincho);font-size:28px}
+.kazu-btn-retsu{display:flex;gap:10px;justify-content:center;margin-top:12px}
+.kazu-btn-retsu button{
+  padding:10px 16px;border:1px solid var(--keisen);border-radius:2px;
+  background:#fff;font-size:14px;
+}
+.sosa-retsu{display:flex;gap:10px;margin-top:40px}
+.sosa-retsu button{flex:1;padding:17px;border-radius:2px;font-size:15px}
+.ichiji-btn{background:var(--awaai);color:var(--ai)}
+.owari-btn{background:var(--ai);color:#fff}
+
+/* ── 終了記録画面 ── */
+.shuryo{padding:30px 0}
+.shuryo-midashi{font-family:var(--mincho);font-size:19px;margin:0 0 20px;font-weight:400}
+.shuryo-koumoku{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--keisen);font-size:14px}
+.shuryo-koumoku .atai{font-family:var(--mincho);font-size:18px}
+.shuryo-kcal{margin-top:8px;font-size:12px;color:var(--usuzumi)}
+.hirou-midashi{margin-top:28px;font-size:14px;font-family:var(--mincho)}
+.hirou-retsu{display:flex;gap:6px;margin-top:10px}
+.hirou-retsu button{
+  flex:1;padding:10px 2px;border:1px solid var(--keisen);border-radius:2px;
+  background:#fff;font-size:12px;line-height:1.5;
+}
+.hirou-retsu button.eranda{background:var(--ai);border-color:var(--ai);color:#fff}
+.itami-midashi{margin-top:26px;font-size:14px;font-family:var(--mincho)}
+.itami-retsu{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.itami-chip{padding:8px 14px;border:1px solid var(--keisen);border-radius:20px;background:#fff;font-size:13px}
+.itami-chip.eranda{background:#F6E9E5;border-color:var(--shu);color:var(--shu)}
+.hozon-owari{
+  display:block;width:100%;margin-top:32px;padding:16px;
+  background:var(--ai);color:#fff;border-radius:2px;
+  font-family:var(--mincho);font-size:16px;letter-spacing:.1em;
+}
+.hozon-owari:disabled{background:var(--keisen)}
 
 /* ── 今週 ── */
 .konshu{padding:26px 0 0}
@@ -107,9 +176,9 @@ hr{border:0;border-top:1px solid var(--keisen);margin:0}
 
 .chui{margin-top:30px;font-size:12px;color:var(--usuzumi);line-height:1.7}
 @media (prefers-reduced-motion:no-preference){
-  .hozon,.kaishi{transition:opacity .15s}
+  .hozon,.kaishi,.hozon-owari{transition:opacity .15s}
 }
-.hozon:active,.kaishi:active{opacity:.7}
+.hozon:active,.kaishi:active,.hozon-owari:active{opacity:.7}
 </style>
 </head>
 <body>
@@ -119,8 +188,9 @@ hr{border:0;border-top:1px solid var(--keisen);margin:0}
 "use strict";
 /* ===========================================================
    木刀素振り＋一段昇降　管理アプリ
-   実装1：データ層／ホーム画面／体重入力
-   仕様書 v1 準拠。カロリー・グラム換算は非表示（10章）。
+   実装2.1：体重に加えてウエスト（cm）の記録を追加
+   仕様書 v1 準拠。カロリー表示のみ実施、グラム換算はしない（10章）。
+   ウエストは仕様書外の追加項目のため、体重より控えめな扱いにする。
    =========================================================== */
 
 /* ---------- 保存層 -------------------------------------------------
@@ -147,19 +217,19 @@ const Kioku = (() => {
   };
 })();
 
-const KEY_KIROKU = "bokuto.kiroku.v1";
-const KEY_SETTEI = "bokuto.settei.v1";
+const KEY_KIROKU  = "bokuto.kiroku.v1";
+const KEY_SETTEI  = "bokuto.settei.v1";
+const KEY_SESSION = "bokuto.session.v1";
 
 /* ---------- 設定 --------------------------------------------------- */
 const KITEI_SETTEI = {
-  kaishiBi: null,             // 初回起動時に決まる
+  kaishiBi: null,
   kaishiTaiju: 75.0,
-  mokuhyoShukan: -1.0,        // kg / 週
-  kirikaeFun: 1,              // 一段昇降の左右切替（1 or 2 分）
-  kiteiLegMode: "kogo",       // kogo / migi / hidari
-  // 曜日別の基本メニュー（仕様書6章）0=日
+  mokuhyoShukan: -1.0,
+  kirikaeFun: 1,               // 一段昇降の左右切替（1 or 2 分）
+  kiteiLegMode: "kogo",        // kogo / migi / hidari
   shukan: [
-    { suburi:13, shoko:18, sonota:5  },  // 日（軽め）
+    { suburi:13, shoko:18, sonota:5  },  // 日
     { suburi:25, shoko:20, sonota:10 },  // 月
     { suburi:20, shoko:25, sonota:10 },  // 火
     { suburi:15, shoko:20, sonota:10 },  // 水
@@ -178,10 +248,9 @@ function setteiKaku(s){ Kioku.kaku(KEY_SETTEI, s); }
 
 /* ---------- 記録 ---------------------------------------------------
    DailyRecord = {
-     date, weightKg, suburiMin, suburiCount,
-     shokoMigiMin, shokoHidariMin, fatigue, pain[]
-   }
-   ※ 7日平均・週合計・消費カロリー等は保存しない。常に再計算する。 */
+     date, weightKg, waistCm, suburiMin, suburiCount,
+     shokoMigiMin, shokoHidariMin, fatigue, pain[], legModeUsed
+   } */
 function kirokuZenbu(){ return Kioku.yomu(KEY_KIROKU, {}); }
 function kirokuHozon(zenbu){ Kioku.kaku(KEY_KIROKU, zenbu); }
 function kirokuToru(hizuke){ return kirokuZenbu()[hizuke] || null; }
@@ -189,12 +258,57 @@ function kirokuToru(hizuke){ return kirokuZenbu()[hizuke] || null; }
 function kirokuKaku(hizuke, henko){
   const zenbu = kirokuZenbu();
   const moto = zenbu[hizuke] || {
-    date:hizuke, weightKg:null, suburiMin:0, suburiCount:null,
-    shokoMigiMin:0, shokoHidariMin:0, fatigue:null, pain:[]
+    date:hizuke, weightKg:null, waistCm:null, suburiMin:0, suburiCount:null,
+    shokoMigiMin:0, shokoHidariMin:0, fatigue:null, pain:[], legModeUsed:null
   };
   zenbu[hizuke] = Object.assign(moto, henko);
   kirokuHozon(zenbu);
   return zenbu[hizuke];
+}
+
+/* ---------- 運動中セッション（中断復帰用）--------------------------
+   タイマーは「開始時刻との差分」で計算するので、
+   アプリが裏に回っても正しい経過時間に戻る。                     */
+function sessionYomu(){ return Kioku.yomu(KEY_SESSION, null); }
+function sessionKaku(s){ Kioku.kaku(KEY_SESSION, s); }
+
+function keiKaishi(){ return { accumulatedMs:0, runningSince: Date.now() }; }
+function keiKeika(clock){
+  if (!clock) return 0;
+  return clock.accumulatedMs + (clock.runningSince ? (Date.now() - clock.runningSince) : 0);
+}
+function keiIchiji(clock){
+  if (!clock || !clock.runningSince) return clock;
+  return { accumulatedMs: keiKeika(clock), runningSince: null };
+}
+function keiSaikai(clock){
+  if (!clock || clock.runningSince) return clock;
+  return { accumulatedMs: clock.accumulatedMs, runningSince: Date.now() };
+}
+
+/* 一段昇降の左右振り分け（切替間隔ごとに右→左を交互に）。
+   ポーズ中は経過に含まれないので、再開後もずれない。 */
+function ashiWake(keikaMs, kirikaeFun, legMode){
+  if (legMode === "migi")   return { migiMs: keikaMs, hidariMs: 0, ima: "migi" };
+  if (legMode === "hidari") return { migiMs: 0, hidariMs: keikaMs, ima: "hidari" };
+  const block = Math.max(1, kirikaeFun) * 60000;
+  const kanryo = Math.floor(keikaMs / block);
+  const nokori = keikaMs - kanryo * block;
+  const migiBlocks = Math.ceil(kanryo / 2);
+  const hidariBlocks = Math.floor(kanryo / 2);
+  let migiMs = migiBlocks * block;
+  let hidariMs = hidariBlocks * block;
+  const ima = (kanryo % 2 === 0) ? "migi" : "hidari";
+  if (ima === "migi") migiMs += nokori; else hidariMs += nokori;
+  return { migiMs, hidariMs, ima };
+}
+
+/* 消費カロリーの目安（METs法）。グラム換算はしない。 */
+const METS = { suburi: 4.5, shoko: 4.0 };
+function kcalMitsumori(suburiMs, shokoMs, weightKg){
+  const w = weightKg || 60;
+  const h1 = suburiMs / 3600000, h2 = shokoMs / 3600000;
+  return Math.round((METS.suburi * w * h1 + METS.shoko * w * h2) * 1.05);
 }
 
 /* ---------- 日付ユーティリティ ------------------------------------- */
@@ -214,14 +328,21 @@ function yobiBango(moji){
 }
 const YOBI = ["日","月","火","水","木","金","土"];
 
-/* ---------- 体重の集計 ---------------------------------------------
-   7日平均は「直近7日のうち測定できた日」で計算し、件数も返す。 */
-function idoHeikin(hizuke, nissu = 7){
+function funByouHyouji(ms){
+  const totalSec = Math.max(0, Math.floor(ms/1000));
+  const m = Math.floor(totalSec/60), s = totalSec%60;
+  return `${m}:${String(s).padStart(2,"0")}`;
+}
+
+/* ---------- 数値の集計（体重・ウエスト共通）------------------------
+   field を指定すると、その項目の直近7日平均を出す。
+   「直近7日のうち測定できた日」で計算し、件数も返す。          */
+function idoHeikin(hizuke, nissu = 7, field = "weightKg"){
   const zenbu = kirokuZenbu();
   let goukei = 0, kensu = 0;
   for (let i = 0; i < nissu; i++){
     const r = zenbu[hizukeZurasu(hizuke, -i)];
-    if (r && typeof r.weightKg === "number"){ goukei += r.weightKg; kensu++; }
+    if (r && typeof r[field] === "number"){ goukei += r[field]; kensu++; }
   }
   return kensu ? { heikin: goukei / kensu, kensu } : { heikin: null, kensu: 0 };
 }
@@ -234,11 +355,9 @@ function saishinTaiju(hizuke){
   return null;
 }
 
-/* ---------- 翌日メニュー調整（仕様書9章）---------------------------
-   前日の記録だけを入力とする純粋関数。保存しない。
-   複数該当したときは最も少ない値を採用する。                     */
-const ITAMI_UDE   = ["kata","hiji","tekubi"];
-const ITAMI_ASHI  = ["hiza","ashikubi"];
+/* ---------- 翌日メニュー調整（仕様書9章）--------------------------- */
+const ITAMI_UDE  = ["kata","hiji","tekubi"];
+const ITAMI_ASHI = ["hiza","ashikubi"];
 
 function kyoNoMenu(hizuke, settei){
   const kihon = settei.shukan[yobiBango(hizuke)];
@@ -273,7 +392,6 @@ function kyoNoMenu(hizuke, settei){
       riyu.push("腰に痛みがあったため両方の負荷を下げています。");
     }
 
-    // 痛みが2日以上続いていれば、前日の実績を超えない
     const zenzenjitsu = kirokuToru(hizukeZurasu(hizuke, -2));
     const tsuzuku = zenzenjitsu && (zenzenjitsu.pain||[]).length && itami.length;
     if (tsuzuku){
@@ -289,8 +407,7 @@ function kyoNoMenu(hizuke, settei){
   return { suburi, shoko, sonota: kihon.sonota, riyu, kaifukuBi, itamiAri };
 }
 
-/* ---------- 今週の実施状況 -----------------------------------------
-   記録あり・運動0分＝休養日。記録なし＝未記録。区別する。        */
+/* ---------- 今週の実施状況 ------------------------------------------ */
 function konshuNoHi(hizuke){
   const youbi = yobiBango(hizuke);
   const getsuyo = hizukeZurasu(hizuke, youbi === 0 ? -6 : -(youbi - 1));
@@ -316,17 +433,40 @@ function konshuNoHi(hizuke){
    画面
    =========================================================== */
 const app = document.getElementById("app");
-let nyuryokuChu = null;   // 体重入力欄の一時値
+
+let gamen = "home";           // "home" | "undou" | "shuryo"
+let nyuryokuChu = null;       // 体重入力欄の一時値
+let uesutoNyuryokuChu = null; // ウエスト入力欄の一時値
+let legModeErabi = null;      // ホームで選んだ今日の左右モード
+let undouTaimaaId = null;     // 運動画面の1秒更新
+let erabaretaHirouido = null; // 終了記録：疲労度
+let erabaretaItami = [];      // 終了記録：痛み部位
 
 function esc(s){ return String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
-function kg(n){ return n.toFixed(1); }
+function su(n){ return n.toFixed(1); } // 体重・ウエスト共通の表示フォーマット
 function fuKi(n){ return (n > 0 ? "+" : n < 0 ? "−" : "±") + Math.abs(n).toFixed(1); }
 
+function hyouji(){
+  if (gamen === "undou") egakuUndou();
+  else if (gamen === "shuryo") egakuShuryo();
+  else egaku();
+}
+
+function undouTaimaaTomeru(){
+  if (undouTaimaaId){ clearInterval(undouTaimaaId); undouTaimaaId = null; }
+}
+
+/* ---------- ホーム画面 ---------------------------------------------- */
 function egaku(){
+  undouTaimaaTomeru();
   const settei = setteiYomu();
   const kyo = kyoNoHizuke();
   const kiroku = kirokuToru(kyo);
   const taiju = kiroku && typeof kiroku.weightKg === "number" ? kiroku.weightKg : null;
+  const uesuto = kiroku && typeof kiroku.waistCm === "number" ? kiroku.waistCm : null;
+
+  let session = sessionYomu();
+  if (session && session.date !== kyo){ sessionKaku(null); session = null; }
 
   const konshuHeikin = idoHeikin(kyo);
   const senshuHeikin = idoHeikin(hizukeZurasu(kyo, -7));
@@ -335,30 +475,47 @@ function egaku(){
   const kaishiKara = (konshuHeikin.heikin !== null)
     ? konshuHeikin.heikin - settei.kaishiTaiju : null;
 
+  const uesutoHeikin = idoHeikin(kyo, 7, "waistCm");
+
   const menu = kyoNoMenu(kyo, settei);
+  const konYasumi = (menu.suburi === 0 && menu.shoko === 0);
   const hibi = konshuNoHi(kyo);
   const jisshiSu = hibi.filter(h => h.jotai === "jisshi").length;
   const kyuyoSu  = hibi.filter(h => h.jotai === "kyuyo").length;
 
+  if (legModeErabi === null) legModeErabi = settei.kiteiLegMode;
+
+  const zenjitsu = kirokuToru(hizukeZurasu(kyo, -1));
+  const sayuChui = !konYasumi && menu.shoko > 0 && legModeErabi !== "kogo" &&
+                   zenjitsu && zenjitsu.legModeUsed && zenjitsu.legModeUsed !== "kogo";
+
   const [y,m,d] = kyo.split("-");
   const hizukeHyoji = `${Number(m)}月${Number(d)}日（${YOBI[yobiBango(kyo)]}）`;
 
-  const atai = nyuryokuChu !== null ? nyuryokuChu
-             : (taiju !== null ? kg(taiju) : "");
+  const taijuHyouji = nyuryokuChu !== null ? nyuryokuChu
+             : (taiju !== null ? su(taiju) : "");
+  const uesutoHyouji = uesutoNyuryokuChu !== null ? uesutoNyuryokuChu
+             : (uesuto !== null ? su(uesuto) : "");
 
   app.innerHTML = `
   <p class="hizuke">${hizukeHyoji}</p>
 
+  ${session ? `
+  <div class="modoshi-banner">
+    <p>運動の途中です。</p>
+    <button id="saikaiBtn">再開する</button>
+  </div>` : ""}
+
   <section class="taiju">
     ${taiju !== null
-      ? `<div class="taiju-kazu">${kg(taiju)}<span class="tani">kg</span></div>`
+      ? `<div class="taiju-kazu">${su(taiju)}<span class="tani">kg</span></div>`
       : `<div class="taiju-mikeisoku">風呂上がりに測る</div>`}
 
     ${konshuHeikin.heikin !== null ? `
     <div class="taiju-shita">
       <dl class="kumi">
         <dt>7日平均</dt>
-        <dd>${kg(konshuHeikin.heikin)}<span class="kensu">　${konshuHeikin.kensu}日分</span></dd>
+        <dd>${su(konshuHeikin.heikin)}<span class="kensu">　${konshuHeikin.kensu}日分</span></dd>
       </dl>
       ${sa !== null ? `
       <dl class="kumi">
@@ -374,20 +531,34 @@ function egaku(){
 
     <div class="nyuryoku">
       <input id="taijuNyu" type="number" inputmode="decimal" step="0.1" min="20" max="200"
-             value="${esc(atai)}" placeholder="––.–" aria-label="風呂上がりの体重（kg）">
+             value="${esc(taijuHyouji)}" placeholder="––.–" aria-label="風呂上がりの体重（kg）">
       <span class="tani">kg</span>
       <button class="hozon" id="hozonBtn">${taiju !== null ? "書き直す" : "記録する"}</button>
     </div>
     ${konshuHeikin.heikin === null && taiju === null
       ? `<p class="yobikake">最初の1回を入れると、平均の計算が始まります。</p>` : ""}
+
+    <div class="uesuto">
+      <div class="uesuto-atai-retsu">
+        <span class="uesuto-label">ウエスト</span>
+        ${uesuto !== null ? `<span class="uesuto-genzai">${su(uesuto)}<small>cm</small></span>` : ""}
+        ${uesutoHeikin.heikin !== null ? `<span class="uesuto-heikin">7日平均 ${su(uesutoHeikin.heikin)}cm</span>` : ""}
+      </div>
+      <div class="nyuryoku">
+        <input id="uesutoNyu" type="number" inputmode="decimal" step="0.1" min="40" max="200"
+               value="${esc(uesutoHyouji)}" placeholder="––.–" aria-label="ウエスト（cm）">
+        <span class="tani">cm</span>
+        <button class="hozon" id="uesutoBtn">${uesuto !== null ? "書き直す" : "記録する"}</button>
+      </div>
+    </div>
   </section>
 
   <hr>
 
   <section class="kondate">
     <h2 class="midashi">今日のこと</h2>
-    ${menu.kaifukuBi ? `
-      <p class="chosei itami">${esc(menu.riyu[0])}</p>
+    ${konYasumi ? `
+      <p class="chosei itami">${esc(menu.riyu[0] || "今日は休みます。")}</p>
     ` : `
       <div class="shurui">
         <span>木刀素振り</span>
@@ -402,13 +573,16 @@ function egaku(){
         <span class="fun">${menu.sonota}分</span>
       </div>
       ${menu.riyu.length ? `<p class="chosei ${menu.itamiAri ? "itami" : ""}">${menu.riyu.map(esc).join("<br>")}</p>` : ""}
-      ${(menu.suburi || menu.shoko) ? `
-        <p class="ashi">一段昇降は${
-          settei.kiteiLegMode === "kogo" ? `${settei.kirikaeFun}分ごとに左右交替`
-          : settei.kiteiLegMode === "migi" ? "右足先行のみ" : "左足先行のみ"
-        }</p>` : ""}
+      ${menu.shoko > 0 ? `
+        <div class="legmode-retsu">
+          <button data-leg="kogo"   class="${legModeErabi==='kogo'   ? 'eranda':''}">左右交互</button>
+          <button data-leg="migi"   class="${legModeErabi==='migi'   ? 'eranda':''}">右足のみ</button>
+          <button data-leg="hidari" class="${legModeErabi==='hidari' ? 'eranda':''}">左足のみ</button>
+        </div>
+        ${sayuChui ? `<p class="legmode-chui">左右差が開いています。今日は交互がおすすめです。</p>` : ""}
+      ` : ""}
+      <button class="kaishi" id="kaishiBtn">運動をはじめる</button>
     `}
-    <button class="kaishi" disabled>運動画面は実装2で追加します</button>
   </section>
 
   <section class="konshu">
@@ -437,6 +611,26 @@ function egaku(){
   nyu.addEventListener("input", e => { nyuryokuChu = e.target.value; });
   nyu.addEventListener("keydown", e => { if (e.key === "Enter") hozonSuru(); });
   document.getElementById("hozonBtn").addEventListener("click", hozonSuru);
+
+  const uesutoNyu = document.getElementById("uesutoNyu");
+  uesutoNyu.addEventListener("input", e => { uesutoNyuryokuChu = e.target.value; });
+  uesutoNyu.addEventListener("keydown", e => { if (e.key === "Enter") uesutoHozonSuru(); });
+  document.getElementById("uesutoBtn").addEventListener("click", uesutoHozonSuru);
+
+  if (session){
+    document.getElementById("saikaiBtn").addEventListener("click", () => {
+      gamen = "undou"; hyouji();
+    });
+  }
+
+  if (!konYasumi){
+    if (menu.shoko > 0){
+      app.querySelectorAll(".legmode-retsu button").forEach(b => {
+        b.addEventListener("click", () => { legModeErabi = b.dataset.leg; hyouji(); });
+      });
+    }
+    document.getElementById("kaishiBtn").addEventListener("click", () => undouKaishi(legModeErabi));
+  }
 }
 
 function hozonSuru(){
@@ -448,7 +642,6 @@ function hozonSuru(){
   }
   kirokuKaku(kyoNoHizuke(), { weightKg: Math.round(v * 10) / 10 });
 
-  // 初回入力を開始時体重にそろえる
   const s = setteiYomu();
   const zenbu = kirokuZenbu();
   const kensu = Object.values(zenbu).filter(r => typeof r.weightKg === "number").length;
@@ -456,10 +649,238 @@ function hozonSuru(){
 
   nyuryokuChu = null;
   nyu.blur();
-  egaku();
+  hyouji();
 }
 
-egaku();
+function uesutoHozonSuru(){
+  const nyu = document.getElementById("uesutoNyu");
+  const v = parseFloat(nyu.value);
+  if (!isFinite(v) || v < 40 || v > 200){
+    nyu.focus(); nyu.select();
+    return;
+  }
+  kirokuKaku(kyoNoHizuke(), { waistCm: Math.round(v * 10) / 10 });
+
+  uesutoNyuryokuChu = null;
+  nyu.blur();
+  hyouji();
+}
+
+/* ---------- 運動画面 -------------------------------------------------
+   タイマーは開始時刻との差分で計算するため、バックグラウンドに
+   回ってもズレない。1秒ごとに再描画して見た目を更新するだけ。 */
+function undouKaishi(legModeSentaku){
+  const kyo = kyoNoHizuke();
+  const settei = setteiYomu();
+  const menu = kyoNoMenu(kyo, settei);
+  const phase = menu.suburi > 0 ? "suburi" : "shoko";
+  const session = {
+    date: kyo,
+    legMode: legModeSentaku,
+    phase,
+    suburiCount: 0,
+    suburiClock: phase === "suburi" ? keiKaishi() : null,
+    suburiFinalMs: phase === "suburi" ? null : 0,
+    shokoClock: phase === "shoko" ? keiKaishi() : null,
+    shokoFinalMs: null,
+    menuSuburiMin: menu.suburi,
+    menuShokoMin: menu.shoko
+  };
+  sessionKaku(session);
+  gamen = "undou";
+  hyouji();
+}
+
+function egakuUndou(){
+  undouTaimaaTomeru();
+  const s = sessionYomu();
+  if (!s){ gamen = "home"; hyouji(); return; }
+
+  const settei = setteiYomu();
+  const isSuburi = s.phase === "suburi";
+  const clock = isSuburi ? s.suburiClock : s.shokoClock;
+  const keika = keiKeika(clock);
+  const ugoiteiru = !!(clock && clock.runningSince);
+  const mokuhyoFun = isSuburi ? s.menuSuburiMin : s.menuShokoMin;
+
+  let ashiHyouji = "";
+  if (!isSuburi){
+    const wake = ashiWake(keika, settei.kirikaeFun, s.legMode);
+    ashiHyouji = wake.ima === "migi" ? "右足先行" : "左足先行";
+  }
+
+  app.innerHTML = `
+    <div class="undou">
+      <p class="undou-midashi">${isSuburi ? "木刀素振り" : "一段昇降"}</p>
+      ${!isSuburi ? `<p class="undou-ashi">${ashiHyouji}</p>` : ""}
+      <p class="undou-taimaa">${funByouHyouji(keika)}</p>
+      <p class="undou-mokuhyo">目安 ${mokuhyoFun}分</p>
+      ${isSuburi ? `
+        <p class="honsu-retsu"><span class="honsu-atai">${s.suburiCount}本</span></p>
+        <div class="kazu-btn-retsu">
+          <button data-add="10">＋10</button>
+          <button data-add="50">＋50</button>
+          <button data-add="100">＋100</button>
+        </div>
+      ` : ""}
+      <div class="sosa-retsu">
+        <button id="ichijiBtn" class="ichiji-btn">${ugoiteiru ? "一時停止" : "再開"}</button>
+        <button id="owariBtn" class="owari-btn">終了</button>
+      </div>
+    </div>
+  `;
+
+  if (isSuburi){
+    app.querySelectorAll(".kazu-btn-retsu button").forEach(b => {
+      b.addEventListener("click", () => {
+        const s2 = sessionYomu(); if (!s2) return;
+        s2.suburiCount += Number(b.dataset.add);
+        sessionKaku(s2);
+        hyouji();
+      });
+    });
+  }
+
+  document.getElementById("ichijiBtn").addEventListener("click", () => {
+    const s2 = sessionYomu(); if (!s2) return;
+    if (isSuburi) s2.suburiClock = ugoiteiru ? keiIchiji(s2.suburiClock) : keiSaikai(s2.suburiClock);
+    else          s2.shokoClock  = ugoiteiru ? keiIchiji(s2.shokoClock)  : keiSaikai(s2.shokoClock);
+    sessionKaku(s2);
+    hyouji();
+  });
+
+  document.getElementById("owariBtn").addEventListener("click", () => {
+    if (isSuburi) suburiOwari(); else shokoOwari();
+  });
+
+  if (ugoiteiru){
+    undouTaimaaId = setInterval(() => { if (gamen === "undou") egakuUndou(); }, 1000);
+  }
+}
+
+function suburiOwari(){
+  const s = sessionYomu(); if (!s) return;
+  const teishi = keiIchiji(s.suburiClock);
+  s.suburiFinalMs = teishi ? teishi.accumulatedMs : 0;
+  s.suburiClock = null;
+
+  if (s.menuShokoMin > 0){
+    s.phase = "shoko";
+    s.shokoClock = keiKaishi();
+    sessionKaku(s);
+    hyouji();
+  } else {
+    s.shokoFinalMs = 0;
+    sessionKaku(s);
+    erabaretaHirouido = null; erabaretaItami = [];
+    gamen = "shuryo";
+    hyouji();
+  }
+}
+
+function shokoOwari(){
+  const s = sessionYomu(); if (!s) return;
+  const teishi = keiIchiji(s.shokoClock);
+  s.shokoFinalMs = teishi ? teishi.accumulatedMs : 0;
+  s.shokoClock = null;
+  sessionKaku(s);
+  erabaretaHirouido = null; erabaretaItami = [];
+  gamen = "shuryo";
+  hyouji();
+}
+
+/* ---------- 終了記録画面 ---------------------------------------------- */
+const HIROU_LABELS = [
+  { v:1, t:"余裕あり" }, { v:2, t:"軽い疲労" }, { v:3, t:"通常" },
+  { v:4, t:"強い疲労" }, { v:5, t:"かなり強い" }
+];
+const ITAMI_LABELS = [
+  { v:"kata", t:"肩" }, { v:"hiji", t:"肘" }, { v:"tekubi", t:"手首" },
+  { v:"koshi", t:"腰" }, { v:"hiza", t:"膝" }, { v:"ashikubi", t:"足首" },
+  { v:"sonota", t:"その他" }
+];
+
+function egakuShuryo(){
+  undouTaimaaTomeru();
+  const s = sessionYomu();
+  if (!s){ gamen = "home"; hyouji(); return; }
+
+  const settei = setteiYomu();
+  const kyo = s.date;
+  const suburiMin = Math.round((s.suburiFinalMs || 0) / 60000);
+  const shokoMin  = Math.round((s.shokoFinalMs  || 0) / 60000);
+  const soukeiMin = suburiMin + shokoMin;
+
+  const kirokuKyo = kirokuToru(kyo);
+  const weight = (kirokuKyo && typeof kirokuKyo.weightKg === "number")
+    ? kirokuKyo.weightKg : (saishinTaiju(kyo) || 60);
+  const kcal = kcalMitsumori(s.suburiFinalMs || 0, s.shokoFinalMs || 0, weight);
+
+  app.innerHTML = `
+    <div class="shuryo">
+      <h2 class="shuryo-midashi">おつかれさまでした</h2>
+
+      <div class="shuryo-koumoku"><span>木刀素振り</span><span class="atai">${suburiMin}分</span></div>
+      ${s.suburiCount ? `<div class="shuryo-koumoku"><span>本数</span><span class="atai">${s.suburiCount}本</span></div>` : ""}
+      <div class="shuryo-koumoku"><span>一段昇降</span><span class="atai">${shokoMin}分</span></div>
+      <div class="shuryo-koumoku"><span>合計</span><span class="atai">${soukeiMin}分</span></div>
+      <p class="shuryo-kcal">消費 約${kcal}kcal（目安）</p>
+
+      <p class="hirou-midashi">今日の疲労度</p>
+      <div class="hirou-retsu">
+        ${HIROU_LABELS.map(h => `
+          <button data-hirou="${h.v}" class="${erabaretaHirouido===h.v ? 'eranda':''}">${h.v}<br>${h.t}</button>
+        `).join("")}
+      </div>
+
+      <p class="itami-midashi">痛みはありますか</p>
+      <div class="itami-retsu">
+        ${ITAMI_LABELS.map(i => `
+          <button class="itami-chip ${erabaretaItami.includes(i.v) ? 'eranda':''}" data-itami="${i.v}">${i.t}</button>
+        `).join("")}
+      </div>
+
+      <button class="hozon-owari" id="hozonOwariBtn" ${erabaretaHirouido===null ? "disabled" : ""}>記録して終わる</button>
+    </div>
+  `;
+
+  app.querySelectorAll("[data-hirou]").forEach(b => {
+    b.addEventListener("click", () => { erabaretaHirouido = Number(b.dataset.hirou); hyouji(); });
+  });
+  app.querySelectorAll("[data-itami]").forEach(b => {
+    b.addEventListener("click", () => {
+      const v = b.dataset.itami;
+      const i = erabaretaItami.indexOf(v);
+      if (i >= 0) erabaretaItami.splice(i,1); else erabaretaItami.push(v);
+      hyouji();
+    });
+  });
+  if (erabaretaHirouido !== null){
+    document.getElementById("hozonOwariBtn").addEventListener("click", hozonOwariSuru);
+  }
+}
+
+function hozonOwariSuru(){
+  const s = sessionYomu(); if (!s) return;
+  const settei = setteiYomu();
+  const wake = ashiWake(s.shokoFinalMs || 0, settei.kirikaeFun, s.legMode);
+
+  kirokuKaku(s.date, {
+    suburiMin: Math.round((s.suburiFinalMs || 0) / 60000),
+    suburiCount: s.suburiCount || null,
+    shokoMigiMin: Math.round(wake.migiMs / 60000),
+    shokoHidariMin: Math.round(wake.hidariMs / 60000),
+    fatigue: erabaretaHirouido,
+    pain: erabaretaItami.slice(),
+    legModeUsed: s.legMode
+  });
+
+  sessionKaku(null);
+  gamen = "home";
+  hyouji();
+}
+
+hyouji();
 </script>
 </body>
 </html>
