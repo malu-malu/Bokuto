@@ -4,181 +4,275 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="素振り">
-<meta name="theme-color" content="#FBFAF7">
+<meta name="theme-color" content="#0A0D13">
 <title>素振り＋一段昇降</title>
 <style>
 :root{
-  --kiji:#FBFAF7;      /* 生成 背景 */
-  --sumi:#23262B;      /* 墨 文字 */
-  --usuzumi:#6C7178;   /* 薄墨 副文字 */
-  --ai:#1F4E79;        /* 藍 主色 */
-  --awaai:#E7EEF5;     /* 淡藍 面 */
-  --keisen:#DFDCD4;    /* 罫 */
-  --shu:#A63A24;       /* 朱 注意 */
-  --mincho:"Hiragino Mincho ProN","Yu Mincho","YuMincho",serif;
+  --bg:#0A0D13;
+  --bg2:#0F131C;
+  --panel:#141924;
+  --panel2:#1B2130;
+  --line:rgba(255,255,255,.09);
+  --text:#EAF0FA;
+  --text-dim:#7C87A0;
+  --suburi:#00F0C0;
+  --suburi-dim:rgba(0,240,192,.14);
+  --shoko:#FF7A45;
+  --shoko-dim:rgba(255,122,69,.14);
+  --warn:#FF3D6E;
+  --warn-dim:rgba(255,61,110,.13);
+  --accent:#7C5CFF;
+  --accent-dim:rgba(124,92,255,.15);
+  --gold:#FFD166;
   --gothic:"Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;
+  --mono:"SF Mono","Menlo","Consolas",monospace;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;background:var(--kiji);color:var(--sumi);font-family:var(--gothic)}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:var(--gothic)}
 body{
   font-size:15px;line-height:1.7;
-  padding:0 20px calc(40px + env(safe-area-inset-bottom));
+  padding:0 18px calc(48px + env(safe-area-inset-bottom));
   max-width:30rem;margin:0 auto;
+  background:
+    radial-gradient(ellipse 600px 300px at 20% -5%, var(--suburi-dim), transparent 60%),
+    radial-gradient(ellipse 600px 300px at 100% 10%, var(--shoko-dim), transparent 60%),
+    var(--bg);
+  min-height:100vh;
 }
 button{font-family:inherit;font-size:inherit;color:inherit;border:0;background:none;cursor:pointer}
-button:focus-visible,input:focus-visible{outline:2px solid var(--ai);outline-offset:2px}
+button:focus-visible,input:focus-visible{outline:2px solid var(--suburi);outline-offset:2px}
+input[type=number]::-webkit-inner-spin-button{opacity:.5}
+
+.cut{clip-path:polygon(0 0,calc(100% - 14px) 0,100% 14px,100% 100%,14px 100%,0 calc(100% - 14px))}
 
 /* ── 日付 ── */
+.app-header{
+  display:flex;align-items:center;gap:8px;padding:26px 0 0;flex-wrap:wrap;
+}
+.app-title{font-size:13px;font-weight:700;letter-spacing:.14em;color:var(--text-dim)}
+.app-version{
+  font-family:var(--mono);font-size:11px;color:var(--accent);
+  padding:2px 7px;border:1px solid var(--accent);border-radius:10px;
+  background:var(--accent-dim);letter-spacing:.02em;
+}
+.teema-kirikae{display:flex;gap:6px;margin-left:auto}
+.teema-kirikae button{
+  padding:4px 10px;border-radius:12px;font-size:11px;border:1px solid var(--line);
+  background:var(--panel);color:var(--text-dim);letter-spacing:.02em;
+}
+.teema-kirikae button.eranda{background:var(--accent-dim);border-color:var(--accent);color:var(--accent);font-weight:700}
 .hizuke{
-  padding:28px 0 0;font-family:var(--mincho);font-size:14px;
-  color:var(--usuzumi);letter-spacing:.08em;
+  padding:6px 0 0;font-size:12px;
+  color:var(--text-dim);letter-spacing:.22em;text-transform:uppercase;
 }
 
 /* ── 再開バナー ── */
 .modoshi-banner{
-  margin-top:16px;padding:14px 16px;background:var(--awaai);border-radius:2px;
+  margin-top:16px;padding:14px 16px;background:var(--accent-dim);
+  border:1px solid var(--accent);border-radius:6px;
   display:flex;align-items:center;justify-content:space-between;gap:10px;
 }
-.modoshi-banner p{margin:0;font-size:14px;color:var(--ai)}
-.modoshi-banner button{padding:9px 18px;background:var(--ai);color:#fff;border-radius:2px;font-size:13px;white-space:nowrap}
+.modoshi-banner p{margin:0;font-size:14px;color:var(--text)}
+.modoshi-banner button{padding:9px 18px;background:var(--accent);color:#0A0D13;border-radius:4px;font-size:13px;white-space:nowrap;font-weight:700}
 
 /* ── 体重 ── */
-.taiju{padding:14px 0 26px}
+.taiju{padding:16px 0 26px}
 .taiju-kazu{
-  font-family:var(--mincho);font-size:62px;line-height:1;
-  letter-spacing:-.01em;font-weight:400;
+  font-family:var(--mono);font-size:58px;line-height:1;font-weight:700;
+  letter-spacing:-.02em;color:var(--text);
+  text-shadow:0 0 22px var(--accent-dim);
 }
-.taiju-kazu .tani{font-size:22px;margin-left:4px;color:var(--usuzumi)}
-.taiju-mikeisoku{font-family:var(--mincho);font-size:34px;color:var(--usuzumi);line-height:1.3}
-.taiju-shita{margin-top:14px;display:flex;gap:26px;flex-wrap:wrap}
-.kumi{line-height:1.45}
-.kumi dt{font-size:12px;color:var(--usuzumi);margin:0}
-.kumi dd{margin:0;font-family:var(--mincho);font-size:20px}
-.kensu{font-size:11px;color:var(--usuzumi);font-family:var(--gothic)}
+.taiju-kazu .tani{font-size:20px;margin-left:4px;color:var(--text-dim);font-weight:400}
+.taiju-mikeisoku{font-size:17px;color:var(--text-dim)}
+.taiju-shita{margin-top:14px;display:flex;gap:22px;flex-wrap:wrap}
+.kumi{line-height:1.4}
+.kumi dt{font-size:11px;color:var(--text-dim);margin:0;letter-spacing:.06em}
+.kumi dd{margin:0;font-family:var(--mono);font-size:18px;color:var(--text)}
+.kensu{font-size:11px;color:var(--text-dim);font-family:var(--gothic)}
 
 /* ── 入力 ── */
-.nyuryoku{display:flex;gap:8px;align-items:center;margin-top:18px}
+.nyuryoku{display:flex;gap:8px;align-items:center;margin-top:16px}
 .nyuryoku input{
-  font-family:var(--mincho);font-size:26px;width:5.4em;
-  padding:6px 10px;border:1px solid var(--keisen);border-radius:2px;
-  background:#fff;color:var(--sumi);text-align:right;
+  font-family:var(--mono);font-size:22px;width:5.4em;
+  padding:8px 10px;border:1px solid var(--line);border-radius:4px;
+  background:var(--panel);color:var(--text);text-align:right;
 }
-.nyuryoku .tani{color:var(--usuzumi);font-size:15px}
+.nyuryoku input:focus{border-color:var(--accent)}
+.nyuryoku .tani{color:var(--text-dim);font-size:14px}
 .hozon{
-  margin-left:auto;padding:9px 20px;background:var(--ai);color:#fff;
-  border-radius:2px;letter-spacing:.04em;
+  margin-left:auto;padding:9px 18px;background:var(--accent);color:#0A0D13;
+  border-radius:4px;letter-spacing:.04em;font-weight:700;font-size:13px;
 }
-.hozon:disabled{background:var(--keisen);color:#fff;cursor:default}
-.yobikake{margin-top:16px;color:var(--usuzumi);font-size:13px}
+.hozon:disabled{background:var(--panel2);color:var(--text-dim);cursor:default}
+.yobikake{margin-top:14px;color:var(--text-dim);font-size:12px}
 
-/* ── ウエスト（体重より控えめな扱い） ── */
-.uesuto{margin-top:22px;padding-top:18px;border-top:1px solid var(--keisen)}
+/* ── ウエスト ── */
+.uesuto{margin-top:22px;padding-top:18px;border-top:1px solid var(--line)}
 .uesuto-atai-retsu{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
-.uesuto-label{font-size:12px;color:var(--usuzumi)}
-.uesuto-genzai{font-family:var(--mincho);font-size:26px}
-.uesuto-genzai small{font-size:14px;color:var(--usuzumi);margin-left:2px;font-family:var(--gothic)}
-.uesuto-heikin{font-size:12px;color:var(--usuzumi)}
+.uesuto-label{font-size:11px;color:var(--text-dim);letter-spacing:.06em}
+.uesuto-genzai{font-family:var(--mono);font-size:22px;color:var(--text)}
+.uesuto-genzai small{font-size:13px;color:var(--text-dim);margin-left:2px;font-family:var(--gothic)}
+.uesuto-heikin{font-size:11px;color:var(--text-dim)}
 .uesuto .nyuryoku{margin-top:10px}
 
 /* ── 仕切り ── */
-hr{border:0;border-top:1px solid var(--keisen);margin:0}
+hr{border:0;border-top:1px solid var(--line);margin:0}
 
 /* ── 今日のメニュー ── */
 .kondate{padding:24px 0 0}
-.midashi{font-family:var(--mincho);font-size:17px;margin:0 0 12px;font-weight:400}
-.shurui{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--keisen)}
+.midashi{font-size:12px;margin:0 0 14px;font-weight:700;letter-spacing:.2em;color:var(--text-dim);text-transform:uppercase}
+.shurui{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
 .shurui:last-of-type{border-bottom:0}
-.shurui .fun{font-family:var(--mincho);font-size:19px}
-.shurui .nashi{color:var(--shu);font-size:14px;font-family:var(--gothic)}
+.shurui .fun{font-family:var(--mono);font-size:19px;font-weight:700}
+.shurui .fun.c-suburi{color:var(--suburi)}
+.shurui .fun.c-shoko{color:var(--shoko)}
+.shurui .nashi{color:var(--warn);font-size:13px;font-family:var(--gothic)}
 .chosei{
-  margin-top:12px;padding:10px 12px;background:var(--awaai);
-  border-radius:2px;font-size:13px;line-height:1.6;
+  margin-top:12px;padding:10px 12px;background:var(--panel);
+  border-left:3px solid var(--accent);border-radius:2px;font-size:13px;line-height:1.6;color:var(--text-dim);
 }
-.chosei.itami{background:#F6E9E5;color:var(--shu)}
+.chosei.itami{border-left-color:var(--warn);background:var(--warn-dim);color:#FFD5DF}
 
 /* ── 左右モード選択 ── */
 .legmode-retsu{display:flex;gap:8px;margin-top:16px}
 .legmode-retsu button{
-  flex:1;padding:9px 4px;border:1px solid var(--keisen);border-radius:2px;
-  background:#fff;font-size:13px;color:var(--usuzumi);
+  flex:1;padding:10px 4px;border:1px solid var(--line);border-radius:4px;
+  background:var(--panel);font-size:13px;color:var(--text-dim);
 }
-.legmode-retsu button.eranda{background:var(--ai);border-color:var(--ai);color:#fff}
-.legmode-chui{margin-top:8px;font-size:12px;color:var(--shu)}
+.legmode-retsu button.eranda{background:var(--shoko-dim);border-color:var(--shoko);color:var(--shoko);font-weight:700}
+.legmode-chui{margin-top:8px;font-size:12px;color:var(--warn)}
 
 /* ── 開始ボタン ── */
 .kaishi{
-  display:block;width:100%;margin-top:20px;padding:17px;
-  background:var(--ai);color:#fff;border-radius:2px;
-  font-size:17px;letter-spacing:.14em;font-family:var(--mincho);
+  display:block;width:100%;margin-top:20px;padding:18px;
+  background:linear-gradient(90deg,var(--suburi),var(--shoko));color:#0A0D13;
+  border-radius:6px;font-size:16px;letter-spacing:.1em;font-weight:800;
 }
 
 /* ── 運動画面 ── */
-.undou{padding:44px 0 10px;text-align:center}
-.undou-midashi{font-family:var(--mincho);font-size:20px;margin:0}
-.undou-ashi{margin:8px 0 0;font-size:15px;color:var(--ai);font-family:var(--mincho)}
+.undou{padding:20px 0 10px;text-align:center}
+.phase-tabs{display:flex;gap:8px;margin-bottom:26px}
+.phase-tab{
+  flex:1;padding:11px 4px;border:1px solid var(--line);border-radius:6px;
+  background:var(--panel);font-size:13px;color:var(--text-dim);font-weight:700;letter-spacing:.04em;
+}
+.phase-tab.active.p-suburi{background:var(--suburi-dim);border-color:var(--suburi);color:var(--suburi);box-shadow:0 0 16px var(--suburi-dim)}
+.phase-tab.active.p-shoko{background:var(--shoko-dim);border-color:var(--shoko);color:var(--shoko);box-shadow:0 0 16px var(--shoko-dim)}
+.phase-tab:disabled{opacity:.35}
+
+.undou-midashi{font-size:13px;margin:0;letter-spacing:.2em;color:var(--text-dim);text-transform:uppercase}
+.undou-ashi{margin:6px 0 0;font-size:14px;font-weight:700}
+.undou.p-suburi .undou-ashi{color:var(--suburi)}
+.undou.p-shoko .undou-ashi{color:var(--shoko)}
+
+.ring-wrap{position:relative;width:236px;height:236px;margin:22px auto 6px}
+.ring{position:absolute;inset:0;border-radius:50%}
+.ring-inner{
+  position:absolute;inset:14px;border-radius:50%;background:var(--bg2);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  border:1px solid var(--line);
+}
 .undou-taimaa{
-  font-family:var(--mincho);font-size:64px;line-height:1;
-  margin:24px 0 4px;letter-spacing:-.01em;font-variant-numeric:tabular-nums;
+  font-family:var(--mono);font-size:46px;line-height:1;font-weight:700;
+  letter-spacing:-.02em;font-variant-numeric:tabular-nums;
 }
-.undou-mokuhyo{font-size:13px;color:var(--usuzumi);margin:0}
-.honsu-retsu{margin-top:28px}
-.honsu-atai{font-family:var(--mincho);font-size:28px}
-.kazu-btn-retsu{display:flex;gap:10px;justify-content:center;margin-top:12px}
+.undou.p-suburi .undou-taimaa{color:var(--suburi);text-shadow:0 0 18px var(--suburi-dim)}
+.undou.p-shoko .undou-taimaa{color:var(--shoko);text-shadow:0 0 18px var(--shoko-dim)}
+.undou-mokuhyo{font-size:12px;color:var(--text-dim);margin:6px 0 0}
+
+.tassei-badge{
+  display:inline-block;margin-top:14px;padding:6px 16px;border-radius:20px;
+  background:var(--gold);color:#3A2A00;font-size:12px;font-weight:800;letter-spacing:.06em;
+  animation:tasseiPop .5s ease;
+}
+@keyframes tasseiPop{0%{transform:scale(.5);opacity:0}60%{transform:scale(1.08);opacity:1}100%{transform:scale(1)}}
+.particle-layer{position:absolute;inset:0;pointer-events:none;overflow:visible}
+.particle{
+  position:absolute;left:50%;top:50%;width:6px;height:6px;border-radius:50%;
+  background:var(--gold);opacity:0;
+  animation:particleFly 900ms ease-out forwards;
+}
+@keyframes particleFly{
+  0%{opacity:1;transform:translate(-50%,-50%) rotate(var(--ang)) translateX(0) scale(1)}
+  100%{opacity:0;transform:translate(-50%,-50%) rotate(var(--ang)) translateX(120px) scale(.3)}
+}
+
+.honsu-retsu{margin-top:26px}
+.honsu-atai{font-family:var(--mono);font-size:26px;font-weight:700;color:var(--suburi)}
+.kazu-btn-retsu{display:flex;gap:8px;justify-content:center;margin-top:12px}
+.kazu-btn-retsu.minus{margin-top:8px}
 .kazu-btn-retsu button{
-  padding:10px 16px;border:1px solid var(--keisen);border-radius:2px;
-  background:#fff;font-size:14px;
+  padding:9px 14px;border:1px solid var(--line);border-radius:6px;
+  background:var(--panel);font-size:13px;color:var(--text);font-family:var(--mono);
 }
-.sosa-retsu{display:flex;gap:10px;margin-top:40px}
-.sosa-retsu button{flex:1;padding:17px;border-radius:2px;font-size:15px}
-.ichiji-btn{background:var(--awaai);color:var(--ai)}
-.owari-btn{background:var(--ai);color:#fff}
+.kazu-btn-retsu.plus button{color:var(--suburi);border-color:rgba(0,240,192,.3)}
+.kazu-btn-retsu.minus button{color:var(--text-dim)}
+
+.sosa-retsu{display:flex;gap:10px;margin-top:36px}
+.sosa-retsu button{flex:1;padding:16px;border-radius:6px;font-size:14px;font-weight:700;letter-spacing:.04em}
+.ichiji-btn{background:var(--panel2);color:var(--text);border:1px solid var(--line)}
+.owari-btn{background:var(--warn);color:#fff}
 
 /* ── 終了記録画面 ── */
-.shuryo{padding:30px 0}
-.shuryo-midashi{font-family:var(--mincho);font-size:19px;margin:0 0 20px;font-weight:400}
-.shuryo-koumoku{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--keisen);font-size:14px}
-.shuryo-koumoku .atai{font-family:var(--mincho);font-size:18px}
-.shuryo-kcal{margin-top:8px;font-size:12px;color:var(--usuzumi)}
-.hirou-midashi{margin-top:28px;font-size:14px;font-family:var(--mincho)}
+.shuryo{padding:26px 0}
+.shuryo-midashi{font-size:20px;margin:0 0 6px;font-weight:800}
+.shuryo-sub{margin:0 0 20px;font-size:12px;color:var(--text-dim);letter-spacing:.1em}
+.badge-retsu{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+.badge{
+  padding:6px 12px;border-radius:20px;font-size:12px;font-weight:800;letter-spacing:.03em;
+  border:1px solid var(--gold);color:var(--gold);background:rgba(255,209,102,.1);
+  box-shadow:0 0 14px rgba(255,209,102,.25);
+}
+.hosei-hint{font-size:11px;color:var(--text-dim);margin:-8px 0 14px}
+.shuryo-koumoku{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px}
+.shuryo-koumoku .atai{font-family:var(--mono);font-size:17px;color:var(--text)}
+.shuryo-koumoku .hosei-nyu{
+  width:4em;font-family:var(--mono);font-size:17px;text-align:right;
+  padding:5px 8px;border:1px solid var(--line);border-radius:4px;background:var(--panel);color:var(--text);
+}
+.shuryo-koumoku.c-suburi .hosei-nyu:focus,.shuryo-koumoku.c-suburi .atai{color:var(--suburi)}
+.shuryo-koumoku.c-shoko .hosei-nyu:focus,.shuryo-koumoku.c-shoko .atai{color:var(--shoko)}
+.shuryo-kcal{margin-top:8px;font-size:12px;color:var(--text-dim)}
+.hirou-midashi{margin-top:28px;font-size:12px;letter-spacing:.15em;color:var(--text-dim);text-transform:uppercase}
 .hirou-retsu{display:flex;gap:6px;margin-top:10px}
 .hirou-retsu button{
-  flex:1;padding:10px 2px;border:1px solid var(--keisen);border-radius:2px;
-  background:#fff;font-size:12px;line-height:1.5;
-}
-.hirou-retsu button.eranda{background:var(--ai);border-color:var(--ai);color:#fff}
-.itami-midashi{margin-top:26px;font-size:14px;font-family:var(--mincho)}
+  flex:1;padding:10px 2px;border:1px solid var(--line);border-radius:6px;
+  background:var(--panel);font-size:11px;line-height:1.5;color:var(--text-dim);font-family:var(--mono)}
+.hirou-retsu button.eranda{background:var(--accent-dim);border-color:var(--accent);color:var(--accent);font-weight:700}
+.itami-midashi{margin-top:26px;font-size:12px;letter-spacing:.15em;color:var(--text-dim);text-transform:uppercase}
 .itami-retsu{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
-.itami-chip{padding:8px 14px;border:1px solid var(--keisen);border-radius:20px;background:#fff;font-size:13px}
-.itami-chip.eranda{background:#F6E9E5;border-color:var(--shu);color:var(--shu)}
+.itami-chip{padding:8px 14px;border:1px solid var(--line);border-radius:20px;background:var(--panel);font-size:13px;color:var(--text-dim)}
+.itami-chip.eranda{background:var(--warn-dim);border-color:var(--warn);color:var(--warn);font-weight:700}
 .hozon-owari{
-  display:block;width:100%;margin-top:32px;padding:16px;
-  background:var(--ai);color:#fff;border-radius:2px;
-  font-family:var(--mincho);font-size:16px;letter-spacing:.1em;
+  display:block;width:100%;margin-top:32px;padding:17px;
+  background:var(--accent);color:#0A0D13;border-radius:6px;
+  font-size:15px;letter-spacing:.06em;font-weight:800;
 }
-.hozon-owari:disabled{background:var(--keisen)}
+.hozon-owari:disabled{background:var(--panel2);color:var(--text-dim)}
 
 /* ── 今週 ── */
-.konshu{padding:26px 0 0}
-.masu{display:flex;gap:6px;margin:10px 0 0}
+.konshu{padding:28px 0 0}
+.masu{display:flex;gap:6px;margin:12px 0 0}
 .hi{flex:1;text-align:center}
-.hi .yobi{font-size:11px;color:var(--usuzumi)}
+.hi .yobi{font-size:11px;color:var(--text-dim)}
 .hi .shirushi{
-  margin-top:4px;height:30px;border-radius:2px;border:1px solid var(--keisen);
+  margin-top:4px;height:32px;border-radius:6px;border:1px solid var(--line);
   display:flex;align-items:center;justify-content:center;
-  font-family:var(--mincho);font-size:13px;color:var(--usuzumi);background:#fff;
+  font-family:var(--mono);font-size:12px;color:var(--text-dim);background:var(--panel);
 }
-.hi.jisshi .shirushi{background:var(--ai);border-color:var(--ai);color:#fff}
-.hi.kyuyo .shirushi{background:var(--awaai);border-color:var(--awaai);color:var(--ai)}
-.hi.kyo .yobi{color:var(--ai)}
-.shukei{margin-top:12px;font-size:13px;color:var(--usuzumi)}
+.hi.jisshi .shirushi{background:var(--suburi-dim);border-color:var(--suburi);color:var(--suburi);font-weight:700}
+.hi.kyuyo .shirushi{background:var(--panel2);border-color:var(--line);color:var(--text-dim)}
+.hi.kyo .shirushi{box-shadow:0 0 12px var(--accent-dim);border-color:var(--accent)}
+.hi.kyo .yobi{color:var(--accent);font-weight:700}
+.shukei{margin-top:12px;font-size:12px;color:var(--text-dim)}
 
-.chui{margin-top:30px;font-size:12px;color:var(--usuzumi);line-height:1.7}
+.chui{margin-top:32px;font-size:11px;color:var(--text-dim);line-height:1.7}
 @media (prefers-reduced-motion:no-preference){
-  .hozon,.kaishi,.hozon-owari{transition:opacity .15s}
+  .hozon,.kaishi,.hozon-owari,.phase-tab{transition:opacity .15s,transform .1s}
 }
-.hozon:active,.kaishi:active,.hozon-owari:active{opacity:.7}
+.hozon:active,.kaishi:active,.hozon-owari:active,.phase-tab:active{opacity:.7}
 </style>
 </head>
 <body>
@@ -188,14 +282,16 @@ hr{border:0;border-top:1px solid var(--keisen);margin:0}
 "use strict";
 /* ===========================================================
    木刀素振り＋一段昇降　管理アプリ
-   実装2.1：体重に加えてウエスト（cm）の記録を追加
+   実装3：
+   ・運動画面をタブ切替式にし、フェーズの手直し（誤操作の訂正）に対応
+   ・回数カウントに「－」ボタンを追加（数え間違いの訂正）
+   ・終了記録画面で素振り／昇降の分数を手入力で補正できるように
+   ・痛みチェックに左右（右／左）の項目を追加
+   ・デザインをダーク×ネオンの引き締まった見た目に刷新、達成演出を追加
    仕様書 v1 準拠。カロリー表示のみ実施、グラム換算はしない（10章）。
-   ウエストは仕様書外の追加項目のため、体重より控えめな扱いにする。
    =========================================================== */
 
-/* ---------- 保存層 -------------------------------------------------
-   localStorage を使う。使えない環境（プレビュー枠など）では
-   メモリに退避して、画面が壊れないようにする。              */
+/* ---------- 保存層 ------------------------------------------------- */
 const Kioku = (() => {
   let tsukaeru = true;
   try { localStorage.setItem("__t","1"); localStorage.removeItem("__t"); }
@@ -217,25 +313,39 @@ const Kioku = (() => {
   };
 })();
 
+/* ---------- バージョン ----------------------------------------------
+   改善のたびにここを更新する。表示はホーム画面のアプリ名の横。
+   増分ルール：新機能追加は +0.1、不具合修正のみは +0.0.1
+   v1.0  2026-xx-xx  実装1：データ層＋ホーム＋体重入力
+   v1.1  2026-xx-xx  実装2：運動画面の追加
+   v1.2  2026-09-13  実装3：フェーズ手直しタブ／回数の－ボタン／
+                     終了記録の分数手入力補正／痛みチェックの左右項目／
+                     ダーク×ネオンのデザイン刷新／達成演出
+   v1.3  2026-09-13  配色テーマを「爽やか系」「派手系」の2種類に分け、
+                     ホーム画面右上でいつでも切り替え可能に（設定に保存）
+   ------------------------------------------------------------------ */
+const APP_VERSION = "1.3";
+
 const KEY_KIROKU  = "bokuto.kiroku.v1";
 const KEY_SETTEI  = "bokuto.settei.v1";
-const KEY_SESSION = "bokuto.session.v1";
+const KEY_SESSION = "bokuto.session.v2";
 
 /* ---------- 設定 --------------------------------------------------- */
 const KITEI_SETTEI = {
   kaishiBi: null,
   kaishiTaiju: 75.0,
   mokuhyoShukan: -1.0,
-  kirikaeFun: 1,               // 一段昇降の左右切替（1 or 2 分）
-  kiteiLegMode: "kogo",        // kogo / migi / hidari
+  kirikaeFun: 1,
+  kiteiLegMode: "kogo",
+  colorTeema: "sawayaka",   // "sawayaka"（爽やか系）| "hade"（派手系）
   shukan: [
-    { suburi:13, shoko:18, sonota:5  },  // 日
-    { suburi:25, shoko:20, sonota:10 },  // 月
-    { suburi:20, shoko:25, sonota:10 },  // 火
-    { suburi:15, shoko:20, sonota:10 },  // 水
-    { suburi:25, shoko:20, sonota:10 },  // 木
-    { suburi:20, shoko:25, sonota:10 },  // 金
-    { suburi:30, shoko:20, sonota:10 },  // 土
+    { suburi:13, shoko:18, sonota:5  },
+    { suburi:25, shoko:20, sonota:10 },
+    { suburi:20, shoko:25, sonota:10 },
+    { suburi:15, shoko:20, sonota:10 },
+    { suburi:25, shoko:20, sonota:10 },
+    { suburi:20, shoko:25, sonota:10 },
+    { suburi:30, shoko:20, sonota:10 },
   ]
 };
 
@@ -246,11 +356,41 @@ function setteiYomu(){
 }
 function setteiKaku(s){ Kioku.kaku(KEY_SETTEI, s); }
 
-/* ---------- 記録 ---------------------------------------------------
-   DailyRecord = {
-     date, weightKg, waistCm, suburiMin, suburiCount,
-     shokoMigiMin, shokoHidariMin, fatigue, pain[], legModeUsed
-   } */
+/* ---------- 配色テーマ ------------------------------------------------
+   「爽やか系」（ターコイズ×スカイブルー×ミント）と
+   「派手系」（ライム×マゼンタ×イエロー）の2種類を用意し、
+   ホーム画面右上のボタンでいつでも切り替えられる。            */
+const TEEMA = {
+  sawayaka: {
+    suburi:"#00E5C4", suburiDim:"rgba(0,229,196,.16)",
+    shoko:"#3AB4FF",  shokoDim:"rgba(58,180,255,.16)",
+    accent:"#3DFFB0", accentDim:"rgba(61,255,176,.17)"
+  },
+  hade: {
+    suburi:"#D4FF1F", suburiDim:"rgba(212,255,31,.16)",
+    shoko:"#FF2E9C",  shokoDim:"rgba(255,46,156,.17)",
+    accent:"#FFDA00", accentDim:"rgba(255,218,0,.17)"
+  }
+};
+function teemaTekiyou(name){
+  const t = TEEMA[name] || TEEMA.sawayaka;
+  const r = document.documentElement.style;
+  r.setProperty("--suburi", t.suburi);
+  r.setProperty("--suburi-dim", t.suburiDim);
+  r.setProperty("--shoko", t.shoko);
+  r.setProperty("--shoko-dim", t.shokoDim);
+  r.setProperty("--accent", t.accent);
+  r.setProperty("--accent-dim", t.accentDim);
+}
+function teemaKirikae(name){
+  const s = setteiYomu();
+  s.colorTeema = name;
+  setteiKaku(s);
+  teemaTekiyou(name);
+  hyouji();
+}
+
+/* ---------- 記録 ---------------------------------------------------- */
 function kirokuZenbu(){ return Kioku.yomu(KEY_KIROKU, {}); }
 function kirokuHozon(zenbu){ Kioku.kaku(KEY_KIROKU, zenbu); }
 function kirokuToru(hizuke){ return kirokuZenbu()[hizuke] || null; }
@@ -266,9 +406,9 @@ function kirokuKaku(hizuke, henko){
   return zenbu[hizuke];
 }
 
-/* ---------- 運動中セッション（中断復帰用）--------------------------
-   タイマーは「開始時刻との差分」で計算するので、
-   アプリが裏に回っても正しい経過時間に戻る。                     */
+/* ---------- 運動中セッション ----------------------------------------
+   v2：素振り・昇降それぞれが自分の時計を持ち、タブでいつでも
+   行き来できる。誤って進めてしまっても、タブで戻せば良い。      */
 function sessionYomu(){ return Kioku.yomu(KEY_SESSION, null); }
 function sessionKaku(s){ Kioku.kaku(KEY_SESSION, s); }
 
@@ -286,8 +426,7 @@ function keiSaikai(clock){
   return { accumulatedMs: clock.accumulatedMs, runningSince: Date.now() };
 }
 
-/* 一段昇降の左右振り分け（切替間隔ごとに右→左を交互に）。
-   ポーズ中は経過に含まれないので、再開後もずれない。 */
+/* 一段昇降の左右振り分け（切替間隔ごとに右→左を交互に）。 */
 function ashiWake(keikaMs, kirikaeFun, legMode){
   if (legMode === "migi")   return { migiMs: keikaMs, hidariMs: 0, ima: "migi" };
   if (legMode === "hidari") return { migiMs: 0, hidariMs: keikaMs, ima: "hidari" };
@@ -334,9 +473,7 @@ function funByouHyouji(ms){
   return `${m}:${String(s).padStart(2,"0")}`;
 }
 
-/* ---------- 数値の集計（体重・ウエスト共通）------------------------
-   field を指定すると、その項目の直近7日平均を出す。
-   「直近7日のうち測定できた日」で計算し、件数も返す。          */
+/* ---------- 数値の集計（体重・ウエスト共通）------------------------ */
 function idoHeikin(hizuke, nissu = 7, field = "weightKg"){
   const zenbu = kirokuZenbu();
   let goukei = 0, kensu = 0;
@@ -354,10 +491,23 @@ function saishinTaiju(hizuke){
   }
   return null;
 }
+function suburiCountSaikou(ignoreHizuke){
+  const zenbu = kirokuZenbu();
+  let saikou = 0;
+  for (const k in zenbu){
+    if (k === ignoreHizuke) continue;
+    const c = zenbu[k].suburiCount;
+    if (typeof c === "number" && c > saikou) saikou = c;
+  }
+  return saikou;
+}
 
-/* ---------- 翌日メニュー調整（仕様書9章）--------------------------- */
+/* ---------- 翌日メニュー調整（仕様書9章）---------------------------
+   痛み項目は左右（_migi / _hidari）を持つが、部位の判定は
+   前方一致でまとめて見る（左右どちらでも同じ扱い）。            */
 const ITAMI_UDE  = ["kata","hiji","tekubi"];
 const ITAMI_ASHI = ["hiza","ashikubi"];
+function budoIchizu(pain, sesshuji){ return sesshuji.some(pref => pain.startsWith(pref)); }
 
 function kyoNoMenu(hizuke, settei){
   const kihon = settei.shukan[yobiBango(hizuke)];
@@ -377,11 +527,11 @@ function kyoNoMenu(hizuke, settei){
     }
 
     const itami = zenjitsu.pain || [];
-    if (itami.some(p => ITAMI_UDE.includes(p))){
+    if (itami.some(p => budoIchizu(p, ITAMI_UDE))){
       suburi = 0; itamiAri = true;
       riyu.push("腕・肩に痛みがあったため素振りを止めています。");
     }
-    if (itami.some(p => ITAMI_ASHI.includes(p))){
+    if (itami.some(p => budoIchizu(p, ITAMI_ASHI))){
       shoko = 0; itamiAri = true;
       riyu.push("脚に痛みがあったため一段昇降を止めています。");
     }
@@ -434,17 +584,20 @@ function konshuNoHi(hizuke){
    =========================================================== */
 const app = document.getElementById("app");
 
-let gamen = "home";           // "home" | "undou" | "shuryo"
-let nyuryokuChu = null;       // 体重入力欄の一時値
-let uesutoNyuryokuChu = null; // ウエスト入力欄の一時値
-let legModeErabi = null;      // ホームで選んだ今日の左右モード
-let undouTaimaaId = null;     // 運動画面の1秒更新
-let erabaretaHirouido = null; // 終了記録：疲労度
-let erabaretaItami = [];      // 終了記録：痛み部位
+let gamen = "home";
+let nyuryokuChu = null;
+let uesutoNyuryokuChu = null;
+let legModeErabi = null;
+let undouTaimaaId = null;
+let erabaretaHirouido = null;
+let erabaretaItami = [];
+let shuryoSuburiHosei = null;   // 終了記録画面：素振り分の手入力補正
+let shuryoShokoHosei = null;    // 終了記録画面：昇降分の手入力補正
 
 function esc(s){ return String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
-function su(n){ return n.toFixed(1); } // 体重・ウエスト共通の表示フォーマット
+function su(n){ return n.toFixed(1); }
 function fuKi(n){ return (n > 0 ? "+" : n < 0 ? "−" : "±") + Math.abs(n).toFixed(1); }
+function seisu(v, kitei){ const n = parseInt(v,10); return isFinite(n) && n >= 0 ? n : kitei; }
 
 function hyouji(){
   if (gamen === "undou") egakuUndou();
@@ -498,6 +651,14 @@ function egaku(){
              : (uesuto !== null ? su(uesuto) : "");
 
   app.innerHTML = `
+  <div class="app-header">
+    <span class="app-title">素振り＋一段昇降</span>
+    <span class="app-version">v${APP_VERSION}</span>
+    <div class="teema-kirikae">
+      <button data-teema="sawayaka" class="${settei.colorTeema==='sawayaka' ? 'eranda':''}">爽やか</button>
+      <button data-teema="hade" class="${settei.colorTeema==='hade' ? 'eranda':''}">派手</button>
+    </div>
+  </div>
   <p class="hizuke">${hizukeHyoji}</p>
 
   ${session ? `
@@ -562,11 +723,11 @@ function egaku(){
     ` : `
       <div class="shurui">
         <span>木刀素振り</span>
-        <span class="${menu.suburi ? "fun" : "nashi"}">${menu.suburi ? menu.suburi + "分" : "今日は休む"}</span>
+        <span class="${menu.suburi ? "fun c-suburi" : "nashi"}">${menu.suburi ? menu.suburi + "分" : "今日は休む"}</span>
       </div>
       <div class="shurui">
         <span>一段昇降</span>
-        <span class="${menu.shoko ? "fun" : "nashi"}">${menu.shoko ? menu.shoko + "分" : "今日は休む"}</span>
+        <span class="${menu.shoko ? "fun c-shoko" : "nashi"}">${menu.shoko ? menu.shoko + "分" : "今日は休む"}</span>
       </div>
       <div class="shurui">
         <span>準備・整理</span>
@@ -606,6 +767,10 @@ function egaku(){
     ${Kioku.tsukaeru ? "" : "<br>この画面では記録が保存されません。ファイルを保存してブラウザで開いてください。"}
   </p>
   `;
+
+  app.querySelectorAll(".teema-kirikae button").forEach(b => {
+    b.addEventListener("click", () => teemaKirikae(b.dataset.teema));
+  });
 
   const nyu = document.getElementById("taijuNyu");
   nyu.addEventListener("input", e => { nyuryokuChu = e.target.value; });
@@ -667,8 +832,10 @@ function uesutoHozonSuru(){
 }
 
 /* ---------- 運動画面 -------------------------------------------------
-   タイマーは開始時刻との差分で計算するため、バックグラウンドに
-   回ってもズレない。1秒ごとに再描画して見た目を更新するだけ。 */
+   素振り・昇降それぞれに自分の時計を持たせ、タブでいつでも
+   行き来できるようにする。タップ間違いで進んでしまっても、
+   もう片方のタブを押せばすぐ戻せる。時間は各フェーズごとに
+   独立して積み上がる（行き来しても消えない）。                    */
 function undouKaishi(legModeSentaku){
   const kyo = kyoNoHizuke();
   const settei = setteiYomu();
@@ -678,18 +845,31 @@ function undouKaishi(legModeSentaku){
     date: kyo,
     legMode: legModeSentaku,
     phase,
+    suburiClock: { accumulatedMs:0, runningSince: phase === "suburi" ? Date.now() : null },
+    shokoClock:  { accumulatedMs:0, runningSince: phase === "shoko"  ? Date.now() : null },
     suburiCount: 0,
-    suburiClock: phase === "suburi" ? keiKaishi() : null,
-    suburiFinalMs: phase === "suburi" ? null : 0,
-    shokoClock: phase === "shoko" ? keiKaishi() : null,
-    shokoFinalMs: null,
     menuSuburiMin: menu.suburi,
-    menuShokoMin: menu.shoko
+    menuShokoMin: menu.shoko,
+    suburiGoalFlashed: false,
+    shokoGoalFlashed: false
   };
   sessionKaku(session);
   gamen = "undou";
   hyouji();
 }
+
+function phaseKirikae(newPhase){
+  const s = sessionYomu(); if (!s || s.phase === newPhase) return;
+  if (s.phase === "suburi") s.suburiClock = keiIchiji(s.suburiClock);
+  else s.shokoClock = keiIchiji(s.shokoClock);
+  s.phase = newPhase;
+  if (newPhase === "suburi") s.suburiClock = keiSaikai(s.suburiClock);
+  else s.shokoClock = keiSaikai(s.shokoClock);
+  sessionKaku(s);
+  hyouji();
+}
+
+let tasseiEnshutsuChu = false; // 直前の描画で達成演出を出したか（連続で出さないため）
 
 function egakuUndou(){
   undouTaimaaTomeru();
@@ -702,6 +882,10 @@ function egakuUndou(){
   const keika = keiKeika(clock);
   const ugoiteiru = !!(clock && clock.runningSince);
   const mokuhyoFun = isSuburi ? s.menuSuburiMin : s.menuShokoMin;
+  const goalMs = mokuhyoFun * 60000;
+
+  const showSuburiTab = s.menuSuburiMin > 0 || (s.suburiClock && s.suburiClock.accumulatedMs > 0);
+  const showShokoTab  = s.menuShokoMin  > 0 || (s.shokoClock  && s.shokoClock.accumulatedMs  > 0);
 
   let ashiHyouji = "";
   if (!isSuburi){
@@ -709,32 +893,72 @@ function egakuUndou(){
     ashiHyouji = wake.ima === "migi" ? "右足先行" : "左足先行";
   }
 
+  /* 目標到達の一度きりの達成演出 */
+  let ima_tassei = false;
+  if (goalMs > 0 && keika >= goalMs){
+    const flagKey = isSuburi ? "suburiGoalFlashed" : "shokoGoalFlashed";
+    if (!s[flagKey]){ s[flagKey] = true; sessionKaku(s); ima_tassei = true; }
+  }
+
+  const ringIro = isSuburi ? "var(--suburi)" : "var(--shoko)";
+  const ratio = goalMs > 0 ? Math.min(1, keika / goalMs) : 0;
+  const deg = Math.round(ratio * 360);
+
+  const particles = ima_tassei
+    ? Array.from({length:14}).map((_,i) => `<div class="particle" style="--ang:${Math.round(i*(360/14))}deg;animation-delay:${(i%4)*40}ms"></div>`).join("")
+    : "";
+
   app.innerHTML = `
-    <div class="undou">
+    <div class="undou ${isSuburi ? 'p-suburi' : 'p-shoko'}">
+      ${(showSuburiTab && showShokoTab) ? `
+      <div class="phase-tabs">
+        <button class="phase-tab p-suburi ${isSuburi ? 'active' : ''}" id="tabSuburi">木刀素振り</button>
+        <button class="phase-tab p-shoko ${!isSuburi ? 'active' : ''}" id="tabShoko">一段昇降</button>
+      </div>` : ""}
+
       <p class="undou-midashi">${isSuburi ? "木刀素振り" : "一段昇降"}</p>
       ${!isSuburi ? `<p class="undou-ashi">${ashiHyouji}</p>` : ""}
-      <p class="undou-taimaa">${funByouHyouji(keika)}</p>
-      <p class="undou-mokuhyo">目安 ${mokuhyoFun}分</p>
+
+      <div class="ring-wrap">
+        <div class="ring" style="background:conic-gradient(${ringIro} ${deg}deg, rgba(255,255,255,.07) ${deg}deg)"></div>
+        <div class="ring-inner">
+          <p class="undou-taimaa">${funByouHyouji(keika)}</p>
+          <p class="undou-mokuhyo">目安 ${mokuhyoFun}分</p>
+        </div>
+        <div class="particle-layer">${particles}</div>
+      </div>
+      ${ima_tassei ? `<div class="tassei-badge">目標達成！</div>` : ""}
+
       ${isSuburi ? `
         <p class="honsu-retsu"><span class="honsu-atai">${s.suburiCount}本</span></p>
-        <div class="kazu-btn-retsu">
+        <div class="kazu-btn-retsu plus">
           <button data-add="10">＋10</button>
           <button data-add="50">＋50</button>
           <button data-add="100">＋100</button>
         </div>
+        <div class="kazu-btn-retsu minus">
+          <button data-add="-10">－10</button>
+          <button data-add="-50">－50</button>
+          <button data-add="-100">－100</button>
+        </div>
       ` : ""}
       <div class="sosa-retsu">
         <button id="ichijiBtn" class="ichiji-btn">${ugoiteiru ? "一時停止" : "再開"}</button>
-        <button id="owariBtn" class="owari-btn">終了</button>
+        <button id="owariBtn" class="owari-btn">運動を終える</button>
       </div>
     </div>
   `;
+
+  if (showSuburiTab && showShokoTab){
+    document.getElementById("tabSuburi").addEventListener("click", () => phaseKirikae("suburi"));
+    document.getElementById("tabShoko").addEventListener("click", () => phaseKirikae("shoko"));
+  }
 
   if (isSuburi){
     app.querySelectorAll(".kazu-btn-retsu button").forEach(b => {
       b.addEventListener("click", () => {
         const s2 = sessionYomu(); if (!s2) return;
-        s2.suburiCount += Number(b.dataset.add);
+        s2.suburiCount = Math.max(0, s2.suburiCount + Number(b.dataset.add));
         sessionKaku(s2);
         hyouji();
       });
@@ -749,55 +973,41 @@ function egakuUndou(){
     hyouji();
   });
 
-  document.getElementById("owariBtn").addEventListener("click", () => {
-    if (isSuburi) suburiOwari(); else shokoOwari();
-  });
+  document.getElementById("owariBtn").addEventListener("click", undouShuryo);
 
   if (ugoiteiru){
     undouTaimaaId = setInterval(() => { if (gamen === "undou") egakuUndou(); }, 1000);
   }
 }
 
-function suburiOwari(){
+function undouShuryo(){
   const s = sessionYomu(); if (!s) return;
-  const teishi = keiIchiji(s.suburiClock);
-  s.suburiFinalMs = teishi ? teishi.accumulatedMs : 0;
-  s.suburiClock = null;
-
-  if (s.menuShokoMin > 0){
-    s.phase = "shoko";
-    s.shokoClock = keiKaishi();
-    sessionKaku(s);
-    hyouji();
-  } else {
-    s.shokoFinalMs = 0;
-    sessionKaku(s);
-    erabaretaHirouido = null; erabaretaItami = [];
-    gamen = "shuryo";
-    hyouji();
-  }
-}
-
-function shokoOwari(){
-  const s = sessionYomu(); if (!s) return;
-  const teishi = keiIchiji(s.shokoClock);
-  s.shokoFinalMs = teishi ? teishi.accumulatedMs : 0;
-  s.shokoClock = null;
+  s.suburiClock = keiIchiji(s.suburiClock);
+  s.shokoClock  = keiIchiji(s.shokoClock);
+  s.suburiFinalMs = s.suburiClock ? s.suburiClock.accumulatedMs : 0;
+  s.shokoFinalMs  = s.shokoClock  ? s.shokoClock.accumulatedMs  : 0;
   sessionKaku(s);
   erabaretaHirouido = null; erabaretaItami = [];
+  shuryoSuburiHosei = null; shuryoShokoHosei = null;
   gamen = "shuryo";
   hyouji();
 }
 
-/* ---------- 終了記録画面 ---------------------------------------------- */
+/* ---------- 終了記録画面 ----------------------------------------------
+   素振り・昇降の分数は手入力で補正できる。操作を忘れたまま
+   実際には運動していた、という場合はここで実際の分数に直せる。 */
 const HIROU_LABELS = [
   { v:1, t:"余裕あり" }, { v:2, t:"軽い疲労" }, { v:3, t:"通常" },
   { v:4, t:"強い疲労" }, { v:5, t:"かなり強い" }
 ];
 const ITAMI_LABELS = [
-  { v:"kata", t:"肩" }, { v:"hiji", t:"肘" }, { v:"tekubi", t:"手首" },
-  { v:"koshi", t:"腰" }, { v:"hiza", t:"膝" }, { v:"ashikubi", t:"足首" },
-  { v:"sonota", t:"その他" }
+  { v:"kata_migi",     t:"右肩" },  { v:"kata_hidari",     t:"左肩" },
+  { v:"hiji_migi",     t:"右肘" },  { v:"hiji_hidari",     t:"左肘" },
+  { v:"tekubi_migi",   t:"右手首" },{ v:"tekubi_hidari",   t:"左手首" },
+  { v:"koshi",         t:"腰" },
+  { v:"hiza_migi",     t:"右膝" },  { v:"hiza_hidari",     t:"左膝" },
+  { v:"ashikubi_migi", t:"右足首" },{ v:"ashikubi_hidari", t:"左足首" },
+  { v:"sonota",        t:"その他" }
 ];
 
 function egakuShuryo(){
@@ -807,23 +1017,46 @@ function egakuShuryo(){
 
   const settei = setteiYomu();
   const kyo = s.date;
-  const suburiMin = Math.round((s.suburiFinalMs || 0) / 60000);
-  const shokoMin  = Math.round((s.shokoFinalMs  || 0) / 60000);
-  const soukeiMin = suburiMin + shokoMin;
+
+  const suburiMinKijun = Math.round((s.suburiFinalMs || 0) / 60000);
+  const shokoMinKijun  = Math.round((s.shokoFinalMs  || 0) / 60000);
+  const suburiMinHyouji = shuryoSuburiHosei !== null ? shuryoSuburiHosei : String(suburiMinKijun);
+  const shokoMinHyouji  = shuryoShokoHosei  !== null ? shuryoShokoHosei  : String(shokoMinKijun);
+  const suburiMinIma = seisu(suburiMinHyouji, suburiMinKijun);
+  const shokoMinIma  = seisu(shokoMinHyouji, shokoMinKijun);
+  const soukeiMin = suburiMinIma + shokoMinIma;
 
   const kirokuKyo = kirokuToru(kyo);
   const weight = (kirokuKyo && typeof kirokuKyo.weightKg === "number")
     ? kirokuKyo.weightKg : (saishinTaiju(kyo) || 60);
-  const kcal = kcalMitsumori(s.suburiFinalMs || 0, s.shokoFinalMs || 0, weight);
+  const kcal = kcalMitsumori(suburiMinIma * 60000, shokoMinIma * 60000, weight);
+
+  const mokuhyoGoukei = (s.menuSuburiMin || 0) + (s.menuShokoMin || 0);
+  const mokuhyoTassei = mokuhyoGoukei > 0 && soukeiMin >= mokuhyoGoukei;
+  const jikoBest = s.suburiCount > 0 && s.suburiCount > suburiCountSaikou(kyo);
 
   app.innerHTML = `
     <div class="shuryo">
       <h2 class="shuryo-midashi">おつかれさまでした</h2>
+      <p class="shuryo-sub">今日の記録を確認してください</p>
 
-      <div class="shuryo-koumoku"><span>木刀素振り</span><span class="atai">${suburiMin}分</span></div>
+      ${(mokuhyoTassei || jikoBest) ? `
+      <div class="badge-retsu">
+        ${mokuhyoTassei ? `<span class="badge">目標達成</span>` : ""}
+        ${jikoBest ? `<span class="badge">素振り本数 自己ベスト</span>` : ""}
+      </div>` : ""}
+
+      <div class="shuryo-koumoku c-suburi">
+        <span>木刀素振り</span>
+        <input class="hosei-nyu" id="suburiHoseiNyu" type="number" inputmode="numeric" min="0" step="1" value="${esc(suburiMinHyouji)}" aria-label="素振りの分数（補正可）">
+      </div>
       ${s.suburiCount ? `<div class="shuryo-koumoku"><span>本数</span><span class="atai">${s.suburiCount}本</span></div>` : ""}
-      <div class="shuryo-koumoku"><span>一段昇降</span><span class="atai">${shokoMin}分</span></div>
+      <div class="shuryo-koumoku c-shoko">
+        <span>一段昇降</span>
+        <input class="hosei-nyu" id="shokoHoseiNyu" type="number" inputmode="numeric" min="0" step="1" value="${esc(shokoMinHyouji)}" aria-label="一段昇降の分数（補正可）">
+      </div>
       <div class="shuryo-koumoku"><span>合計</span><span class="atai">${soukeiMin}分</span></div>
+      <p class="hosei-hint">タイマーの分数が実際と違う場合は、上の数字を書き換えてください。</p>
       <p class="shuryo-kcal">消費 約${kcal}kcal（目安）</p>
 
       <p class="hirou-midashi">今日の疲労度</p>
@@ -844,6 +1077,16 @@ function egakuShuryo(){
     </div>
   `;
 
+  const suburiNyu = document.getElementById("suburiHoseiNyu");
+  suburiNyu.addEventListener("input", e => { shuryoSuburiHosei = e.target.value; });
+  suburiNyu.addEventListener("blur", () => hyouji());
+  suburiNyu.addEventListener("keydown", e => { if (e.key === "Enter") suburiNyu.blur(); });
+
+  const shokoNyu = document.getElementById("shokoHoseiNyu");
+  shokoNyu.addEventListener("input", e => { shuryoShokoHosei = e.target.value; });
+  shokoNyu.addEventListener("blur", () => hyouji());
+  shokoNyu.addEventListener("keydown", e => { if (e.key === "Enter") shokoNyu.blur(); });
+
   app.querySelectorAll("[data-hirou]").forEach(b => {
     b.addEventListener("click", () => { erabaretaHirouido = Number(b.dataset.hirou); hyouji(); });
   });
@@ -863,10 +1106,16 @@ function egakuShuryo(){
 function hozonOwariSuru(){
   const s = sessionYomu(); if (!s) return;
   const settei = setteiYomu();
-  const wake = ashiWake(s.shokoFinalMs || 0, settei.kirikaeFun, s.legMode);
+
+  const suburiMinKijun = Math.round((s.suburiFinalMs || 0) / 60000);
+  const shokoMinKijun  = Math.round((s.shokoFinalMs  || 0) / 60000);
+  const suburiMinFinal = seisu(shuryoSuburiHosei !== null ? shuryoSuburiHosei : String(suburiMinKijun), suburiMinKijun);
+  const shokoMinFinal  = seisu(shuryoShokoHosei  !== null ? shuryoShokoHosei  : String(shokoMinKijun),  shokoMinKijun);
+
+  const wake = ashiWake(shokoMinFinal * 60000, settei.kirikaeFun, s.legMode);
 
   kirokuKaku(s.date, {
-    suburiMin: Math.round((s.suburiFinalMs || 0) / 60000),
+    suburiMin: suburiMinFinal,
     suburiCount: s.suburiCount || null,
     shokoMigiMin: Math.round(wake.migiMs / 60000),
     shokoHidariMin: Math.round(wake.hidariMs / 60000),
@@ -880,6 +1129,7 @@ function hozonOwariSuru(){
   hyouji();
 }
 
+teemaTekiyou(setteiYomu().colorTeema);
 hyouji();
 </script>
 </body>
