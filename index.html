@@ -135,6 +135,35 @@ hr{border:0;border-top:1px solid var(--line);margin:0}
 }
 .chosei.itami{border-left-color:var(--warn);background:var(--warn-dim);color:#FFD5DF}
 
+/* ── 体調確認バナー（痛みがあった翌日）── */
+.taicho-check{
+  margin-top:12px;padding:16px;border-radius:10px;
+  background:var(--warn-dim);border:1px solid var(--warn);
+}
+.taicho-check-toi{margin:0 0 14px;font-size:14px;line-height:1.6;color:#FFE3EA}
+.taicho-check-btns{display:flex;flex-direction:column;gap:8px}
+.taicho-check-btns button{
+  padding:12px;border-radius:6px;border:1px solid var(--line);
+  background:var(--panel);color:var(--text);font-size:13.5px;font-weight:700;text-align:center;
+}
+.taicho-check-btns button:active{opacity:.7}
+.taicho-check-btns button.yasumu{color:var(--text-dim);font-weight:400}
+
+/* ── 過去の記録の修正画面 ── */
+.shusei-retsu{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid var(--line);gap:10px}
+.shusei-retsu label{font-size:13px;color:var(--text-dim);flex-shrink:0}
+.shusei-retsu input{
+  font-family:var(--mono);font-size:16px;text-align:right;width:6em;
+  padding:7px 9px;border:1px solid var(--line);border-radius:4px;background:var(--panel);color:var(--text);
+}
+.shusei-retsu select{
+  font-family:var(--gothic);font-size:13px;padding:7px 8px;border:1px solid var(--line);
+  border-radius:4px;background:var(--panel);color:var(--text);
+}
+.shusei-mikiroku{margin-top:6px;font-size:12px;color:var(--text-dim)}
+.hi[data-hizuke]{cursor:pointer}
+.heat-cell[data-hizuke]{cursor:pointer}
+
 /* ── 左右モード選択 ── */
 .legmode-retsu{display:flex;gap:8px;margin-top:16px}
 .legmode-retsu button{
@@ -404,8 +433,14 @@ const Kioku = (() => {
                      16週間分のヒートマップ、指標（合計時間／体重／
                      素振り本数／昇降回数）と期間（2週間／1ヶ月／全期間）
                      を切り替えられる折れ線グラフ
+   v1.6  2026-09-14  今週・ヒートマップの日付をタップして、過去の記録
+                     （体重・素振り・昇降・疲労度・痛み）を遡って修正
+                     できる画面を追加。また、痛みの記録があった翌日は
+                     自動で減らすのではなく「今日の調子はどうですか」
+                     と確認してから、部位に応じた配分（例：脚が痛いなら
+                     昇降を減らして素振りを増やす）を提案する形に変更
    ------------------------------------------------------------------ */
-const APP_VERSION = "1.5";
+const APP_VERSION = "1.6";
 
 const KEY_KIROKU  = "bokuto.kiroku.v1";
 const KEY_SETTEI  = "bokuto.settei.v1";
@@ -590,11 +625,54 @@ const ITAMI_UDE  = ["kata","hiji","tekubi"];
 const ITAMI_ASHI = ["hiza","ashikubi"];
 function budoIchizu(pain, sesshuji){ return sesshuji.some(pref => pain.startsWith(pref)); }
 
+/* ---------- 体調確認（痛みがあった翌日）------------------------------
+   痛みの記録があっても自動でメニューを減らして終わりにせず、
+   「今日は大丈夫か」を確認してから決める。回答はその日1回だけ、
+   日付が変われば自動的にリセットされる。                         */
+const KEY_TAICHO = "bokuto.taicho.v1";
+function taichoYomu(){
+  const t = Kioku.yomu(KEY_TAICHO, null);
+  if (!t || t.date !== kyoNoHizuke()) return null;
+  return t.kotae; // "daijobu" | "mada_itai" | "yasumu" | null
+}
+function taichoKaku(kotae){ Kioku.kaku(KEY_TAICHO, { date: kyoNoHizuke(), kotae }); }
+
+/* 痛みの部位に応じた配分提案。例：脚が痛いなら昇降を減らして素振りを増やす。 */
+function itamiChoseiKeisan(kihon, itami){
+  const udeItami = itami.some(p => budoIchizu(p, ITAMI_UDE));
+  const ashiItami = itami.some(p => budoIchizu(p, ITAMI_ASHI));
+  const koshiItami = itami.includes("koshi");
+  const message = [];
+  let suburi = kihon.suburi, shoko = kihon.shoko;
+
+  if ((udeItami && ashiItami) || (koshiItami && (udeItami || ashiItami))){
+    suburi = Math.round(kihon.suburi * 0.5);
+    shoko  = Math.round(kihon.shoko  * 0.5);
+    message.push("複数の部位に痛みの記録があるため、素振り・昇降とも控えめにしています。");
+  } else if (ashiItami){
+    shoko  = Math.round(kihon.shoko  * 0.4);
+    suburi = Math.round(kihon.suburi * 1.25);
+    message.push(`脚の痛みに配慮し、一段昇降を減らして木刀素振りを増やす配分にしています（昇降 ${kihon.shoko}→${shoko}分／素振り ${kihon.suburi}→${suburi}分）。`);
+  } else if (udeItami){
+    suburi = Math.round(kihon.suburi * 0.4);
+    shoko  = Math.round(kihon.shoko  * 1.25);
+    message.push(`腕・肩の痛みに配慮し、木刀素振りを減らして一段昇降を増やす配分にしています（素振り ${kihon.suburi}→${suburi}分／昇降 ${kihon.shoko}→${shoko}分）。`);
+  } else if (koshiItami){
+    suburi = Math.round(kihon.suburi * 0.5);
+    shoko  = Math.round(kihon.shoko  * 0.5);
+    message.push("腰の痛みに配慮し、両方を控えめにしています。");
+  } else {
+    message.push("痛みの記録がありますが部位が特定できないため、無理のない範囲で様子を見てください。");
+  }
+  return { suburi, shoko, message };
+}
+
 function kyoNoMenu(hizuke, settei){
   const kihon = settei.shukan[yobiBango(hizuke)];
   let suburi = kihon.suburi, shoko = kihon.shoko;
   const riyu = [];
   let kaifukuBi = false, itamiAri = false;
+  let itamiKakuninMachi = false, itamiBui = [];
 
   const zenjitsu = kirokuToru(hizukeZurasu(hizuke, -1));
   if (zenjitsu){
@@ -608,34 +686,34 @@ function kyoNoMenu(hizuke, settei){
     }
 
     const itami = zenjitsu.pain || [];
-    if (itami.some(p => budoIchizu(p, ITAMI_UDE))){
-      suburi = 0; itamiAri = true;
-      riyu.push("腕・肩に痛みがあったため素振りを止めています。");
-    }
-    if (itami.some(p => budoIchizu(p, ITAMI_ASHI))){
-      shoko = 0; itamiAri = true;
-      riyu.push("脚に痛みがあったため一段昇降を止めています。");
-    }
-    if (itami.includes("koshi")){
-      suburi = Math.min(suburi, Math.round(kihon.suburi * 0.5));
-      shoko  = Math.min(shoko,  Math.round(kihon.shoko  * 0.5));
-      itamiAri = true;
-      riyu.push("腰に痛みがあったため両方の負荷を下げています。");
-    }
+    if (itami.length && !kaifukuBi){
+      itamiBui = itami;
+      const kotae = taichoYomu();
+      if (kotae === null){
+        itamiKakuninMachi = true;
+      } else if (kotae === "yasumu"){
+        kaifukuBi = true;
+        riyu.push("「今日は休みたい」を選んだため、回復日にしています。");
+      } else if (kotae === "daijobu"){
+        riyu.push("「もう大丈夫」と回答したため、通常メニューのままです。");
+      } else if (kotae === "mada_itai"){
+        itamiAri = true;
+        const chosei = itamiChoseiKeisan({ suburi, shoko }, itami);
+        suburi = chosei.suburi; shoko = chosei.shoko;
+        riyu.push(...chosei.message);
 
-    const zenzenjitsu = kirokuToru(hizukeZurasu(hizuke, -2));
-    const tsuzuku = zenzenjitsu && (zenzenjitsu.pain||[]).length && itami.length;
-    if (tsuzuku){
-      const zenShoko = (zenjitsu.shokoMigiMin||0) + (zenjitsu.shokoHidariMin||0);
-      suburi = Math.min(suburi, zenjitsu.suburiMin || 0);
-      shoko  = Math.min(shoko,  zenShoko);
-      itamiAri = true;
-      riyu.push("痛みが続いています。運動量は増やしません。");
+        const zenzenjitsu = kirokuToru(hizukeZurasu(hizuke, -2));
+        if (zenzenjitsu && (zenzenjitsu.pain||[]).length){
+          suburi = Math.min(suburi, kihon.suburi);
+          shoko  = Math.min(shoko,  kihon.shoko);
+          riyu.push("痛みが2日続いているため、増量はせず様子を見ています。");
+        }
+      }
     }
   }
 
   if (kaifukuBi){ suburi = 0; shoko = 0; }
-  return { suburi, shoko, sonota: kihon.sonota, riyu, kaifukuBi, itamiAri };
+  return { suburi, shoko, sonota: kihon.sonota, riyu, kaifukuBi, itamiAri, itamiKakuninMachi, itamiBui };
 }
 
 /* ---------- 今週の実施状況 ------------------------------------------ */
@@ -777,6 +855,9 @@ const app = document.getElementById("app");
 let gamen = "home";
 let suiiMetric = "goukei";     // "goukei" | "taiju" | "suburiHonsu" | "shokoKaisu"
 let suiiKikan = "1kagetsu";    // "2shukan" | "1kagetsu" | "zenkikan"
+let shuseiHizuke = null;       // 修正画面：対象の日付
+let shuseiState = null;        // 修正画面：編集中の値
+let shuseiModoriSaki = "home"; // 修正画面：保存後にどこへ戻るか
 let nyuryokuChu = null;
 let uesutoNyuryokuChu = null;
 let legModeErabi = null;
@@ -795,6 +876,7 @@ function hyouji(){
   if (gamen === "undou") egakuUndou();
   else if (gamen === "shuryo") egakuShuryo();
   else if (gamen === "suii") egakuSuii();
+  else if (gamen === "shusei") egakuShusei();
   else egaku();
 }
 
@@ -911,7 +993,16 @@ function egaku(){
 
   <section class="kondate">
     <h2 class="midashi">今日のこと</h2>
-    ${konYasumi ? `
+    ${menu.itamiKakuninMachi ? `
+      <div class="taicho-check">
+        <p class="taicho-check-toi">昨日は${esc(itamiLabelHyouji(menu.itamiBui))}に痛みの記録があります。今日の調子はどうですか？</p>
+        <div class="taicho-check-btns">
+          <button data-kotae="daijobu">もう大丈夫</button>
+          <button data-kotae="mada_itai">まだ少し痛い</button>
+          <button data-kotae="yasumu" class="yasumu">今日は休みたい</button>
+        </div>
+      </div>
+    ` : konYasumi ? `
       <p class="chosei itami">${esc(menu.riyu[0] || "今日は休みます。")}</p>
     ` : `
       <div class="shurui">
@@ -943,7 +1034,7 @@ function egaku(){
     <h2 class="midashi">今週</h2>
     <div class="masu">
       ${hibi.map(h => `
-        <div class="hi ${h.jotai} ${h.kyo ? "kyo" : ""}">
+        <div class="hi ${h.jotai} ${h.kyo ? "kyo" : ""}" ${h.mirai ? "" : `data-hizuke="${h.hizuke}"`}>
           <div class="yobi">${h.yobi}</div>
           <div class="shirushi">${
             h.jotai === "jisshi" ? Math.round(h.fun)
@@ -952,7 +1043,7 @@ function egaku(){
           }</div>
         </div>`).join("")}
     </div>
-    <p class="shukei">実施 ${jisshiSu}日${kyuyoSu ? `・休養 ${kyuyoSu}日` : ""}</p>
+    <p class="shukei">実施 ${jisshiSu}日${kyuyoSu ? `・休養 ${kyuyoSu}日` : ""}（日付をタップすると記録を修正できます）</p>
   </section>
 
   <button class="suii-link" id="suiiLinkBtn">推移をもっと見る →</button>
@@ -967,6 +1058,15 @@ function egaku(){
     b.addEventListener("click", () => teemaKirikae(b.dataset.teema));
   });
   document.getElementById("suiiLinkBtn").addEventListener("click", () => { gamen = "suii"; hyouji(); });
+
+  if (menu.itamiKakuninMachi){
+    app.querySelectorAll("[data-kotae]").forEach(b => {
+      b.addEventListener("click", () => { taichoKaku(b.dataset.kotae); hyouji(); });
+    });
+  }
+  app.querySelectorAll(".hi[data-hizuke]").forEach(b => {
+    b.addEventListener("click", () => shuseiHiraku(b.dataset.hizuke, "home"));
+  });
 
   const nyu = document.getElementById("taijuNyu");
   nyu.addEventListener("input", e => { nyuryokuChu = e.target.value; });
@@ -1069,7 +1169,7 @@ function egakuSuii(){
   <div class="heatmap-wrap">
     <div class="heatmap">
       ${heatmap.map(shuu => shuu.map(h => `
-        <div class="heat-cell heat-${funLevel(h.fun)} ${h.kyo ? 'kyo' : ''} ${h.mirai ? 'mirai' : ''}" title="${h.hizuke}　${h.fun}分"></div>
+        <div class="heat-cell heat-${funLevel(h.fun)} ${h.kyo ? 'kyo' : ''} ${h.mirai ? 'mirai' : ''}" ${h.mirai ? "" : `data-hizuke="${h.hizuke}"`} title="${h.hizuke}　${h.fun}分"></div>
       `).join("")).join("")}
     </div>
   </div>
@@ -1110,12 +1210,163 @@ function egakuSuii(){
   `;
 
   document.getElementById("modoruBtn").addEventListener("click", () => { gamen = "home"; hyouji(); });
+  app.querySelectorAll(".heat-cell[data-hizuke]").forEach(b => {
+    b.addEventListener("click", () => shuseiHiraku(b.dataset.hizuke, "suii"));
+  });
   app.querySelectorAll("[data-metric]").forEach(b => {
     b.addEventListener("click", () => { suiiMetric = b.dataset.metric; hyouji(); });
   });
   app.querySelectorAll("[data-kikan]").forEach(b => {
     b.addEventListener("click", () => { suiiKikan = b.dataset.kikan; hyouji(); });
   });
+}
+
+/* ---------- 過去の記録の修正画面 --------------------------------------
+   今週表示・ヒートマップの日付をタップすると開く。誤タップで進んだ
+   ままになっている記録、遡って直したい日を、いつでも書き直せる。 */
+function shuseiHiraku(hizuke, modoriSaki){
+  const r = kirokuToru(hizuke);
+  shuseiHizuke = hizuke;
+  shuseiModoriSaki = modoriSaki || "home";
+  shuseiState = {
+    weightKg: (r && r.weightKg != null) ? String(r.weightKg) : "",
+    waistCm:  (r && r.waistCm  != null) ? String(r.waistCm)  : "",
+    suburiMin: r ? String(r.suburiMin || 0) : "0",
+    suburiCount: (r && r.suburiCount != null) ? String(r.suburiCount) : "",
+    shokoMin: r ? String((r.shokoMigiMin||0) + (r.shokoHidariMin||0)) : "0",
+    shokoCount: (r && r.shokoCount != null) ? String(r.shokoCount) : "",
+    legModeUsed: (r && r.legModeUsed) ? r.legModeUsed : "kogo",
+    fatigue: (r && r.fatigue != null) ? r.fatigue : null,
+    pain: (r && r.pain) ? r.pain.slice() : []
+  };
+  gamen = "shusei";
+  hyouji();
+}
+
+function egakuShusei(){
+  undouTaimaaTomeru();
+  if (!shuseiHizuke || !shuseiState){ gamen = "home"; hyouji(); return; }
+  const kiroku = kirokuToru(shuseiHizuke);
+  const [y,m,d] = shuseiHizuke.split("-");
+  const hizukeHyoji = `${Number(m)}月${Number(d)}日（${YOBI[yobiBango(shuseiHizuke)]}）`;
+  const st = shuseiState;
+
+  app.innerHTML = `
+  <div class="suii-header">
+    <button class="modoru-btn" id="shuseiModoruBtn">← 戻る</button>
+    <span class="suii-title">記録の修正　${hizukeHyoji}</span>
+  </div>
+  ${!kiroku ? `<p class="shusei-mikiroku">この日はまだ記録がありません。入力すると新しく記録されます。</p>` : ""}
+
+  <div class="shusei-retsu">
+    <label>体重</label>
+    <input id="stWeight" type="number" inputmode="decimal" step="0.1" value="${esc(st.weightKg)}" placeholder="––.–">
+  </div>
+  <div class="shusei-retsu">
+    <label>ウエスト</label>
+    <input id="stWaist" type="number" inputmode="decimal" step="0.1" value="${esc(st.waistCm)}" placeholder="––.–">
+  </div>
+  <div class="shusei-retsu">
+    <label>木刀素振り（分）</label>
+    <input id="stSuburiMin" type="number" inputmode="numeric" min="0" step="1" value="${esc(st.suburiMin)}">
+  </div>
+  <div class="shusei-retsu">
+    <label>素振り本数</label>
+    <input id="stSuburiCount" type="number" inputmode="numeric" min="0" step="1" value="${esc(st.suburiCount)}" placeholder="任意">
+  </div>
+  <div class="shusei-retsu">
+    <label>一段昇降（分）</label>
+    <input id="stShokoMin" type="number" inputmode="numeric" min="0" step="1" value="${esc(st.shokoMin)}">
+  </div>
+  <div class="shusei-retsu">
+    <label>昇降回数</label>
+    <input id="stShokoCount" type="number" inputmode="numeric" min="0" step="1" value="${esc(st.shokoCount)}" placeholder="任意">
+  </div>
+  <div class="shusei-retsu">
+    <label>昇降の足</label>
+    <select id="stLegMode">
+      <option value="kogo"   ${st.legModeUsed==='kogo'   ? 'selected':''}>左右交互</option>
+      <option value="migi"   ${st.legModeUsed==='migi'   ? 'selected':''}>右足のみ</option>
+      <option value="hidari" ${st.legModeUsed==='hidari' ? 'selected':''}>左足のみ</option>
+    </select>
+  </div>
+
+  <p class="hirou-midashi">疲労度</p>
+  <div class="hirou-retsu">
+    ${HIROU_LABELS.map(h => `
+      <button data-hirou="${h.v}" class="${st.fatigue===h.v ? 'eranda':''}">${h.v}<br>${h.t}</button>
+    `).join("")}
+  </div>
+
+  <p class="itami-midashi">痛み</p>
+  <div class="itami-retsu">
+    ${ITAMI_LABELS.map(i => `
+      <button class="itami-chip ${st.pain.includes(i.v) ? 'eranda':''}" data-itami="${i.v}">${i.t}</button>
+    `).join("")}
+  </div>
+
+  <button class="hozon-owari" id="shuseiHozonBtn">この内容で保存する</button>
+  `;
+
+  document.getElementById("shuseiModoruBtn").addEventListener("click", () => {
+    gamen = shuseiModoriSaki; shuseiHizuke = null; shuseiState = null; hyouji();
+  });
+
+  const bind = (id, field) => {
+    document.getElementById(id).addEventListener("input", e => { shuseiState[field] = e.target.value; });
+  };
+  bind("stWeight", "weightKg");
+  bind("stWaist", "waistCm");
+  bind("stSuburiMin", "suburiMin");
+  bind("stSuburiCount", "suburiCount");
+  bind("stShokoMin", "shokoMin");
+  bind("stShokoCount", "shokoCount");
+  document.getElementById("stLegMode").addEventListener("change", e => { shuseiState.legModeUsed = e.target.value; });
+
+  app.querySelectorAll("[data-hirou]").forEach(b => {
+    b.addEventListener("click", () => { shuseiState.fatigue = Number(b.dataset.hirou); hyouji(); });
+  });
+  app.querySelectorAll("[data-itami]").forEach(b => {
+    b.addEventListener("click", () => {
+      const v = b.dataset.itami;
+      const i = shuseiState.pain.indexOf(v);
+      if (i >= 0) shuseiState.pain.splice(i,1); else shuseiState.pain.push(v);
+      hyouji();
+    });
+  });
+
+  document.getElementById("shuseiHozonBtn").addEventListener("click", shuseiHozon);
+}
+
+function shuseiHozon(){
+  const st = shuseiState;
+  const settei = setteiYomu();
+
+  const weightKg = st.weightKg.trim() === "" ? null : Math.round(parseFloat(st.weightKg) * 10) / 10;
+  const waistCm  = st.waistCm.trim()  === "" ? null : Math.round(parseFloat(st.waistCm)  * 10) / 10;
+  const suburiMin = seisu(st.suburiMin, 0);
+  const suburiCount = st.suburiCount.trim() === "" ? null : seisu(st.suburiCount, 0);
+  const shokoMin = seisu(st.shokoMin, 0);
+  const shokoCount = st.shokoCount.trim() === "" ? null : seisu(st.shokoCount, 0);
+
+  const wake = ashiWake(shokoMin * 60000, settei.kirikaeFun, st.legModeUsed);
+
+  kirokuKaku(shuseiHizuke, {
+    weightKg: (weightKg !== null && isFinite(weightKg)) ? weightKg : null,
+    waistCm:  (waistCm  !== null && isFinite(waistCm))  ? waistCm  : null,
+    suburiMin,
+    suburiCount,
+    shokoMigiMin: Math.round(wake.migiMs / 60000),
+    shokoHidariMin: Math.round(wake.hidariMs / 60000),
+    shokoCount,
+    legModeUsed: st.legModeUsed,
+    fatigue: st.fatigue,
+    pain: st.pain.slice()
+  });
+
+  gamen = shuseiModoriSaki;
+  shuseiHizuke = null; shuseiState = null;
+  hyouji();
 }
 
 /* ---------- 運動画面 -------------------------------------------------
@@ -1291,6 +1542,12 @@ const ITAMI_LABELS = [
   { v:"ashikubi_migi", t:"右足首" },{ v:"ashikubi_hidari", t:"左足首" },
   { v:"sonota",        t:"その他" }
 ];
+function itamiLabelHyouji(codes){
+  return (codes||[]).map(c => {
+    const f = ITAMI_LABELS.find(i => i.v === c);
+    return f ? f.t : c;
+  }).join("・");
+}
 
 function egakuShuryo(){
   undouTaimaaTomeru();
