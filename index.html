@@ -188,6 +188,18 @@ select.field{font-family:var(--gothic);font-size:14px}
 .meal-adv{font-size:12px;color:var(--text-dim);margin-top:4px;line-height:1.55}
 .meal-sosa{display:flex;gap:8px;margin-top:6px}
 .meal-sosa button{font-size:12px;color:var(--text-dim);padding:4px 10px;border:1px solid var(--line);border-radius:6px}
+.memo-waku{position:relative}
+.memo-waku textarea{min-height:84px;padding-right:58px;font-size:15px}
+.mic{position:absolute;right:8px;bottom:8px;width:44px;height:44px;border-radius:50%;background:var(--shoku);color:#241500;display:flex;align-items:center;justify-content:center;font-size:16px}
+.mic svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round}
+.mic.kiku{background:var(--warn);color:#fff;animation:pulse 1.2s ease-in-out infinite}
+.photo-waku.chiisai{min-height:72px}
+.check{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-dim)}
+.check input{width:20px;height:20px;accent-color:var(--accent)}
+.teiban-retsu{display:flex;flex-direction:column;gap:8px}
+.teiban-btn{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-radius:10px;background:var(--shoku-dim);border:1px solid rgba(255,181,71,.4);font-size:14px;font-weight:700;text-align:left}
+.teiban-btn .num{color:var(--shoku)}
+.teiban-chip .num{margin-left:6px;font-size:11px;opacity:.8}
 .photo-waku{margin-top:4px;border:1.5px dashed var(--line);border-radius:14px;min-height:180px;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;background:var(--bg2)}
 .photo-waku img{width:100%;display:block}
 .photo-waku .nashi{color:var(--text-dim);font-size:13px;text-align:center;padding:20px}
@@ -263,8 +275,11 @@ select.field{font-family:var(--gothic);font-size:14px}
                     AI（GAS経由のGemini）によるカロリー推定・アドバイス、
                     身長・目標体重から1日の摂取目安を計算、下部タブで
                     画面を切替、iPhoneのカメラ部分に隠れないレイアウト
+   v1.8  2026-11-04 食事を写真なしで「話す・書く」だけでAI推定できるように
+                    （音声入力ボタン）、毎日同じ食事を「定番」に登録して
+                    ホームから1タップで記録、設定で定番を削除
    =========================================================== */
-const APP_VERSION = "1.7";
+const APP_VERSION = "1.8";
 
 /* ---------- 保存層 ---------- */
 const Kioku = (() => {
@@ -316,6 +331,7 @@ const KITEI_SETTEI = {
   nawaInterval: true,
   gasUrl: "",
   gasToken: "",
+  teiban: [],
   shukan: KITEI_SHUKAN
 };
 const KATSUDO = {
@@ -691,6 +707,7 @@ let shusei = null;       // 過去の記録の修正の下書き
 let setteiDraft = null, setteiMsg = null, setteiErr = null, setteiTestChu = false;
 let suiiMetric = "goukei", suiiKikan = "1kagetsu";
 let tasseiIma = false, intervalMae = -1;
+let teibanKiroku_msg = null;
 
 function esc(s){ return String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 function su1(n){ return Number(n).toFixed(1); }
@@ -729,7 +746,7 @@ function egakuTabbar(){
   tabbarEl.innerHTML = `<div class="tabbar-uchi">${t.map(([k,l]) =>
     `<button data-tab="${k}" class="${tab===k?'eranda':''}">${ICON[k]}<span>${l}</span></button>`).join("")}</div>`;
   tabbarEl.querySelectorAll("[data-tab]").forEach(b => b.addEventListener("click", () => {
-    tab = b.dataset.tab;
+    tab = b.dataset.tab; teibanKiroku_msg = null;
     if (tab === "shokuji") shokujiHizuke = shokujiHizuke || kyoNoHizuke();
     if (tab === "settei") { setteiDraft = null; setteiMsg = null; setteiErr = null; }
     hyouji(); window.scrollTo(0,0);
@@ -812,6 +829,10 @@ function egakuHome(){
       <span>目安 ${meyasu}${undouK ? ` ＋ 運動 ${undouK}` : ""}</span>
       <span>${nokoriK >= 0 ? `あと ${nokoriK}` : `${-nokoriK} オーバー`}</span>
     </div>
+    ${teibanList().length ? `<div class="teiban-retsu mt12">${teibanList().map(t =>
+      `<button class="teiban-btn" data-teiban-kyo="${t.id}"><span>${esc(t.namae)}</span><span class="num">${t.kcal}kcal</span></button>`).join("")}</div>
+      <p class="hint">定番は1タップで今日の食事に記録されます。</p>` : ""}
+    ${teibanKiroku_msg ? `<p class="ok-msg">${esc(teibanKiroku_msg)}</p>` : ""}
     <button class="btn btn-shoku mt12" id="shokujiAddBtn">食事を記録する</button>
   </section>
 
@@ -870,7 +891,13 @@ function egakuHome(){
   on("saikaiBtn", "click", () => { overlay = "undou"; hyouji(); });
   onAll("[data-kotae]", "click", b => { taichoKaku(b.dataset.kotae); hyouji(); });
   on("kaishiBtn", "click", () => undouKaishi(menu));
-  on("shokujiAddBtn", "click", () => shokujiAddHiraku(kyo));
+  on("shokujiAddBtn", "click", () => { teibanKiroku_msg = null; shokujiAddHiraku(kyo); });
+  onAll("[data-teiban-kyo]", "click", b => {
+    const t = teibanList().find(x => x.id === b.dataset.teibanKyo); if (!t) return;
+    teibanKiroku(t, kyo);
+    teibanKiroku_msg = `「${t.namae}」を記録しました（取り消しは食事タブで削除）`;
+    hyouji();
+  });
   on("taijuNyu", "input", e => { taijuNyu = e.target.value; });
   on("taijuBtn", "click", () => {
     const v = shosu($("taijuNyu").value);
@@ -1231,26 +1258,69 @@ function egakuShokuji(){
 }
 
 function shokujiAddHiraku(h){
-  draft = { h, kubun:kubunJidou(), memo:"", gazo:null, thumb:null, kekka:null, namae:"", kcal:"", loading:false, err:null };
+  draft = { h, kubun:kubunJidou(), memo:"", gazo:null, thumb:null, kekka:null, namae:"", kcal:"", loading:false, err:null, teiban:false, kiku:false };
   overlay = "shokujiAdd"; hyouji(); window.scrollTo(0,0);
 }
+
+/* ---------- 定番の食事（毎日同じものを1タップで）---------- */
+function teibanList(){ return setteiYomu().teiban || []; }
+function teibanKiroku(t, h){
+  const cur = kirokuToru(h);
+  const meals = (cur && cur.meals) ? cur.meals.slice() : [];
+  meals.push({ id:shinId(), jikan: h === kyoNoHizuke() ? jikanMoji() : "", kubun:t.kubun || kubunJidou(),
+    namae:t.namae, kcal:Number(t.kcal)||0, naiyo:[], advice:"", teiban:true });
+  kirokuKaku(h, { meals });
+}
+
+/* ---------- 音声入力（使えない環境ではキーボードのマイクを案内）---------- */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let kikiChu = null;
+function onseiKaishi(){
+  if (!SR){ alert("この画面では音声認識が使えません。入力欄をタップして、キーボードのマイクボタンで話してください。"); return; }
+  if (kikiChu){ try{ kikiChu.stop(); }catch{} return; }
+  const r = new SR();
+  r.lang = "ja-JP"; r.interimResults = false; r.continuous = false;
+  r.onresult = e => {
+    const t = Array.from(e.results).map(x => x[0].transcript).join("");
+    if (draft){ draft.memo = (draft.memo ? draft.memo + "、" : "") + t; }
+  };
+  r.onerror = e => { if (draft && e.error !== "aborted") draft.err = "音声を聞き取れませんでした。キーボードのマイクボタンでも話せます。"; };
+  r.onend = () => { kikiChu = null; if (draft){ draft.kiku = false; hyouji(); } };
+  try{ r.start(); kikiChu = r; draft.kiku = true; draft.err = null; hyouji(); }
+  catch{ kikiChu = null; alert("音声認識を始められませんでした。キーボードのマイクボタンで話してください。"); }
+}
+
 function egakuShokujiAdd(){
   const d = draft;
   if (!d){ overlay = null; hyouji(); return; }
   const s = setteiYomu();
   const aiOk = !!(s.gasUrl && s.gasToken);
   const k = d.kekka;
+  const tb = teibanList();
+  const aiDekiru = aiOk && !d.loading && (d.gazo || d.memo.trim());
 
   app.innerHTML = `
   <div class="gamen-head"><button class="modoru" id="daModoru">← 戻る</button><span class="gamen-title">食事を記録　${hizukeHyoji(d.h)}</span></div>
   <div class="chip-retsu mt8">${KUBUN.map(x => `<button class="chip ${d.kubun===x.v?'eranda':''}" data-kubun="${x.v}">${x.t}</button>`).join("")}</div>
 
+  ${tb.length ? `<section class="card">
+    <h2 class="midashi">定番から選ぶ</h2>
+    <div class="chip-retsu">${tb.map(t => `<button class="chip teiban-chip" data-teiban="${t.id}">${esc(t.namae)}<span class="num">${t.kcal}</span></button>`).join("")}</div>
+  </section>` : ""}
+
   <section class="card">
-    <div class="photo-waku">${d.gazo ? `<img src="${d.gazo}" alt="食事の写真">` : `<div class="nashi">料理全体が入るように<br>真上か斜め上から撮ると推定しやすくなります</div>`}</div>
-    <div class="btn btn-sub mt12 file-btn">${d.gazo ? "写真を撮り直す・選び直す" : "写真を撮る・選ぶ"}<input type="file" accept="image/*" id="daFile"></div>
-    <textarea class="field mt12" id="daMemo" placeholder="量や味付けのメモ（例：ご飯大盛り、味濃いめ、半分残した）">${esc(d.memo)}</textarea>
-    <button class="btn btn-shoku mt12" id="daAi" ${(!d.gazo || !aiOk || d.loading) ? "disabled" : ""}>AIでカロリーを推定する</button>
-    ${!aiOk ? `<p class="hint">AI推定は「設定」タブでAI連携を入れると使えます。カロリーを手で入れて記録することもできます。</p>` : ""}
+    <h2 class="midashi">何をどれだけ食べた？</h2>
+    <div class="memo-waku">
+      <textarea class="field" id="daMemo" placeholder="話すか書くだけでOK&#10;例：イオンの6個入りロールパンを3つ、牛乳コップ1杯">${esc(d.memo)}</textarea>
+      <button class="mic ${d.kiku?'kiku':''}" id="daMic" aria-label="音声で入力">${d.kiku ? "■" : '<svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>'}</button>
+    </div>
+    ${d.kiku ? `<p class="hint c-shoku">聞いています…話し終わったら止まります</p>` : `<p class="hint">マイクボタン、またはキーボードのマイクで話せます。</p>`}
+
+    <div class="photo-waku mt12 ${d.gazo ? "" : "chiisai"}">${d.gazo ? `<img src="${d.gazo}" alt="食事の写真">` : `<div class="nashi">写真があると、量や中身をより正確に推定できます（なくてもOK）</div>`}</div>
+    <div class="btn btn-sub mt8 file-btn">${d.gazo ? "写真を撮り直す・選び直す" : "写真を撮る・選ぶ（任意）"}<input type="file" accept="image/*" id="daFile"></div>
+
+    <button class="btn btn-shoku mt12" id="daAi" ${aiDekiru ? "" : "disabled"}>AIでカロリーを推定する</button>
+    ${!aiOk ? `<p class="hint">AI推定は「設定」タブでAI連携を入れると使えます。下でカロリーを手で入れて記録することもできます。</p>` : ""}
     ${d.loading ? `<p class="loading">推定しています…</p>` : ""}
     ${d.err ? `<p class="err">${esc(d.err)}</p>` : ""}
   </section>
@@ -1265,19 +1335,27 @@ function egakuShokujiAdd(){
 
   <section class="card">
     <h2 class="midashi">記録する内容</h2>
-    <div class="gyo"><label>料理名</label><input class="field" id="daNamae" style="width:62%;font-size:14px;text-align:left" value="${esc(d.namae)}" placeholder="例：カレーライス"></div>
-    <div class="gyo"><label>カロリー（kcal）</label><input class="field num" id="daKcal" type="number" inputmode="numeric" value="${esc(d.kcal)}" placeholder="例：650"></div>
+    <div class="gyo"><label>料理名</label><input class="field" id="daNamae" style="width:62%;font-size:14px;text-align:left" value="${esc(d.namae)}" placeholder="例：ロールパン3個"></div>
+    <div class="gyo"><label>カロリー（kcal）</label><input class="field num" id="daKcal" type="number" inputmode="numeric" value="${esc(d.kcal)}" placeholder="例：300"></div>
+    <label class="check mt12"><input type="checkbox" id="daTeiban" ${d.teiban?'checked':''}> 定番に登録する（次から1タップで記録）</label>
     <button class="btn btn-accent mt12" id="daHozon" ${seisu(d.kcal, -1) < 0 || String(d.kcal).trim() === "" ? "disabled" : ""}>記録する</button>
   </section>`;
 
-  on("daModoru", "click", () => { draft = null; overlay = null; hyouji(); });
+  const aiBtnKoshin = () => { const b = $("daAi"); if (b) b.disabled = !(aiOk && !draft.loading && (draft.gazo || draft.memo.trim())); };
+  on("daModoru", "click", () => { if (kikiChu){ try{ kikiChu.abort(); }catch{} } draft = null; overlay = null; hyouji(); });
   onAll("[data-kubun]", "click", b => { draft.kubun = b.dataset.kubun; hyouji(); });
-  on("daMemo", "input", e => { draft.memo = e.target.value; });
+  onAll("[data-teiban]", "click", b => {
+    const t = teibanList().find(x => x.id === b.dataset.teiban); if (!t) return;
+    draft.namae = t.namae; draft.kcal = String(t.kcal); if (t.kubun) draft.kubun = t.kubun; draft.kekka = null; hyouji();
+  });
+  on("daMemo", "input", e => { draft.memo = e.target.value; aiBtnKoshin(); });
+  on("daMic", "click", onseiKaishi);
   on("daNamae", "input", e => { draft.namae = e.target.value; });
   on("daKcal", "input", e => {
     draft.kcal = e.target.value;
     const btn = $("daHozon"); if (btn) btn.disabled = seisu(draft.kcal, -1) < 0 || String(draft.kcal).trim() === "";
   });
+  on("daTeiban", "change", e => { draft.teiban = e.target.checked; });
   on("daFile", "change", async e => {
     const f = e.target.files && e.target.files[0]; if (!f) return;
     try{
@@ -1293,16 +1371,17 @@ function egakuShokujiAdd(){
     const r = kirokuToru(draft.h);
     draft.loading = true; draft.err = null; hyouji();
     try{
-      const j = await gasYobu({
+      const payload = {
         action:"meal",
-        image: draft.gazo.split(",")[1], mimeType:"image/jpeg",
         memo: draft.memo, kubun: kubunT(draft.kubun),
         profile:{
           seibetsu: st.seibetsu === "josei" ? "女性" : "男性",
           nenrei: st.nenrei, shinchoCm: st.shinchoCm, taijuKg: w, mokuhyoTaiju: st.mokuhyoTaiju,
           mokuhyoKcal: mokuhyoKcal(st, w), kyoSesshu: kcalSesshu(r), kyoUndou: kcalUndou(r, w)
         }
-      });
+      };
+      if (draft.gazo){ payload.image = draft.gazo.split(",")[1]; payload.mimeType = "image/jpeg"; }
+      const j = await gasYobu(payload);
       if (!draft) return;
       draft.kekka = j;
       draft.namae = (j.ryori || []).map(x => x.name).join("・");
@@ -1312,16 +1391,23 @@ function egakuShokujiAdd(){
   });
   on("daHozon", "click", () => {
     const n = seisu(draft.kcal, -1); if (n < 0) return;
+    const namae = draft.namae.trim() || kubunT(draft.kubun) + "の食事";
     const cur = kirokuToru(draft.h);
     const meals = (cur && cur.meals) ? cur.meals.slice() : [];
     meals.push({
       id:shinId(), jikan: draft.h === kyoNoHizuke() ? jikanMoji() : "", kubun:draft.kubun,
-      namae: draft.namae.trim() || kubunT(draft.kubun) + "の食事", kcal:n,
+      namae, kcal:n,
       naiyo: draft.kekka ? (draft.kekka.ryori || []) : [],
       advice: draft.kekka ? (draft.kekka.advice || "") : "",
       thumb: draft.thumb || undefined
     });
     kirokuKaku(draft.h, { meals });
+    if (draft.teiban){
+      const st = setteiYomu();
+      st.teiban = (st.teiban || []).filter(t => t.namae !== namae);
+      st.teiban.push({ id:shinId(), namae, kcal:n, kubun:draft.kubun });
+      setteiKaku(st);
+    }
     thumbSeiri();
     shokujiHizuke = draft.h; draft = null; overlay = null; tab = "shokuji"; hyouji(); window.scrollTo(0,0);
   });
@@ -1408,6 +1494,12 @@ function egakuSettei(){
   </section>
 
   <section class="card">
+    <h2 class="midashi">定番の食事</h2>
+    ${(s.teiban||[]).length ? s.teiban.map(t => `<div class="sonota-gyo"><span>${esc(t.namae)}　<span class="num">${t.kcal}kcal</span>　<span class="c-dim" style="font-size:12px">${esc(kubunT(t.kubun))}</span></span><button class="batsu" data-tb-del="${t.id}" aria-label="削除">×</button></div>`).join("")
+      : `<p class="hint" style="margin:0">食事を記録するとき「定番に登録する」にチェックすると、ここに並びます。</p>`}
+  </section>
+
+  <section class="card">
     <h2 class="midashi">見た目</h2>
     <div class="chip-retsu">
       <button class="chip ${s.colorTeema==='sawayaka'?'eranda':''}" data-teema="sawayaka">爽やか</button>
@@ -1429,6 +1521,9 @@ function egakuSettei(){
   });
   on("sdInterval", "click", () => { setteiDraft.nawaInterval = !setteiDraft.nawaInterval; hyouji(); });
   onAll("[data-teema]", "click", b => { const s2 = setteiYomu(); s2.colorTeema = b.dataset.teema; setteiKaku(s2); teemaTekiyou(s2.colorTeema); hyouji(); });
+  onAll("[data-tb-del]", "click", b => {
+    const s2 = setteiYomu(); s2.teiban = (s2.teiban||[]).filter(t => t.id !== b.dataset.tbDel); setteiKaku(s2); hyouji();
+  });
   on("sdTest", "click", async () => {
     setteiTestChu = true; setteiMsg = null; setteiErr = null; hyouji();
     try{
