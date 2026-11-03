@@ -7,24 +7,16 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="素振り">
 <meta name="theme-color" content="#0A0D13">
-<title>素振り＋一段昇降</title>
+<title>Bokuto</title>
 <style>
 :root{
-  --bg:#0A0D13;
-  --bg2:#0F131C;
-  --panel:#141924;
-  --panel2:#1B2130;
-  --line:rgba(255,255,255,.09);
-  --text:#EAF0FA;
-  --text-dim:#7C87A0;
-  --suburi:#00F0C0;
-  --suburi-dim:rgba(0,240,192,.14);
-  --shoko:#FF7A45;
-  --shoko-dim:rgba(255,122,69,.14);
-  --warn:#FF3D6E;
-  --warn-dim:rgba(255,61,110,.13);
-  --accent:#7C5CFF;
-  --accent-dim:rgba(124,92,255,.15);
+  --bg:#0A0D13; --bg2:#0F131C; --panel:#141924; --panel2:#1B2130;
+  --line:rgba(255,255,255,.09); --text:#EAF0FA; --text-dim:#8590A8;
+  --suburi:#00E5C4; --suburi-dim:rgba(0,229,196,.16);
+  --nawa:#3AB4FF;   --nawa-dim:rgba(58,180,255,.16);
+  --accent:#3DFFB0; --accent-dim:rgba(61,255,176,.17);
+  --shoku:#FFB547;  --shoku-dim:rgba(255,181,71,.16);
+  --warn:#FF3D6E;   --warn-dim:rgba(255,61,110,.13);
   --gold:#FFD166;
   --gothic:"Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;
   --mono:"SF Mono","Menlo","Consolas",monospace;
@@ -32,369 +24,249 @@
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;background:var(--bg);color:var(--text);font-family:var(--gothic)}
 body{
-  font-size:15px;line-height:1.7;
-  padding:0 18px calc(48px + env(safe-area-inset-bottom));
-  max-width:30rem;margin:0 auto;
+  font-size:15px;line-height:1.7;max-width:30rem;margin:0 auto;min-height:100vh;
+  /* iPhoneのカメラ部分（ノッチ）とホームバーを避ける */
+  padding:calc(env(safe-area-inset-top) + 10px) 16px calc(92px + env(safe-area-inset-bottom));
   background:
-    radial-gradient(ellipse 600px 300px at 20% -5%, var(--suburi-dim), transparent 60%),
-    radial-gradient(ellipse 600px 300px at 100% 10%, var(--shoko-dim), transparent 60%),
+    radial-gradient(ellipse 600px 300px at 15% -5%, var(--suburi-dim), transparent 60%),
+    radial-gradient(ellipse 600px 300px at 100% 8%, var(--nawa-dim), transparent 60%),
     var(--bg);
-  min-height:100vh;
 }
+body.overlay{padding-bottom:calc(32px + env(safe-area-inset-bottom))}
 button{font-family:inherit;font-size:inherit;color:inherit;border:0;background:none;cursor:pointer}
-button:focus-visible,input:focus-visible{outline:2px solid var(--suburi);outline-offset:2px}
-input[type=number]::-webkit-inner-spin-button{opacity:.5}
+button:disabled{opacity:.4;cursor:default}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+input,select,textarea{font-family:inherit}
 
-.cut{clip-path:polygon(0 0,calc(100% - 14px) 0,100% 14px,100% 100%,14px 100%,0 calc(100% - 14px))}
+/* ── ヘッダー ── */
+.app-header{display:flex;align-items:center;gap:8px;padding:8px 0 0;min-height:36px}
+.app-title{font-size:13px;font-weight:800;letter-spacing:.16em;color:var(--text)}
+.app-version{font-family:var(--mono);font-size:11px;color:var(--accent);padding:2px 8px;border:1px solid var(--accent);border-radius:10px;background:var(--accent-dim)}
+.hizuke{margin:4px 0 0;font-size:12px;color:var(--text-dim);letter-spacing:.18em}
 
-/* ── 日付 ── */
-.app-header{
-  display:flex;align-items:center;gap:8px;padding:26px 0 0;flex-wrap:wrap;
+/* ── 共通パーツ ── */
+.card{margin-top:14px;padding:16px;border-radius:14px;background:var(--panel);border:1px solid var(--line)}
+.midashi{font-size:11.5px;margin:0 0 10px;font-weight:800;letter-spacing:.18em;color:var(--text-dim)}
+.btn{display:block;width:100%;padding:15px;border-radius:10px;font-size:15px;font-weight:800;letter-spacing:.06em;text-align:center}
+.btn-main{background:linear-gradient(90deg,var(--suburi),var(--nawa));color:#071015}
+.btn-shoku{background:var(--shoku);color:#241500}
+.btn-accent{background:var(--accent);color:#06140D}
+.btn-sub{background:var(--panel2);border:1px solid var(--line);color:var(--text)}
+.btn-warn{background:var(--warn);color:#fff}
+.mt8{margin-top:8px}.mt12{margin-top:12px}.mt16{margin-top:16px}
+.hint{font-size:11.5px;color:var(--text-dim);margin:8px 0 0;line-height:1.6}
+.chip-retsu{display:flex;flex-wrap:wrap;gap:8px}
+.chip{padding:9px 14px;border:1px solid var(--line);border-radius:20px;background:var(--panel2);font-size:13px;color:var(--text-dim)}
+.chip.eranda{background:var(--accent-dim);border-color:var(--accent);color:var(--accent);font-weight:700}
+.chip.warn.eranda{background:var(--warn-dim);border-color:var(--warn);color:var(--warn)}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.nyuryoku{display:flex;gap:8px;align-items:center}
+.nyuryoku input,.field{
+  font-family:var(--mono);font-size:18px;padding:9px 10px;border:1px solid var(--line);border-radius:8px;
+  background:var(--bg2);color:var(--text);
 }
-.app-title{font-size:13px;font-weight:700;letter-spacing:.14em;color:var(--text-dim)}
-.app-version{
-  font-family:var(--mono);font-size:11px;color:var(--accent);
-  padding:2px 7px;border:1px solid var(--accent);border-radius:10px;
-  background:var(--accent-dim);letter-spacing:.02em;
-}
-.teema-kirikae{display:flex;gap:6px;margin-left:auto}
-.teema-kirikae button{
-  padding:4px 10px;border-radius:12px;font-size:11px;border:1px solid var(--line);
-  background:var(--panel);color:var(--text-dim);letter-spacing:.02em;
-}
-.teema-kirikae button.eranda{background:var(--accent-dim);border-color:var(--accent);color:var(--accent);font-weight:700}
-.hizuke{
-  padding:6px 0 0;font-size:12px;
-  color:var(--text-dim);letter-spacing:.22em;text-transform:uppercase;
-}
+.nyuryoku input{width:6em;text-align:right}
+.nyuryoku .tani{color:var(--text-dim);font-size:13px}
+.nyuryoku .btn-mini{margin-left:auto}
+.btn-mini{padding:10px 16px;border-radius:8px;background:var(--accent);color:#06140D;font-weight:800;font-size:13px;white-space:nowrap}
+.btn-mini.sub{background:var(--panel2);color:var(--text);border:1px solid var(--line)}
+textarea.field{width:100%;font-family:var(--gothic);font-size:14px;min-height:64px;resize:vertical}
+select.field{font-family:var(--gothic);font-size:14px}
 
 /* ── 再開バナー ── */
-.modoshi-banner{
-  margin-top:16px;padding:14px 16px;background:var(--accent-dim);
-  border:1px solid var(--accent);border-radius:6px;
-  display:flex;align-items:center;justify-content:space-between;gap:10px;
-}
-.modoshi-banner p{margin:0;font-size:14px;color:var(--text)}
-.modoshi-banner button{padding:9px 18px;background:var(--accent);color:#0A0D13;border-radius:4px;font-size:13px;white-space:nowrap;font-weight:700}
-
-/* ── 体重 ── */
-.taiju{padding:16px 0 26px}
-.taiju-kazu{
-  font-family:var(--mono);font-size:58px;line-height:1;font-weight:700;
-  letter-spacing:-.02em;color:var(--text);
-  text-shadow:0 0 22px var(--accent-dim);
-}
-.taiju-kazu .tani{font-size:20px;margin-left:4px;color:var(--text-dim);font-weight:400}
-.taiju-mikeisoku{font-size:17px;color:var(--text-dim)}
-.taiju-shita{margin-top:14px;display:flex;gap:22px;flex-wrap:wrap}
-.kumi{line-height:1.4}
-.kumi dt{font-size:11px;color:var(--text-dim);margin:0;letter-spacing:.06em}
-.kumi dd{margin:0;font-family:var(--mono);font-size:18px;color:var(--text)}
-.kensu{font-size:11px;color:var(--text-dim);font-family:var(--gothic)}
-
-/* ── 入力 ── */
-.nyuryoku{display:flex;gap:8px;align-items:center;margin-top:16px}
-.nyuryoku input{
-  font-family:var(--mono);font-size:22px;width:5.4em;
-  padding:8px 10px;border:1px solid var(--line);border-radius:4px;
-  background:var(--panel);color:var(--text);text-align:right;
-}
-.nyuryoku input:focus{border-color:var(--accent)}
-.nyuryoku .tani{color:var(--text-dim);font-size:14px}
-.hozon{
-  margin-left:auto;padding:9px 18px;background:var(--accent);color:#0A0D13;
-  border-radius:4px;letter-spacing:.04em;font-weight:700;font-size:13px;
-}
-.hozon:disabled{background:var(--panel2);color:var(--text-dim);cursor:default}
-.yobikake{margin-top:14px;color:var(--text-dim);font-size:12px}
-
-/* ── ウエスト ── */
-.uesuto{margin-top:22px;padding-top:18px;border-top:1px solid var(--line)}
-.uesuto-atai-retsu{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
-.uesuto-label{font-size:11px;color:var(--text-dim);letter-spacing:.06em}
-.uesuto-genzai{font-family:var(--mono);font-size:22px;color:var(--text)}
-.uesuto-genzai small{font-size:13px;color:var(--text-dim);margin-left:2px;font-family:var(--gothic)}
-.uesuto-heikin{font-size:11px;color:var(--text-dim)}
-.uesuto .nyuryoku{margin-top:10px}
-
-/* ── 仕切り ── */
-hr{border:0;border-top:1px solid var(--line);margin:0}
+.saikai{margin-top:12px;padding:12px 14px;border-radius:12px;background:var(--accent-dim);border:1px solid var(--accent);display:flex;align-items:center;gap:10px}
+.saikai p{margin:0;font-size:14px;flex:1}
 
 /* ── 今日のメニュー ── */
-.kondate{padding:24px 0 0}
-.midashi{font-size:12px;margin:0 0 14px;font-weight:700;letter-spacing:.2em;color:var(--text-dim);text-transform:uppercase}
-.shurui{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
-.shurui:last-of-type{border-bottom:0}
-.shurui .fun{font-family:var(--mono);font-size:19px;font-weight:700}
-.shurui .fun.c-suburi{color:var(--suburi)}
-.shurui .fun.c-shoko{color:var(--shoko)}
-.shurui .nashi{color:var(--warn);font-size:13px;font-family:var(--gothic)}
-.chosei{
-  margin-top:12px;padding:10px 12px;background:var(--panel);
-  border-left:3px solid var(--accent);border-radius:2px;font-size:13px;line-height:1.6;color:var(--text-dim);
-}
+.menu-gyo{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--line)}
+.menu-gyo:last-of-type{border-bottom:0}
+.menu-gyo .atai{font-family:var(--mono);font-size:19px;font-weight:800}
+.c-suburi{color:var(--suburi)}.c-nawa{color:var(--nawa)}.c-shoku{color:var(--shoku)}.c-dim{color:var(--text-dim)}
+.chosei{margin:10px 0 0;padding:10px 12px;border-left:3px solid var(--accent);background:var(--bg2);border-radius:4px;font-size:12.5px;line-height:1.6;color:var(--text-dim)}
 .chosei.itami{border-left-color:var(--warn);background:var(--warn-dim);color:#FFD5DF}
+.taicho{padding:16px;border-radius:12px;background:var(--warn-dim);border:1px solid var(--warn)}
+.taicho p{margin:0 0 12px;font-size:14px;color:#FFE3EA}
+.taicho .btns{display:flex;flex-direction:column;gap:8px}
 
-/* ── 体調確認バナー（痛みがあった翌日）── */
-.taicho-check{
-  margin-top:12px;padding:16px;border-radius:10px;
-  background:var(--warn-dim);border:1px solid var(--warn);
-}
-.taicho-check-toi{margin:0 0 14px;font-size:14px;line-height:1.6;color:#FFE3EA}
-.taicho-check-btns{display:flex;flex-direction:column;gap:8px}
-.taicho-check-btns button{
-  padding:12px;border-radius:6px;border:1px solid var(--line);
-  background:var(--panel);color:var(--text);font-size:13.5px;font-weight:700;text-align:center;
-}
-.taicho-check-btns button:active{opacity:.7}
-.taicho-check-btns button.yasumu{color:var(--text-dim);font-weight:400}
+/* ── カロリーカード ── */
+.kcal-ue{display:flex;align-items:baseline;gap:6px}
+.kcal-ue .ookii{font-family:var(--mono);font-size:34px;font-weight:800;color:var(--shoku);line-height:1}
+.kcal-ue .chiisai{font-size:13px;color:var(--text-dim)}
+.bar{margin-top:10px;height:10px;border-radius:6px;background:var(--bg2);overflow:hidden;position:relative}
+.bar i{position:absolute;left:0;top:0;bottom:0;border-radius:6px;background:linear-gradient(90deg,var(--accent),var(--shoku))}
+.bar.over i{background:var(--warn)}
+.kcal-shita{display:flex;justify-content:space-between;margin-top:8px;font-size:12px;color:var(--text-dim)}
 
-/* ── 過去の記録の修正画面 ── */
-.shusei-retsu{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid var(--line);gap:10px}
-.shusei-retsu label{font-size:13px;color:var(--text-dim);flex-shrink:0}
-.shusei-retsu input{
-  font-family:var(--mono);font-size:16px;text-align:right;width:6em;
-  padding:7px 9px;border:1px solid var(--line);border-radius:4px;background:var(--panel);color:var(--text);
-}
-.shusei-retsu select{
-  font-family:var(--gothic);font-size:13px;padding:7px 8px;border:1px solid var(--line);
-  border-radius:4px;background:var(--panel);color:var(--text);
-}
-.shusei-mikiroku{margin-top:6px;font-size:12px;color:var(--text-dim)}
-.hi[data-hizuke]{cursor:pointer}
-.heat-cell[data-hizuke]{cursor:pointer}
+/* ── 体重 ── */
+.taiju-retsu{display:flex;align-items:baseline;gap:6px}
+.taiju-kazu{font-family:var(--mono);font-size:44px;font-weight:800;line-height:1}
+.taiju-kazu small{font-size:16px;color:var(--text-dim);margin-left:2px;font-weight:400}
+.taiju-mikei{font-size:15px;color:var(--text-dim)}
+.kumi-retsu{display:flex;gap:18px;flex-wrap:wrap;margin-top:10px}
+.kumi dt{font-size:10.5px;color:var(--text-dim);margin:0;letter-spacing:.06em}
+.kumi dd{margin:0;font-family:var(--mono);font-size:16px}
+.bunkatsu{margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
 
-/* ── 左右モード選択 ── */
-.legmode-retsu{display:flex;gap:8px;margin-top:16px}
-.legmode-retsu button{
-  flex:1;padding:10px 4px;border:1px solid var(--line);border-radius:4px;
-  background:var(--panel);font-size:13px;color:var(--text-dim);
-}
-.legmode-retsu button.eranda{background:var(--shoko-dim);border-color:var(--shoko);color:var(--shoko);font-weight:700}
-.legmode-chui{margin-top:8px;font-size:12px;color:var(--warn)}
-
-/* ── 開始ボタン ── */
-.kaishi{
-  display:block;width:100%;margin-top:20px;padding:18px;
-  background:linear-gradient(90deg,var(--suburi),var(--shoko));color:#0A0D13;
-  border-radius:6px;font-size:16px;letter-spacing:.1em;font-weight:800;
-}
-
-/* ── 運動画面 ── */
-.undou{padding:20px 0 10px;text-align:center}
-.phase-tabs{display:flex;gap:8px;margin-bottom:26px}
-.phase-tab{
-  flex:1;padding:11px 4px;border:1px solid var(--line);border-radius:6px;
-  background:var(--panel);font-size:13px;color:var(--text-dim);font-weight:700;letter-spacing:.04em;
-}
-.phase-tab.active.p-suburi{background:var(--suburi-dim);border-color:var(--suburi);color:var(--suburi);box-shadow:0 0 16px var(--suburi-dim)}
-.phase-tab.active.p-shoko{background:var(--shoko-dim);border-color:var(--shoko);color:var(--shoko);box-shadow:0 0 16px var(--shoko-dim)}
-.phase-tab:disabled{opacity:.35}
-
-.undou-midashi{font-size:13px;margin:0;letter-spacing:.2em;color:var(--text-dim);text-transform:uppercase}
-.undou-ashi{margin:6px 0 0;font-size:14px;font-weight:700}
-.undou.p-suburi .undou-ashi{color:var(--suburi)}
-.undou.p-shoko .undou-ashi{color:var(--shoko)}
-
-.ring-wrap{position:relative;width:236px;height:236px;margin:22px auto 6px}
-.ring{position:absolute;inset:0;border-radius:50%}
-.ring-inner{
-  position:absolute;inset:14px;border-radius:50%;background:var(--bg2);
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  border:1px solid var(--line);
-}
-.undou-taimaa{
-  font-family:var(--mono);font-size:46px;line-height:1;font-weight:700;
-  letter-spacing:-.02em;font-variant-numeric:tabular-nums;
-}
-.undou.p-suburi .undou-taimaa{color:var(--suburi);text-shadow:0 0 18px var(--suburi-dim)}
-.undou.p-shoko .undou-taimaa{color:var(--shoko);text-shadow:0 0 18px var(--shoko-dim)}
-.undou-mokuhyo{font-size:12px;color:var(--text-dim);margin:6px 0 0}
-
-.tassei-badge{
-  display:inline-block;margin-top:14px;padding:6px 16px;border-radius:20px;
-  background:var(--gold);color:#3A2A00;font-size:12px;font-weight:800;letter-spacing:.06em;
-  animation:tasseiPop .5s ease;
-}
-@keyframes tasseiPop{0%{transform:scale(.5);opacity:0}60%{transform:scale(1.08);opacity:1}100%{transform:scale(1)}}
-.particle-layer{position:absolute;inset:0;pointer-events:none;overflow:visible}
-.particle{
-  position:absolute;left:50%;top:50%;width:6px;height:6px;border-radius:50%;
-  background:var(--gold);opacity:0;
-  animation:particleFly 900ms ease-out forwards;
-}
-@keyframes particleFly{
-  0%{opacity:1;transform:translate(-50%,-50%) rotate(var(--ang)) translateX(0) scale(1)}
-  100%{opacity:0;transform:translate(-50%,-50%) rotate(var(--ang)) translateX(120px) scale(.3)}
-}
-
-.honsu-retsu{margin-top:26px}
-.honsu-atai{font-family:var(--mono);font-size:26px;font-weight:700}
-.undou.p-suburi .honsu-atai{color:var(--suburi)}
-.undou.p-shoko .honsu-atai{color:var(--shoko)}
-.kazu-btn-retsu{display:flex;gap:8px;justify-content:center;margin-top:12px}
-.kazu-btn-retsu.minus{margin-top:8px}
-.kazu-btn-retsu button{
-  padding:9px 14px;border:1px solid var(--line);border-radius:6px;
-  background:var(--panel);font-size:13px;color:var(--text);font-family:var(--mono);
-}
-.undou.p-suburi .kazu-btn-retsu.plus button{color:var(--suburi);border-color:rgba(0,229,196,.3)}
-.undou.p-shoko .kazu-btn-retsu.plus button{color:var(--shoko);border-color:rgba(58,180,255,.3)}
-.kazu-btn-retsu.minus button{color:var(--text-dim)}
-
-.sosa-retsu{display:flex;gap:10px;margin-top:36px}
-.sosa-retsu button{flex:1;padding:16px;border-radius:6px;font-size:14px;font-weight:700;letter-spacing:.04em}
-.ichiji-btn{background:var(--panel2);color:var(--text);border:1px solid var(--line)}
-.owari-btn{background:var(--warn);color:#fff}
-
-/* ── 終了記録画面 ── */
-.shuryo{padding:26px 0}
-.shuryo-midashi{font-size:20px;margin:0 0 6px;font-weight:800}
-.shuryo-sub{margin:0 0 20px;font-size:12px;color:var(--text-dim);letter-spacing:.1em}
-.badge-retsu{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
-.badge{
-  padding:6px 12px;border-radius:20px;font-size:12px;font-weight:800;letter-spacing:.03em;
-  border:1px solid var(--gold);color:var(--gold);background:rgba(255,209,102,.1);
-  box-shadow:0 0 14px rgba(255,209,102,.25);
-}
-.hosei-hint{font-size:11px;color:var(--text-dim);margin:-8px 0 14px}
-.kazu-hint{font-size:11px;color:var(--text-dim);margin:10px 0 0}
-.shuryo-koumoku{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px}
-.shuryo-koumoku .atai{font-family:var(--mono);font-size:17px;color:var(--text)}
-.shuryo-koumoku .hosei-nyu{
-  width:4em;font-family:var(--mono);font-size:17px;text-align:right;
-  padding:5px 8px;border:1px solid var(--line);border-radius:4px;background:var(--panel);color:var(--text);
-}
-.shuryo-koumoku.c-suburi .hosei-nyu:focus,.shuryo-koumoku.c-suburi .atai{color:var(--suburi)}
-.shuryo-koumoku.c-shoko .hosei-nyu:focus,.shuryo-koumoku.c-shoko .atai{color:var(--shoko)}
-.shuryo-kcal{margin-top:8px;font-size:12px;color:var(--text-dim)}
-.hirou-midashi{margin-top:28px;font-size:12px;letter-spacing:.15em;color:var(--text-dim);text-transform:uppercase}
-.hirou-retsu{display:flex;gap:6px;margin-top:10px}
-.hirou-retsu button{
-  flex:1;padding:10px 2px;border:1px solid var(--line);border-radius:6px;
-  background:var(--panel);font-size:11px;line-height:1.5;color:var(--text-dim);font-family:var(--mono)}
-.hirou-retsu button.eranda{background:var(--accent-dim);border-color:var(--accent);color:var(--accent);font-weight:700}
-.itami-midashi{margin-top:26px;font-size:12px;letter-spacing:.15em;color:var(--text-dim);text-transform:uppercase}
-.itami-retsu{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
-.itami-chip{padding:8px 14px;border:1px solid var(--line);border-radius:20px;background:var(--panel);font-size:13px;color:var(--text-dim)}
-.itami-chip.eranda{background:var(--warn-dim);border-color:var(--warn);color:var(--warn);font-weight:700}
-.hozon-owari{
-  display:block;width:100%;margin-top:32px;padding:17px;
-  background:var(--accent);color:#0A0D13;border-radius:6px;
-  font-size:15px;letter-spacing:.06em;font-weight:800;
-}
-.hozon-owari:disabled{background:var(--panel2);color:var(--text-dim)}
+/* ── その他の運動 ── */
+.sonota-gyo{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--line);font-size:14px}
+.batsu{width:32px;height:32px;border-radius:8px;color:var(--text-dim);font-size:18px;line-height:1}
+.sonota-add{display:flex;gap:8px;margin-top:10px;align-items:center}
+.sonota-add select{flex:1}
+.sonota-add input{width:4.6em;text-align:right}
 
 /* ── 今週 ── */
-.konshu{padding:28px 0 0}
-.masu{display:flex;gap:6px;margin:12px 0 0}
+.masu{display:flex;gap:6px}
 .hi{flex:1;text-align:center}
 .hi .yobi{font-size:11px;color:var(--text-dim)}
-.hi .shirushi{
-  margin-top:4px;height:32px;border-radius:6px;border:1px solid var(--line);
-  display:flex;align-items:center;justify-content:center;
-  font-family:var(--mono);font-size:12px;color:var(--text-dim);background:var(--panel);
-}
-.hi.jisshi .shirushi{background:var(--suburi-dim);border-color:var(--suburi);color:var(--suburi);font-weight:700}
-.hi.kyuyo .shirushi{background:var(--panel2);border-color:var(--line);color:var(--text-dim)}
+.hi .shirushi{margin-top:4px;height:36px;border-radius:8px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:12px;color:var(--text-dim);background:var(--bg2)}
+.hi.jisshi .shirushi{background:var(--suburi-dim);border-color:var(--suburi);color:var(--suburi);font-weight:800}
 .hi.kyo .shirushi{box-shadow:0 0 12px var(--accent-dim);border-color:var(--accent)}
-.hi.kyo .yobi{color:var(--accent);font-weight:700}
-.shukei{margin-top:12px;font-size:12px;color:var(--text-dim)}
+.hi.kyo .yobi{color:var(--accent);font-weight:800}
+.hi[data-hizuke]{cursor:pointer}
 
-.chui{margin-top:32px;font-size:11px;color:var(--text-dim);line-height:1.7}
+/* ── 下部タブバー ── */
+.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:50;background:rgba(10,13,19,.94);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-top:1px solid var(--line);padding:6px 8px calc(6px + env(safe-area-inset-bottom))}
+.tabbar.kakusu{display:none}
+.tabbar-uchi{display:flex;max-width:30rem;margin:0 auto}
+.tabbar button{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0 4px;font-size:10.5px;color:var(--text-dim);font-weight:700;letter-spacing:.04em}
+.tabbar svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.tabbar button.eranda{color:var(--accent)}
 
-/* ── 推移画面 ── */
-.suii-header{display:flex;align-items:center;gap:10px;padding:26px 0 4px}
-.modoru-btn{font-size:13px;color:var(--text-dim);letter-spacing:.04em}
-.suii-title{font-size:13px;font-weight:700;letter-spacing:.12em;color:var(--text-dim)}
+/* ── 画面ヘッダー（戻る付き）── */
+.gamen-head{display:flex;align-items:center;gap:6px;padding:8px 0 4px;min-height:44px}
+.modoru{padding:10px 12px 10px 0;font-size:14px;color:var(--text-dim)}
+.gamen-title{font-size:13px;font-weight:800;letter-spacing:.12em}
 
-.renzoku-panel{
-  margin-top:18px;padding:22px 18px;border-radius:10px;text-align:center;
-  background:var(--panel);border:1px solid var(--line);
-  position:relative;overflow:hidden;
-}
-.renzoku-panel::before{
-  content:"";position:absolute;inset:-40%;
-  background:conic-gradient(from 0deg, var(--suburi), var(--shoko), var(--suburi));
-  opacity:.10;animation:renzokuKaiten 8s linear infinite;
-}
-@keyframes renzokuKaiten{to{transform:rotate(360deg)}}
-.renzoku-kazu{
-  position:relative;font-family:var(--mono);font-size:52px;font-weight:800;line-height:1;
-  background:linear-gradient(90deg,var(--suburi),var(--shoko));-webkit-background-clip:text;
-  background-clip:text;color:transparent;
-}
-.renzoku-tani{position:relative;font-size:13px;color:var(--text-dim);margin-top:6px}
+/* ── 運動画面 ── */
+.phase-tabs{display:flex;gap:8px;margin:6px 0 18px}
+.phase-tab{flex:1;padding:13px 4px;border:1px solid var(--line);border-radius:10px;background:var(--panel);font-size:14px;color:var(--text-dim);font-weight:800}
+.phase-tab.on-suburi{background:var(--suburi-dim);border-color:var(--suburi);color:var(--suburi)}
+.phase-tab.on-nawa{background:var(--nawa-dim);border-color:var(--nawa);color:var(--nawa)}
+.undou{text-align:center}
+.ring-wrap{position:relative;width:228px;height:228px;margin:6px auto 4px}
+.ring{position:absolute;inset:0;border-radius:50%}
+.ring-uchi{position:absolute;inset:14px;border-radius:50%;background:var(--bg2);display:flex;flex-direction:column;align-items:center;justify-content:center;border:1px solid var(--line)}
+.taimaa{font-family:var(--mono);font-size:46px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums}
+.mokuhyo{font-size:12px;color:var(--text-dim);margin:6px 0 0}
+.interval{margin:10px auto 0;display:inline-block;padding:8px 22px;border-radius:24px;font-weight:800;font-size:18px;letter-spacing:.2em}
+.interval.tobu{background:var(--nawa);color:#04121D}
+.interval.yasumu{background:var(--panel2);color:var(--text-dim);border:1px solid var(--line)}
+.kazu{margin-top:18px;font-family:var(--mono);font-size:26px;font-weight:800}
+.kazu-btns{display:flex;gap:8px;justify-content:center;margin-top:10px}
+.kazu-btns button{padding:11px 0;width:76px;border:1px solid var(--line);border-radius:10px;background:var(--panel);font-family:var(--mono);font-size:14px}
+.kazu-btns.minus button{color:var(--text-dim);padding:8px 0;font-size:12.5px}
+.sosa{display:flex;gap:10px;margin-top:26px}
+.sosa .btn{flex:1}
+.tassei{display:inline-block;margin-top:10px;padding:6px 16px;border-radius:20px;background:var(--gold);color:#3A2A00;font-size:12px;font-weight:800;animation:pop .5s ease}
+@keyframes pop{0%{transform:scale(.5);opacity:0}60%{transform:scale(1.08);opacity:1}100%{transform:scale(1)}}
+.particle-layer{position:absolute;inset:0;pointer-events:none}
+.particle{position:absolute;left:50%;top:50%;width:6px;height:6px;border-radius:50%;background:var(--gold);opacity:0;animation:fly 900ms ease-out forwards}
+@keyframes fly{0%{opacity:1;transform:translate(-50%,-50%) rotate(var(--ang)) translateX(0)}100%{opacity:0;transform:translate(-50%,-50%) rotate(var(--ang)) translateX(120px) scale(.3)}}
 
-.midashi-suii{font-size:12px;margin:26px 0 12px;font-weight:700;letter-spacing:.16em;color:var(--text-dim);text-transform:uppercase}
+/* ── 記録・修正の行 ── */
+.gyo{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--line);gap:10px;font-size:14px}
+.gyo label{color:var(--text-dim);font-size:13px;flex-shrink:0}
+.gyo input{width:5.6em;text-align:right;font-size:16px}
+.gyo .atai{font-family:var(--mono);font-size:17px}
+.hirou{display:flex;gap:6px}
+.hirou button{flex:1;padding:10px 2px;border:1px solid var(--line);border-radius:8px;background:var(--panel2);font-size:11px;line-height:1.5;color:var(--text-dim)}
+.hirou button.eranda{background:var(--accent-dim);border-color:var(--accent);color:var(--accent);font-weight:800}
+.badge{display:inline-block;margin:0 6px 6px 0;padding:6px 12px;border-radius:20px;font-size:12px;font-weight:800;border:1px solid var(--gold);color:var(--gold);background:rgba(255,209,102,.1)}
 
+/* ── 食事 ── */
+.hi-nav{display:flex;align-items:center;justify-content:space-between;margin-top:8px}
+.hi-nav button{width:44px;height:40px;border-radius:10px;background:var(--panel);border:1px solid var(--line);font-size:16px}
+.hi-nav .hyoji{font-size:15px;font-weight:800}
+.meal{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
+.meal:last-child{border-bottom:0}
+.meal-thumb{width:64px;height:64px;border-radius:10px;object-fit:cover;background:var(--bg2);flex-shrink:0;display:flex;align-items:center;justify-content:center;color:var(--text-dim);font-size:11px}
+.meal-hon{flex:1;min-width:0}
+.meal-ue{display:flex;justify-content:space-between;gap:8px}
+.meal-namae{font-size:14px;font-weight:700;overflow-wrap:anywhere}
+.meal-kcal{font-family:var(--mono);font-size:16px;font-weight:800;color:var(--shoku);white-space:nowrap}
+.meal-sub{font-size:11.5px;color:var(--text-dim)}
+.meal-adv{font-size:12px;color:var(--text-dim);margin-top:4px;line-height:1.55}
+.meal-sosa{display:flex;gap:8px;margin-top:6px}
+.meal-sosa button{font-size:12px;color:var(--text-dim);padding:4px 10px;border:1px solid var(--line);border-radius:6px}
+.photo-waku{margin-top:4px;border:1.5px dashed var(--line);border-radius:14px;min-height:180px;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;background:var(--bg2)}
+.photo-waku img{width:100%;display:block}
+.photo-waku .nashi{color:var(--text-dim);font-size:13px;text-align:center;padding:20px}
+.file-btn{position:relative;overflow:hidden}
+.file-btn input{position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer}
+.kekka-ryori{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid var(--line);font-size:13.5px}
+.kekka-ryori .ryo{display:block;font-size:11.5px;color:var(--text-dim)}
+.kekka-goukei{display:flex;align-items:baseline;justify-content:space-between;margin-top:10px}
+.kekka-goukei .num{font-size:28px;font-weight:800;color:var(--shoku)}
+.adv-box{margin-top:12px;padding:12px;border-radius:10px;background:var(--shoku-dim);border:1px solid rgba(255,181,71,.35);font-size:13.5px;line-height:1.7}
+.err{margin-top:10px;padding:10px 12px;border-radius:8px;background:var(--warn-dim);color:#FFD5DF;font-size:13px}
+.loading{margin-top:12px;text-align:center;color:var(--text-dim);font-size:13px}
+.loading::before{content:"";display:inline-block;width:14px;height:14px;margin-right:8px;vertical-align:-2px;border:2px solid var(--shoku);border-top-color:transparent;border-radius:50%;animation:kaiten 0.8s linear infinite}
+@keyframes kaiten{to{transform:rotate(360deg)}}
+
+/* ── 推移 ── */
+.renzoku{position:relative;overflow:hidden;text-align:center;padding:22px 16px}
+.renzoku::before{content:"";position:absolute;inset:-40%;background:conic-gradient(from 0deg,var(--suburi),var(--nawa),var(--suburi));opacity:.1;animation:kaiten 8s linear infinite}
+.renzoku .kazu-ookii{position:relative;font-family:var(--mono);font-size:52px;font-weight:800;line-height:1;background:linear-gradient(90deg,var(--suburi),var(--nawa));-webkit-background-clip:text;background-clip:text;color:transparent}
+.renzoku p{position:relative;margin:6px 0 0;font-size:13px;color:var(--text-dim)}
 .heatmap-wrap{overflow-x:auto;padding-bottom:4px}
 .heatmap{display:grid;grid-auto-flow:column;grid-template-rows:repeat(7,1fr);gap:3px;width:max-content}
-.heat-cell{width:13px;height:13px;border-radius:3px;background:var(--panel2)}
-.heat-cell.heat-0{background:var(--panel2)}
-.heat-cell.heat-1{background:var(--suburi);opacity:.28}
-.heat-cell.heat-2{background:var(--suburi);opacity:.5}
-.heat-cell.heat-3{background:var(--suburi);opacity:.75}
-.heat-cell.heat-4{background:var(--suburi);opacity:1;box-shadow:0 0 6px var(--suburi)}
-.heat-cell.kyo{outline:1.5px solid var(--accent);outline-offset:1px}
-.heat-cell.mirai{visibility:hidden}
-.heatmap-hanrei{display:flex;align-items:center;gap:4px;margin-top:8px;font-size:10px;color:var(--text-dim)}
-.heatmap-hanrei .heat-cell{width:10px;height:10px}
+.hc{width:14px;height:14px;border-radius:3px;background:var(--panel2)}
+.hc.l1{background:var(--suburi);opacity:.28}.hc.l2{background:var(--suburi);opacity:.5}
+.hc.l3{background:var(--suburi);opacity:.75}.hc.l4{background:var(--suburi);box-shadow:0 0 6px var(--suburi)}
+.hc.kyo{outline:1.5px solid var(--accent);outline-offset:1px}
+.hc.mirai{visibility:hidden}
+.hc[data-hizuke]{cursor:pointer}
+.hanrei{display:flex;align-items:center;gap:4px;margin-top:8px;font-size:10px;color:var(--text-dim)}
+.hanrei .hc{width:10px;height:10px}
+.tabs-sm{display:flex;gap:6px;flex-wrap:wrap}
+.tabs-sm button{padding:8px 12px;border-radius:14px;font-size:12px;border:1px solid var(--line);background:var(--panel2);color:var(--text-dim)}
+.tabs-sm button.eranda{background:var(--accent-dim);border-color:var(--accent);color:var(--accent);font-weight:800}
+.chart svg{display:block;width:100%;height:auto;overflow:visible}
+.chart-line{fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:2000;stroke-dashoffset:2000;animation:kaku 1.1s ease forwards}
+@keyframes kaku{to{stroke-dashoffset:0}}
+.chart-ima{animation:pulse 1.6s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+.chart-ue{display:flex;justify-content:space-between;align-items:baseline;font-size:11px;color:var(--text-dim);padding-bottom:8px}
+.chart-ue .ima{font-family:var(--mono);font-size:20px;color:var(--text);font-weight:800}
+.chart-nashi{padding:28px 0;text-align:center;color:var(--text-dim);font-size:13px}
 
-.metric-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
-.metric-tabs button{
-  padding:8px 12px;border-radius:14px;font-size:12px;border:1px solid var(--line);
-  background:var(--panel);color:var(--text-dim);
-}
-.metric-tabs button.eranda{background:var(--accent-dim);border-color:var(--accent);color:var(--accent);font-weight:700}
-.kikan-tabs{display:flex;gap:6px;margin-top:10px}
-.kikan-tabs button{
-  flex:1;padding:7px 4px;border-radius:6px;font-size:12px;border:1px solid var(--line);
-  background:var(--panel);color:var(--text-dim);
-}
-.kikan-tabs button.eranda{background:var(--panel2);border-color:var(--text-dim);color:var(--text);font-weight:700}
-
-.suii-chart-wrap{margin-top:16px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 10px 6px}
-.suii-chart-wrap svg{display:block;width:100%;height:auto;overflow:visible}
-.suii-line{fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;
-  stroke-dasharray:2000;stroke-dashoffset:2000;animation:suiiKaku 1.1s ease forwards}
-@keyframes suiiKaku{to{stroke-dashoffset:0}}
-.suii-ten{animation:tenPop .4s ease backwards}
-@keyframes tenPop{from{opacity:0;r:0}to{opacity:1}}
-.suii-ima{animation:imaPulse 1.6s ease-in-out infinite}
-@keyframes imaPulse{0%,100%{opacity:1}50%{opacity:.35}}
-.suii-atai-hyoji{display:flex;justify-content:space-between;align-items:baseline;padding:2px 4px 10px;font-size:11px;color:var(--text-dim)}
-.suii-atai-hyoji .ima{font-family:var(--mono);font-size:20px;color:var(--text);font-weight:700}
-.suii-nashi{padding:30px 0;text-align:center;color:var(--text-dim);font-size:13px}
-
-.suii-link{
-  display:block;width:100%;margin-top:14px;padding:12px;text-align:center;
-  border-radius:8px;border:1px solid var(--line);background:var(--panel);
-  color:var(--text-dim);font-size:13px;letter-spacing:.04em;
-}
-@media (prefers-reduced-motion:no-preference){
-  .hozon,.kaishi,.hozon-owari,.phase-tab{transition:opacity .15s,transform .1s}
-}
-.hozon:active,.kaishi:active,.hozon-owari:active,.phase-tab:active{opacity:.7}
+/* ── 設定 ── */
+.settei-gyo{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.settei-gyo label{font-size:13px;color:var(--text-dim)}
+.settei-gyo input{width:6em;text-align:right;font-size:16px}
+.settei-gyo select{max-width:60%}
+.settei-tate{padding:10px 0;border-bottom:1px solid var(--line)}
+.settei-tate label{display:block;font-size:13px;color:var(--text-dim);margin-bottom:6px}
+.settei-tate input{width:100%;font-size:13px}
+.ok-msg{margin-top:10px;padding:10px 12px;border-radius:8px;background:var(--accent-dim);color:var(--accent);font-size:13px}
+.chui{margin-top:18px;font-size:11px;color:var(--text-dim);line-height:1.7}
 </style>
 </head>
 <body>
 <div id="app"></div>
+<nav id="tabbar" class="tabbar"></nav>
 
 <script>
 "use strict";
 /* ===========================================================
-   木刀素振り＋一段昇降　管理アプリ
-   実装3：
-   ・運動画面をタブ切替式にし、フェーズの手直し（誤操作の訂正）に対応
-   ・回数カウントに「－」ボタンを追加（数え間違いの訂正）
-   ・終了記録画面で素振り／昇降の分数を手入力で補正できるように
-   ・痛みチェックに左右（右／左）の項目を追加
-   ・デザインをダーク×ネオンの引き締まった見た目に刷新、達成演出を追加
-   仕様書 v1 準拠。カロリー表示のみ実施、グラム換算はしない（10章）。
+   Bokuto — 木刀素振り＋縄跳び＋体重・食事の個人用管理アプリ
+   バージョン履歴（増分：新機能 +0.1／不具合修正のみ +0.0.1）
+   v1.0  実装1：データ層＋ホーム＋体重入力
+   v1.1  実装2：運動画面の追加
+   v1.2  2026-09-13 フェーズ手直しタブ／回数の－ボタン／分数補正／痛みの左右
+   v1.3  2026-09-13 配色テーマ（爽やか／派手）切替
+   v1.4  2026-09-13 一段昇降にも回数カウント
+   v1.5  2026-09-13 推移画面（継続日数・ヒートマップ・折れ線）
+   v1.6  2026-09-14 過去の記録の修正、痛みの翌日の体調確認と配分提案
+   v1.7  2026-10-28 一段昇降→縄跳び（インターバル表示つき）に切替、
+                    その他の運動（ウォーキング等）の記録、食事の写真記録と
+                    AI（GAS経由のGemini）によるカロリー推定・アドバイス、
+                    身長・目標体重から1日の摂取目安を計算、下部タブで
+                    画面を切替、iPhoneのカメラ部分に隠れないレイアウト
    =========================================================== */
+const APP_VERSION = "1.7";
 
-/* ---------- 保存層 ------------------------------------------------- */
+/* ---------- 保存層 ---------- */
 const Kioku = (() => {
   let tsukaeru = true;
   try { localStorage.setItem("__t","1"); localStorage.removeItem("__t"); }
@@ -410,1267 +282,1177 @@ const Kioku = (() => {
     },
     kaku(key, atai){
       const s = JSON.stringify(atai);
-      if (tsukaeru) { try{ localStorage.setItem(key, s); }catch{} }
-      else memori[key] = s;
+      if (tsukaeru){ try{ localStorage.setItem(key, s); return true; }catch{ return false; } }
+      memori[key] = s; return true;
     }
   };
 })();
 
-/* ---------- バージョン ----------------------------------------------
-   改善のたびにここを更新する。表示はホーム画面のアプリ名の横。
-   増分ルール：新機能追加は +0.1、不具合修正のみは +0.0.1
-   v1.0  2026-xx-xx  実装1：データ層＋ホーム＋体重入力
-   v1.1  2026-xx-xx  実装2：運動画面の追加
-   v1.2  2026-09-13  実装3：フェーズ手直しタブ／回数の－ボタン／
-                     終了記録の分数手入力補正／痛みチェックの左右項目／
-                     ダーク×ネオンのデザイン刷新／達成演出
-   v1.3  2026-09-13  配色テーマを「爽やか系」「派手系」の2種類に分け、
-                     ホーム画面右上でいつでも切り替え可能に（設定に保存）
-   v1.4  2026-09-13  一段昇降にも回数カウント（＋/－ボタン）を追加。
-                     素振り・昇降ともに「時間」と「数えられた分の回数」を
-                     両方記録できるように（数えにくい時は時間だけでも良い）
-   v1.5  2026-09-13  「推移」画面を新設：継続日数（ストリーク）、
-                     16週間分のヒートマップ、指標（合計時間／体重／
-                     素振り本数／昇降回数）と期間（2週間／1ヶ月／全期間）
-                     を切り替えられる折れ線グラフ
-   v1.6  2026-09-14  今週・ヒートマップの日付をタップして、過去の記録
-                     （体重・素振り・昇降・疲労度・痛み）を遡って修正
-                     できる画面を追加。また、痛みの記録があった翌日は
-                     自動で減らすのではなく「今日の調子はどうですか」
-                     と確認してから、部位に応じた配分（例：脚が痛いなら
-                     昇降を減らして素振りを増やす）を提案する形に変更
-   ------------------------------------------------------------------ */
-const APP_VERSION = "1.6";
-
+/* 記録・設定のキーは以前のバージョンと同じ（過去データをそのまま引き継ぐ） */
 const KEY_KIROKU  = "bokuto.kiroku.v1";
 const KEY_SETTEI  = "bokuto.settei.v1";
-const KEY_SESSION = "bokuto.session.v2";
+const KEY_SESSION = "bokuto.session.v3";
+const KEY_TAICHO  = "bokuto.taicho.v1";
 
-/* ---------- 設定 --------------------------------------------------- */
+/* ---------- 設定 ---------- */
+const KITEI_SHUKAN = [            // 日〜土の目安（分）
+  { suburi:13, nawatobi:5 },
+  { suburi:25, nawatobi:5 },
+  { suburi:20, nawatobi:5 },
+  { suburi:15, nawatobi:0 },
+  { suburi:25, nawatobi:5 },
+  { suburi:20, nawatobi:5 },
+  { suburi:30, nawatobi:8 },
+];
 const KITEI_SETTEI = {
   kaishiBi: null,
-  kaishiTaiju: 75.0,
-  mokuhyoShukan: -1.0,
-  kirikaeFun: 1,
-  kiteiLegMode: "kogo",
-  colorTeema: "sawayaka",   // "sawayaka"（爽やか系）| "hade"（派手系）
-  shukan: [
-    { suburi:13, shoko:18, sonota:5  },
-    { suburi:25, shoko:20, sonota:10 },
-    { suburi:20, shoko:25, sonota:10 },
-    { suburi:15, shoko:20, sonota:10 },
-    { suburi:25, shoko:20, sonota:10 },
-    { suburi:20, shoko:25, sonota:10 },
-    { suburi:30, shoko:20, sonota:10 },
-  ]
+  kaishiTaiju: 74.0,
+  mokuhyoTaiju: 66.0,
+  shinchoCm: 173.5,
+  nenrei: 54,
+  seibetsu: "dansei",
+  katsudo: "karui",
+  colorTeema: "sawayaka",
+  nawaInterval: true,
+  gasUrl: "",
+  gasToken: "",
+  shukan: KITEI_SHUKAN
+};
+const KATSUDO = {
+  hotondo:{ t:"ほぼ座っている", k:1.2 },
+  karui:  { t:"立ち仕事・軽く動く", k:1.375 },
+  futsu:  { t:"よく動く", k:1.55 }
 };
 
 function setteiYomu(){
   const s = Object.assign({}, KITEI_SETTEI, Kioku.yomu(KEY_SETTEI, {}));
+  if (!Array.isArray(s.shukan) || !s.shukan[0] || !("nawatobi" in s.shukan[0])) s.shukan = KITEI_SHUKAN;
   if (!s.kaishiBi){ s.kaishiBi = kyoNoHizuke(); Kioku.kaku(KEY_SETTEI, s); }
   return s;
 }
 function setteiKaku(s){ Kioku.kaku(KEY_SETTEI, s); }
 
-/* ---------- 配色テーマ ------------------------------------------------
-   「爽やか系」（ターコイズ×スカイブルー×ミント）と
-   「派手系」（ライム×マゼンタ×イエロー）の2種類を用意し、
-   ホーム画面右上のボタンでいつでも切り替えられる。            */
+/* ---------- 配色テーマ ---------- */
 const TEEMA = {
-  sawayaka: {
-    suburi:"#00E5C4", suburiDim:"rgba(0,229,196,.16)",
-    shoko:"#3AB4FF",  shokoDim:"rgba(58,180,255,.16)",
-    accent:"#3DFFB0", accentDim:"rgba(61,255,176,.17)"
-  },
-  hade: {
-    suburi:"#D4FF1F", suburiDim:"rgba(212,255,31,.16)",
-    shoko:"#FF2E9C",  shokoDim:"rgba(255,46,156,.17)",
-    accent:"#FFDA00", accentDim:"rgba(255,218,0,.17)"
-  }
+  sawayaka:{ suburi:"#00E5C4", nawa:"#3AB4FF", accent:"#3DFFB0", shoku:"#FFB547" },
+  hade:    { suburi:"#D4FF1F", nawa:"#FF2E9C", accent:"#FFDA00", shoku:"#FF8A3D" }
 };
+function hexDim(hex, a){
+  const n = parseInt(hex.slice(1),16);
+  return `rgba(${(n>>16)&255},${(n>>8)&255},${n&255},${a})`;
+}
 function teemaTekiyou(name){
   const t = TEEMA[name] || TEEMA.sawayaka;
   const r = document.documentElement.style;
-  r.setProperty("--suburi", t.suburi);
-  r.setProperty("--suburi-dim", t.suburiDim);
-  r.setProperty("--shoko", t.shoko);
-  r.setProperty("--shoko-dim", t.shokoDim);
-  r.setProperty("--accent", t.accent);
-  r.setProperty("--accent-dim", t.accentDim);
-}
-function teemaKirikae(name){
-  const s = setteiYomu();
-  s.colorTeema = name;
-  setteiKaku(s);
-  teemaTekiyou(name);
-  hyouji();
+  r.setProperty("--suburi", t.suburi); r.setProperty("--suburi-dim", hexDim(t.suburi,.16));
+  r.setProperty("--nawa", t.nawa);     r.setProperty("--nawa-dim", hexDim(t.nawa,.16));
+  r.setProperty("--accent", t.accent); r.setProperty("--accent-dim", hexDim(t.accent,.17));
+  r.setProperty("--shoku", t.shoku);   r.setProperty("--shoku-dim", hexDim(t.shoku,.16));
 }
 
-/* ---------- 記録 ---------------------------------------------------- */
-function kirokuZenbu(){ return Kioku.yomu(KEY_KIROKU, {}); }
-function kirokuHozon(zenbu){ Kioku.kaku(KEY_KIROKU, zenbu); }
-function kirokuToru(hizuke){ return kirokuZenbu()[hizuke] || null; }
-
-function kirokuKaku(hizuke, henko){
-  const zenbu = kirokuZenbu();
-  const moto = zenbu[hizuke] || {
-    date:hizuke, weightKg:null, waistCm:null, suburiMin:0, suburiCount:null,
-    shokoMigiMin:0, shokoHidariMin:0, shokoCount:null, fatigue:null, pain:[], legModeUsed:null
-  };
-  zenbu[hizuke] = Object.assign(moto, henko);
-  kirokuHozon(zenbu);
-  return zenbu[hizuke];
-}
-
-/* ---------- 運動中セッション ----------------------------------------
-   v2：素振り・昇降それぞれが自分の時計を持ち、タブでいつでも
-   行き来できる。誤って進めてしまっても、タブで戻せば良い。      */
-function sessionYomu(){ return Kioku.yomu(KEY_SESSION, null); }
-function sessionKaku(s){ Kioku.kaku(KEY_SESSION, s); }
-
-function keiKaishi(){ return { accumulatedMs:0, runningSince: Date.now() }; }
-function keiKeika(clock){
-  if (!clock) return 0;
-  return clock.accumulatedMs + (clock.runningSince ? (Date.now() - clock.runningSince) : 0);
-}
-function keiIchiji(clock){
-  if (!clock || !clock.runningSince) return clock;
-  return { accumulatedMs: keiKeika(clock), runningSince: null };
-}
-function keiSaikai(clock){
-  if (!clock || clock.runningSince) return clock;
-  return { accumulatedMs: clock.accumulatedMs, runningSince: Date.now() };
-}
-
-/* 一段昇降の左右振り分け（切替間隔ごとに右→左を交互に）。 */
-function ashiWake(keikaMs, kirikaeFun, legMode){
-  if (legMode === "migi")   return { migiMs: keikaMs, hidariMs: 0, ima: "migi" };
-  if (legMode === "hidari") return { migiMs: 0, hidariMs: keikaMs, ima: "hidari" };
-  const block = Math.max(1, kirikaeFun) * 60000;
-  const kanryo = Math.floor(keikaMs / block);
-  const nokori = keikaMs - kanryo * block;
-  const migiBlocks = Math.ceil(kanryo / 2);
-  const hidariBlocks = Math.floor(kanryo / 2);
-  let migiMs = migiBlocks * block;
-  let hidariMs = hidariBlocks * block;
-  const ima = (kanryo % 2 === 0) ? "migi" : "hidari";
-  if (ima === "migi") migiMs += nokori; else hidariMs += nokori;
-  return { migiMs, hidariMs, ima };
-}
-
-/* 消費カロリーの目安（METs法）。グラム換算はしない。 */
-const METS = { suburi: 4.5, shoko: 4.0 };
-function kcalMitsumori(suburiMs, shokoMs, weightKg){
-  const w = weightKg || 60;
-  const h1 = suburiMs / 3600000, h2 = shokoMs / 3600000;
-  return Math.round((METS.suburi * w * h1 + METS.shoko * w * h2) * 1.05);
-}
-
-/* ---------- 日付ユーティリティ ------------------------------------- */
-function kyoNoHizuke(){ return hizukeMoji(new Date()); }
+/* ---------- 日付 ---------- */
 function hizukeMoji(d){
   const p = n => String(n).padStart(2,"0");
   return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`;
 }
+function kyoNoHizuke(){ return hizukeMoji(new Date()); }
 function hizukeZurasu(moji, nichi){
   const [y,m,d] = moji.split("-").map(Number);
-  const dt = new Date(y, m-1, d + nichi);
-  return hizukeMoji(dt);
+  return hizukeMoji(new Date(y, m-1, d + nichi));
 }
 function yobiBango(moji){
   const [y,m,d] = moji.split("-").map(Number);
   return new Date(y, m-1, d).getDay();
 }
 const YOBI = ["日","月","火","水","木","金","土"];
-
-function funByouHyouji(ms){
-  const totalSec = Math.max(0, Math.floor(ms/1000));
-  const m = Math.floor(totalSec/60), s = totalSec%60;
-  return `${m}:${String(s).padStart(2,"0")}`;
+function hizukeHyoji(moji){
+  const [,m,d] = moji.split("-");
+  return `${Number(m)}月${Number(d)}日（${YOBI[yobiBango(moji)]}）`;
+}
+function jikanMoji(){
+  const d = new Date();
+  return `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+}
+function funByou(ms){
+  const t = Math.max(0, Math.floor(ms/1000));
+  return `${Math.floor(t/60)}:${String(t%60).padStart(2,"0")}`;
 }
 
-/* ---------- 数値の集計（体重・ウエスト共通）------------------------ */
-function idoHeikin(hizuke, nissu = 7, field = "weightKg"){
+/* ---------- 記録 ----------
+   DailyRecord = { date, weightKg, waistCm,
+     suburiMin, suburiCount, nawatobiMin, nawatobiCount,
+     shokoMigiMin, shokoHidariMin, shokoCount,   ← 旧記録（一段昇降）は残す
+     sonota:[{id,shurui,fun}], meals:[{id,jikan,kubun,namae,kcal,naiyo,advice,thumb}],
+     fatigue, pain[], legModeUsed } */
+function kirokuZenbu(){ return Kioku.yomu(KEY_KIROKU, {}); }
+function kirokuHozon(zenbu){
+  if (Kioku.kaku(KEY_KIROKU, zenbu)) return true;
+  // 容量オーバー時は写真の縮小版を外して記録の数字を守る
+  Object.values(zenbu).forEach(r => (r.meals||[]).forEach(m => { delete m.thumb; }));
+  return Kioku.kaku(KEY_KIROKU, zenbu);
+}
+function kirokuToru(h){ return kirokuZenbu()[h] || null; }
+function kirokuKaku(h, henko){
   const zenbu = kirokuZenbu();
-  let goukei = 0, kensu = 0;
+  const moto = zenbu[h] || {
+    date:h, weightKg:null, waistCm:null, suburiMin:0, suburiCount:null,
+    nawatobiMin:0, nawatobiCount:null, shokoMigiMin:0, shokoHidariMin:0, shokoCount:null,
+    sonota:[], meals:[], fatigue:null, pain:[], legModeUsed:null
+  };
+  zenbu[h] = Object.assign(moto, henko);
+  kirokuHozon(zenbu);
+  return zenbu[h];
+}
+function shinId(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+
+/* 写真の縮小版は直近14日分だけ残す（スマホの保存容量を守るため） */
+function thumbSeiri(){
+  const genkai = hizukeZurasu(kyoNoHizuke(), -14);
+  const zenbu = kirokuZenbu();
+  let kawatta = false;
+  Object.keys(zenbu).forEach(h => {
+    if (h >= genkai) return;
+    (zenbu[h].meals||[]).forEach(m => { if (m.thumb){ delete m.thumb; kawatta = true; } });
+  });
+  if (kawatta) kirokuHozon(zenbu);
+}
+
+/* ---------- 集計 ---------- */
+function idoHeikin(h, nissu, field){
+  const zenbu = kirokuZenbu();
+  let g = 0, k = 0;
   for (let i = 0; i < nissu; i++){
-    const r = zenbu[hizukeZurasu(hizuke, -i)];
-    if (r && typeof r[field] === "number"){ goukei += r[field]; kensu++; }
+    const r = zenbu[hizukeZurasu(h, -i)];
+    if (r && typeof r[field] === "number"){ g += r[field]; k++; }
   }
-  return kensu ? { heikin: goukei / kensu, kensu } : { heikin: null, kensu: 0 };
+  return k ? { heikin:g/k, kensu:k } : { heikin:null, kensu:0 };
 }
-function saishinTaiju(hizuke){
+function saishinTaiju(h){
   const zenbu = kirokuZenbu();
-  for (let i = 0; i < 30; i++){
-    const r = zenbu[hizukeZurasu(hizuke, -i)];
+  for (let i = 0; i < 60; i++){
+    const r = zenbu[hizukeZurasu(h, -i)];
     if (r && typeof r.weightKg === "number") return r.weightKg;
   }
   return null;
 }
-function suburiCountSaikou(ignoreHizuke){
-  const zenbu = kirokuZenbu();
-  let saikou = 0;
-  for (const k in zenbu){
-    if (k === ignoreHizuke) continue;
-    const c = zenbu[k].suburiCount;
-    if (typeof c === "number" && c > saikou) saikou = c;
-  }
-  return saikou;
+function genzaiTaiju(h){ return saishinTaiju(h) || setteiYomu().kaishiTaiju || 70; }
+function shokoFun(r){ return (r.shokoMigiMin||0) + (r.shokoHidariMin||0); }
+function sonotaFun(r){ return (r.sonota||[]).reduce((a,s) => a + (Number(s.fun)||0), 0); }
+function goukeiFun(r){
+  if (!r) return 0;
+  return (r.suburiMin||0) + (r.nawatobiMin||0) + shokoFun(r) + sonotaFun(r);
 }
 
-/* ---------- 翌日メニュー調整（仕様書9章）---------------------------
-   痛み項目は左右（_migi / _hidari）を持つが、部位の判定は
-   前方一致でまとめて見る（左右どちらでも同じ扱い）。            */
+/* ---------- カロリー ----------
+   運動はMETs法の目安。食事の目安はミフリン・セントジョア式の基礎代謝×活動量から、
+   目標体重より重いあいだは1日400kcal控えめにする（基礎代謝は下回らない）。 */
+const METS = { suburi:4.5, nawatobi:7.0, shoko:4.0 };
+const SONOTA_SHURUI = [
+  { v:"walk",     t:"ウォーキング", mets:3.5 },
+  { v:"jitensha", t:"自転車",       mets:4.0 },
+  { v:"stretch",  t:"ストレッチ",   mets:2.5 },
+  { v:"kintore",  t:"筋トレ",       mets:3.5 },
+  { v:"sonota",   t:"その他",       mets:3.0 }
+];
+function sonotaInfo(v){ return SONOTA_SHURUI.find(x => x.v === v) || SONOTA_SHURUI[4]; }
+function kcalUndou(r, w){
+  if (!r) return 0;
+  const h = m => (Number(m)||0) / 60;
+  let k = METS.suburi*w*h(r.suburiMin) + METS.nawatobi*w*h(r.nawatobiMin) + METS.shoko*w*h(shokoFun(r));
+  (r.sonota||[]).forEach(s => { k += sonotaInfo(s.shurui).mets * w * h(s.fun); });
+  return Math.round(k * 1.05);
+}
+function kcalSesshu(r){ return ((r && r.meals) || []).reduce((a,m) => a + (Number(m.kcal)||0), 0); }
+function kisoTaisha(s, w){
+  return 10*w + 6.25*s.shinchoCm - 5*s.nenrei + (s.seibetsu === "josei" ? -161 : 5);
+}
+function mokuhyoKcal(s, w){
+  const bmr = kisoTaisha(s, w);
+  const tdee = bmr * (KATSUDO[s.katsudo] || KATSUDO.karui).k;
+  const herasu = w > s.mokuhyoTaiju ? 400 : 0;
+  return Math.round(Math.max(bmr, tdee - herasu) / 10) * 10;
+}
+function bmi(s, w){ const m = s.shinchoCm / 100; return w / (m*m); }
+
+/* ---------- 体調確認と今日のメニュー ---------- */
 const ITAMI_UDE  = ["kata","hiji","tekubi"];
 const ITAMI_ASHI = ["hiza","ashikubi"];
-function budoIchizu(pain, sesshuji){ return sesshuji.some(pref => pain.startsWith(pref)); }
-
-/* ---------- 体調確認（痛みがあった翌日）------------------------------
-   痛みの記録があっても自動でメニューを減らして終わりにせず、
-   「今日は大丈夫か」を確認してから決める。回答はその日1回だけ、
-   日付が変われば自動的にリセットされる。                         */
-const KEY_TAICHO = "bokuto.taicho.v1";
+function budo(p, list){ return list.some(x => p.startsWith(x)); }
 function taichoYomu(){
   const t = Kioku.yomu(KEY_TAICHO, null);
-  if (!t || t.date !== kyoNoHizuke()) return null;
-  return t.kotae; // "daijobu" | "mada_itai" | "yasumu" | null
+  return (t && t.date === kyoNoHizuke()) ? t.kotae : null;
 }
-function taichoKaku(kotae){ Kioku.kaku(KEY_TAICHO, { date: kyoNoHizuke(), kotae }); }
+function taichoKaku(k){ Kioku.kaku(KEY_TAICHO, { date:kyoNoHizuke(), kotae:k }); }
 
-/* 痛みの部位に応じた配分提案。例：脚が痛いなら昇降を減らして素振りを増やす。 */
-function itamiChoseiKeisan(kihon, itami){
-  const udeItami = itami.some(p => budoIchizu(p, ITAMI_UDE));
-  const ashiItami = itami.some(p => budoIchizu(p, ITAMI_ASHI));
-  const koshiItami = itami.includes("koshi");
-  const message = [];
-  let suburi = kihon.suburi, shoko = kihon.shoko;
-
-  if ((udeItami && ashiItami) || (koshiItami && (udeItami || ashiItami))){
-    suburi = Math.round(kihon.suburi * 0.5);
-    shoko  = Math.round(kihon.shoko  * 0.5);
-    message.push("複数の部位に痛みの記録があるため、素振り・昇降とも控えめにしています。");
-  } else if (ashiItami){
-    shoko  = Math.round(kihon.shoko  * 0.4);
-    suburi = Math.round(kihon.suburi * 1.25);
-    message.push(`脚の痛みに配慮し、一段昇降を減らして木刀素振りを増やす配分にしています（昇降 ${kihon.shoko}→${shoko}分／素振り ${kihon.suburi}→${suburi}分）。`);
-  } else if (udeItami){
+function itamiChosei(kihon, itami){
+  const ude = itami.some(p => budo(p, ITAMI_UDE));
+  const ashi = itami.some(p => budo(p, ITAMI_ASHI));
+  const koshi = itami.includes("koshi");
+  let { suburi, nawatobi } = kihon;
+  const msg = [];
+  if ((ude && ashi) || (koshi && (ude || ashi))){
+    suburi = Math.round(kihon.suburi * 0.5); nawatobi = 0;
+    msg.push("複数の部位に痛みの記録があるため、素振りは半分、縄跳びはお休みにしています。");
+  } else if (ashi){
+    nawatobi = 0; suburi = Math.round(kihon.suburi * 1.25);
+    msg.push(`脚の痛みに配慮し、跳ぶ衝撃のある縄跳びはお休み、素振りを少し増やしています（素振り ${kihon.suburi}→${suburi}分）。`);
+  } else if (ude){
     suburi = Math.round(kihon.suburi * 0.4);
-    shoko  = Math.round(kihon.shoko  * 1.25);
-    message.push(`腕・肩の痛みに配慮し、木刀素振りを減らして一段昇降を増やす配分にしています（素振り ${kihon.suburi}→${suburi}分／昇降 ${kihon.shoko}→${shoko}分）。`);
-  } else if (koshiItami){
-    suburi = Math.round(kihon.suburi * 0.5);
-    shoko  = Math.round(kihon.shoko  * 0.5);
-    message.push("腰の痛みに配慮し、両方を控えめにしています。");
+    msg.push(`腕・肩の痛みに配慮し、素振りを減らしています（${kihon.suburi}→${suburi}分）。縄跳びも腕を回すので、違和感があればやめてください。`);
+  } else if (koshi){
+    suburi = Math.round(kihon.suburi * 0.5); nawatobi = 0;
+    msg.push("腰の痛みに配慮し、素振りは半分、縄跳びはお休みにしています。");
   } else {
-    message.push("痛みの記録がありますが部位が特定できないため、無理のない範囲で様子を見てください。");
+    msg.push("痛みの記録があります。無理のない範囲で様子を見てください。");
   }
-  return { suburi, shoko, message };
+  return { suburi, nawatobi, msg };
 }
 
-function kyoNoMenu(hizuke, settei){
-  const kihon = settei.shukan[yobiBango(hizuke)];
-  let suburi = kihon.suburi, shoko = kihon.shoko;
+function kyoNoMenu(h, s){
+  const kihon = s.shukan[yobiBango(h)] || { suburi:15, nawatobi:5 };
+  let suburi = kihon.suburi, nawatobi = kihon.nawatobi;
   const riyu = [];
-  let kaifukuBi = false, itamiAri = false;
-  let itamiKakuninMachi = false, itamiBui = [];
+  let kaifuku = false, itamiAri = false, kakuninMachi = false, itamiBui = [];
 
-  const zenjitsu = kirokuToru(hizukeZurasu(hizuke, -1));
-  if (zenjitsu){
-    const f = zenjitsu.fatigue;
-    if (f === 4){
-      suburi = Math.round(suburi * 0.8); shoko = Math.round(shoko * 0.8);
+  const zen = kirokuToru(hizukeZurasu(h, -1));
+  if (zen){
+    if (zen.fatigue === 4){
+      suburi = Math.round(suburi * 0.8); nawatobi = Math.round(nawatobi * 0.8);
       riyu.push("昨日の疲労度4のため20%減らしています。");
-    } else if (f === 5){
-      kaifukuBi = true;
-      riyu.push("昨日の疲労度5。今日は回復日をおすすめします。");
+    } else if (zen.fatigue === 5){
+      kaifuku = true; riyu.push("昨日の疲労度5。今日は回復日がおすすめです。");
     }
-
-    const itami = zenjitsu.pain || [];
-    if (itami.length && !kaifukuBi){
+    const itami = zen.pain || [];
+    if (itami.length && !kaifuku){
       itamiBui = itami;
-      const kotae = taichoYomu();
-      if (kotae === null){
-        itamiKakuninMachi = true;
-      } else if (kotae === "yasumu"){
-        kaifukuBi = true;
-        riyu.push("「今日は休みたい」を選んだため、回復日にしています。");
-      } else if (kotae === "daijobu"){
-        riyu.push("「もう大丈夫」と回答したため、通常メニューのままです。");
-      } else if (kotae === "mada_itai"){
+      const k = taichoYomu();
+      if (k === null) kakuninMachi = true;
+      else if (k === "yasumu"){ kaifuku = true; riyu.push("「今日は休みたい」を選んだので回復日にしています。"); }
+      else if (k === "daijobu"){ riyu.push("「もう大丈夫」と回答したので通常メニューです。"); }
+      else if (k === "mada_itai"){
         itamiAri = true;
-        const chosei = itamiChoseiKeisan({ suburi, shoko }, itami);
-        suburi = chosei.suburi; shoko = chosei.shoko;
-        riyu.push(...chosei.message);
-
-        const zenzenjitsu = kirokuToru(hizukeZurasu(hizuke, -2));
-        if (zenzenjitsu && (zenzenjitsu.pain||[]).length){
+        const c = itamiChosei({ suburi, nawatobi }, itami);
+        suburi = c.suburi; nawatobi = c.nawatobi; riyu.push(...c.msg);
+        const zz = kirokuToru(hizukeZurasu(h, -2));
+        if (zz && (zz.pain||[]).length){
           suburi = Math.min(suburi, kihon.suburi);
-          shoko  = Math.min(shoko,  kihon.shoko);
-          riyu.push("痛みが2日続いているため、増量はせず様子を見ています。");
+          riyu.push("痛みが2日続いているので、増やさず様子を見ています。");
         }
       }
     }
   }
-
-  if (kaifukuBi){ suburi = 0; shoko = 0; }
-  return { suburi, shoko, sonota: kihon.sonota, riyu, kaifukuBi, itamiAri, itamiKakuninMachi, itamiBui };
+  if (kaifuku){ suburi = 0; nawatobi = 0; }
+  return { suburi, nawatobi, riyu, kaifuku, itamiAri, kakuninMachi, itamiBui };
 }
 
-/* ---------- 今週の実施状況 ------------------------------------------ */
-function konshuNoHi(hizuke){
-  const youbi = yobiBango(hizuke);
-  const getsuyo = hizukeZurasu(hizuke, youbi === 0 ? -6 : -(youbi - 1));
-  const zenbu = kirokuZenbu();
-  const hibi = [];
-  for (let i = 0; i < 7; i++){
-    const d = hizukeZurasu(getsuyo, i);
-    const r = zenbu[d];
-    const fun = r ? (r.suburiMin||0) + (r.shokoMigiMin||0) + (r.shokoHidariMin||0) : 0;
-    hibi.push({
-      hizuke: d,
-      yobi: YOBI[yobiBango(d)],
-      jotai: !r ? "mikiroku" : (fun > 0 ? "jisshi" : "kyuyo"),
-      fun,
-      kyo: d === hizuke,
-      mirai: d > hizuke
-    });
-  }
-  return hibi;
-}
-
-/* ---------- 推移画面のためのデータ加工 ------------------------------
-   継続日数・ヒートマップ・折れ線グラフに使うデータをここでまとめる。 */
-function hiNoGoukeiFun(r){
-  return r ? (r.suburiMin||0) + (r.shokoMigiMin||0) + (r.shokoHidariMin||0) : 0;
-}
-
-function genzaiRenzokuNissu(){
+/* ---------- 推移用データ ---------- */
+function renzokuNissu(){
   const kyo = kyoNoHizuke();
-  const kyoRecord = kirokuToru(kyo);
-  let hi = hiNoGoukeiFun(kyoRecord) > 0 ? kyo : hizukeZurasu(kyo, -1);
-  let kazu = 0;
-  while (hiNoGoukeiFun(kirokuToru(hi)) > 0){
-    kazu++;
-    hi = hizukeZurasu(hi, -1);
-  }
-  return kazu;
+  let h = goukeiFun(kirokuToru(kyo)) > 0 ? kyo : hizukeZurasu(kyo, -1);
+  let n = 0;
+  while (goukeiFun(kirokuToru(h)) > 0){ n++; h = hizukeZurasu(h, -1); }
+  return n;
 }
-
-/* 直近 shuu 週間分（月曜始まり）を、週×曜日のグリッドで返す。 */
 function heatmapDeta(shuu){
   const kyo = kyoNoHizuke();
-  const youbi = yobiBango(kyo);
-  const konshuGetsuyo = hizukeZurasu(kyo, youbi === 0 ? -6 : -(youbi - 1));
-  const hajimeGetsuyo = hizukeZurasu(konshuGetsuyo, -(shuu - 1) * 7);
-  const shuuretsu = [];
+  const y = yobiBango(kyo);
+  const getsu = hizukeZurasu(kyo, y === 0 ? -6 : -(y - 1));
+  const hajime = hizukeZurasu(getsu, -(shuu - 1) * 7);
+  const out = [];
   for (let w = 0; w < shuu; w++){
-    const getsuyo = hizukeZurasu(hajimeGetsuyo, w * 7);
-    const hibi = [];
     for (let i = 0; i < 7; i++){
-      const d = hizukeZurasu(getsuyo, i);
-      const fun = hiNoGoukeiFun(kirokuToru(d));
-      hibi.push({ hizuke:d, fun, kyo: d === kyo, mirai: d > kyo });
+      const d = hizukeZurasu(hajime, w*7 + i);
+      out.push({ h:d, fun:goukeiFun(kirokuToru(d)), kyo:d === kyo, mirai:d > kyo });
     }
-    shuuretsu.push(hibi);
   }
-  return shuuretsu;
+  return out;
 }
-function funLevel(fun){
-  if (fun <= 0) return 0;
-  if (fun < 15) return 1;
-  if (fun < 30) return 2;
-  if (fun < 50) return 3;
-  return 4;
-}
-
-/* 折れ線グラフ用の系列データ。null は「その日のデータなし」。 */
-function suiiKeiretsu(metric, nissu){
+function funLv(f){ return f <= 0 ? 0 : f < 15 ? 1 : f < 30 ? 2 : f < 50 ? 3 : 4; }
+function keiretsu(metric, nissu){
   const kyo = kyoNoHizuke();
   const hajime = hizukeZurasu(kyo, -(nissu - 1));
   const ten = [];
   for (let i = 0; i < nissu; i++){
     const d = hizukeZurasu(hajime, i);
     const r = kirokuToru(d);
-    let atai = null;
-    if (metric === "goukei"){
-      atai = r ? hiNoGoukeiFun(r) : 0;
-    } else if (metric === "taiju"){
-      const h = idoHeikin(d, 7, "weightKg");
-      atai = h.heikin;
-    } else if (metric === "suburiHonsu"){
-      atai = (r && typeof r.suburiCount === "number") ? r.suburiCount : (r ? 0 : null);
-    } else if (metric === "shokoKaisu"){
-      atai = (r && typeof r.shokoCount === "number") ? r.shokoCount : (r ? 0 : null);
-    }
-    ten.push({ hizuke:d, atai });
+    let a = null;
+    if (metric === "goukei") a = r ? goukeiFun(r) : 0;
+    else if (metric === "taiju") a = idoHeikin(d, 7, "weightKg").heikin;
+    else if (metric === "sesshu") a = (r && (r.meals||[]).length) ? kcalSesshu(r) : null;
+    else if (metric === "suburiHonsu") a = (r && typeof r.suburiCount === "number") ? r.suburiCount : (r ? 0 : null);
+    else if (metric === "nawaKaisu") a = (r && typeof r.nawatobiCount === "number") ? r.nawatobiCount : (r ? 0 : null);
+    ten.push({ h:d, a });
   }
   return ten;
 }
 function zenkikanNissu(){
-  const zenbu = kirokuZenbu();
-  const hizukeIchiran = Object.keys(zenbu);
-  if (!hizukeIchiran.length) return 30;
-  const kaishi = hizukeIchiran.reduce((a,b) => a < b ? a : b);
-  const kyo = kyoNoHizuke();
-  const [y1,m1,d1] = kaishi.split("-").map(Number);
-  const [y2,m2,d2] = kyo.split("-").map(Number);
-  const saNissu = Math.round((new Date(y2,m2-1,d2) - new Date(y1,m1-1,d1)) / 86400000) + 1;
-  return Math.max(7, saNissu);
+  const keys = Object.keys(kirokuZenbu());
+  if (!keys.length) return 30;
+  const k0 = keys.reduce((a,b) => a < b ? a : b);
+  const [y1,m1,d1] = k0.split("-").map(Number);
+  const [y2,m2,d2] = kyoNoHizuke().split("-").map(Number);
+  return Math.max(7, Math.round((new Date(y2,m2-1,d2) - new Date(y1,m1-1,d1)) / 86400000) + 1);
 }
-
-/* SVG折れ線グラフの座標を組み立てる。幅・高さはviewBox基準。 */
-function suiiSvgTsukuru(ten, iro){
-  const W = 300, H = 110, YOYU = 12;
-  const arienai = ten.filter(t => t.atai !== null && t.atai !== undefined);
-  if (arienai.length < 2){
-    return null;
-  }
-  const atais = arienai.map(t => t.atai);
-  let min = Math.min(...atais), max = Math.max(...atais);
-  if (min === max){ min -= 1; max += 1; }
+function chartSvg(ten, iro){
+  const W = 300, H = 110, Y = 12;
+  const yuko = ten.filter(t => t.a !== null && t.a !== undefined);
+  if (yuko.length < 2) return null;
+  const vs = yuko.map(t => t.a);
+  let mn = Math.min(...vs), mx = Math.max(...vs);
+  if (mn === mx){ mn -= 1; mx += 1; }
   const n = ten.length;
-  const x = i => (n <= 1) ? 0 : (i / (n - 1)) * W;
-  const y = v => H - YOYU - ((v - min) / (max - min)) * (H - YOYU * 2);
-
-  let d = "";
-  const tenSvg = [];
-  ten.forEach((t, i) => {
-    if (t.atai === null || t.atai === undefined) return;
-    const px = x(i), py = y(t.atai);
-    d += (d === "" ? "M" : " L") + px.toFixed(1) + " " + py.toFixed(1);
-    tenSvg.push({ px, py, saigo: i === n - 1 });
+  const x = i => (i / (n - 1)) * W;
+  const y = v => H - Y - ((v - mn) / (mx - mn)) * (H - Y*2);
+  let d = ""; const pts = [];
+  ten.forEach((t,i) => {
+    if (t.a === null || t.a === undefined) return;
+    const px = x(i), py = y(t.a);
+    d += (d ? " L" : "M") + px.toFixed(1) + " " + py.toFixed(1);
+    pts.push({ px, py, last:i === n - 1 });
   });
-
-  const last = arienai[arienai.length - 1].atai;
-  const first = arienai[0].atai;
-
-  return { W, H, d, tenSvg, iro, saishinAtai: last, hajimeAtai: first };
+  return { W, H, d, pts, iro, saishin:yuko[yuko.length-1].a };
 }
+
+/* ---------- 画像の縮小 ---------- */
+function gazoShukusho(file, maxPx, q){
+  return new Promise((ok, ng) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const sc = Math.min(1, maxPx / Math.max(img.width, img.height));
+      const c = document.createElement("canvas");
+      c.width = Math.round(img.width * sc); c.height = Math.round(img.height * sc);
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      ok(c.toDataURL("image/jpeg", q));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); ng(new Error("画像を読み込めませんでした")); };
+    img.src = url;
+  });
+}
+
+/* ---------- GAS（AI連携）呼び出し ---------- */
+async function gasYobu(payload, url, token){
+  const s = setteiYomu();
+  const u = url || s.gasUrl, t = token !== undefined ? token : s.gasToken;
+  if (!u) throw new Error("設定タブでAI連携のURLを入れてください。");
+  let res;
+  try{
+    res = await fetch(u, { method:"POST", body: JSON.stringify(Object.assign({ token:t }, payload)) });
+  }catch{ throw new Error("通信できませんでした。電波やURLを確認してください。"); }
+  let j;
+  try{ j = await res.json(); }catch{ throw new Error("応答を読み取れませんでした。GASの公開設定（全員）を確認してください。"); }
+  if (!j.ok) throw new Error(j.error || "エラーが起きました。");
+  return j;
+}
+
+/* ---------- 音（縄跳びの合図）---------- */
+let oto = null;
+function otoJunbi(){
+  try{
+    if (!oto) oto = new (window.AudioContext || window.webkitAudioContext)();
+    if (oto.state === "suspended") oto.resume();
+  }catch{ oto = null; }
+}
+function pi(hz){
+  if (!oto) return;
+  try{
+    const o = oto.createOscillator(), g = oto.createGain();
+    o.frequency.value = hz; o.connect(g); g.connect(oto.destination);
+    g.gain.setValueAtTime(0.25, oto.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, oto.currentTime + 0.25);
+    o.start(); o.stop(oto.currentTime + 0.26);
+  }catch{}
+}
+
+/* ---------- 時計（開始時刻との差分で数える）---------- */
+function keika(c){ return c ? c.acc + (c.since ? Date.now() - c.since : 0) : 0; }
+function tomeru(c){ return (c && c.since) ? { acc:keika(c), since:null } : c; }
+function ugokasu(c){ return (c && !c.since) ? { acc:c.acc, since:Date.now() } : c; }
+function sessionYomu(){ return Kioku.yomu(KEY_SESSION, null); }
+function sessionKaku(s){ Kioku.kaku(KEY_SESSION, s); }
 
 /* ===========================================================
    画面
    =========================================================== */
 const app = document.getElementById("app");
+const tabbarEl = document.getElementById("tabbar");
 
-let gamen = "home";
-let suiiMetric = "goukei";     // "goukei" | "taiju" | "suburiHonsu" | "shokoKaisu"
-let suiiKikan = "1kagetsu";    // "2shukan" | "1kagetsu" | "zenkikan"
-let shuseiHizuke = null;       // 修正画面：対象の日付
-let shuseiState = null;        // 修正画面：編集中の値
-let shuseiModoriSaki = "home"; // 修正画面：保存後にどこへ戻るか
-let nyuryokuChu = null;
-let uesutoNyuryokuChu = null;
-let legModeErabi = null;
-let undouTaimaaId = null;
-let erabaretaHirouido = null;
-let erabaretaItami = [];
-let shuryoSuburiHosei = null;   // 終了記録画面：素振り分の手入力補正
-let shuryoShokoHosei = null;    // 終了記録画面：昇降分の手入力補正
+let tab = "home";        // home | shokuji | suii | settei
+let overlay = null;      // undou | shuryo | shusei | shokujiAdd
+let timerId = null;
 
-function esc(s){ return String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
-function su(n){ return n.toFixed(1); }
-function fuKi(n){ return (n > 0 ? "+" : n < 0 ? "−" : "±") + Math.abs(n).toFixed(1); }
-function seisu(v, kitei){ const n = parseInt(v,10); return isFinite(n) && n >= 0 ? n : kitei; }
+let taijuNyu = null, waistNyu = null;
+let sonotaSentaku = "walk", sonotaFunNyu = "";
+let shokujiHizuke = null;
+let draft = null;        // 食事記録の下書き
+let shuryo = null;       // 終了記録の下書き
+let shusei = null;       // 過去の記録の修正の下書き
+let setteiDraft = null, setteiMsg = null, setteiErr = null, setteiTestChu = false;
+let suiiMetric = "goukei", suiiKikan = "1kagetsu";
+let tasseiIma = false, intervalMae = -1;
+
+function esc(s){ return String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function su1(n){ return Number(n).toFixed(1); }
+function fugo(n){ return (n > 0 ? "+" : n < 0 ? "−" : "±") + Math.abs(n).toFixed(1); }
+function seisu(v, kitei){ const n = parseInt(v, 10); return isFinite(n) && n >= 0 ? n : kitei; }
+function shosu(v){ const n = parseFloat(v); return isFinite(n) ? Math.round(n * 10) / 10 : null; }
+function $(id){ return document.getElementById(id); }
+function on(id, ev, fn){ const el = $(id); if (el) el.addEventListener(ev, fn); }
+function onAll(sel, ev, fn){ app.querySelectorAll(sel).forEach(el => el.addEventListener(ev, () => fn(el))); }
+function timerTomeru(){ if (timerId){ clearInterval(timerId); timerId = null; } }
 
 function hyouji(){
-  if (gamen === "undou") egakuUndou();
-  else if (gamen === "shuryo") egakuShuryo();
-  else if (gamen === "suii") egakuSuii();
-  else if (gamen === "shusei") egakuShusei();
-  else egaku();
+  timerTomeru();
+  document.body.classList.toggle("overlay", !!overlay);
+  if (overlay === "undou") egakuUndou();
+  else if (overlay === "shuryo") egakuShuryo();
+  else if (overlay === "shusei") egakuShusei();
+  else if (overlay === "shokujiAdd") egakuShokujiAdd();
+  else if (tab === "shokuji") egakuShokuji();
+  else if (tab === "suii") egakuSuii();
+  else if (tab === "settei") egakuSettei();
+  else egakuHome();
+  egakuTabbar();
 }
 
-function undouTaimaaTomeru(){
-  if (undouTaimaaId){ clearInterval(undouTaimaaId); undouTaimaaId = null; }
+const ICON = {
+  home:'<svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg>',
+  shokuji:'<svg viewBox="0 0 24 24"><path d="M3 12h18a9 9 0 0 1-18 0z"/><path d="M8 7c0-2 2-2 2-4M13 7c0-2 2-2 2-4"/></svg>',
+  suii:'<svg viewBox="0 0 24 24"><path d="M3 20h18"/><path d="M4 16l5-6 4 4 7-8"/></svg>',
+  settei:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>'
+};
+function egakuTabbar(){
+  if (overlay){ tabbarEl.className = "tabbar kakusu"; tabbarEl.innerHTML = ""; return; }
+  tabbarEl.className = "tabbar";
+  const t = [["home","ホーム"],["shokuji","食事"],["suii","推移"],["settei","設定"]];
+  tabbarEl.innerHTML = `<div class="tabbar-uchi">${t.map(([k,l]) =>
+    `<button data-tab="${k}" class="${tab===k?'eranda':''}">${ICON[k]}<span>${l}</span></button>`).join("")}</div>`;
+  tabbarEl.querySelectorAll("[data-tab]").forEach(b => b.addEventListener("click", () => {
+    tab = b.dataset.tab;
+    if (tab === "shokuji") shokujiHizuke = shokujiHizuke || kyoNoHizuke();
+    if (tab === "settei") { setteiDraft = null; setteiMsg = null; setteiErr = null; }
+    hyouji(); window.scrollTo(0,0);
+  }));
+}
+function header(){
+  return `<div class="app-header"><span class="app-title">BOKUTO</span><span class="app-version">v${APP_VERSION}</span></div>`;
 }
 
-/* ---------- ホーム画面 ---------------------------------------------- */
-function egaku(){
-  undouTaimaaTomeru();
-  const settei = setteiYomu();
-  const kyo = kyoNoHizuke();
-  const kiroku = kirokuToru(kyo);
-  const taiju = kiroku && typeof kiroku.weightKg === "number" ? kiroku.weightKg : null;
-  const uesuto = kiroku && typeof kiroku.waistCm === "number" ? kiroku.waistCm : null;
-
-  let session = sessionYomu();
-  if (session && session.date !== kyo){ sessionKaku(null); session = null; }
-
-  const konshuHeikin = idoHeikin(kyo);
-  const senshuHeikin = idoHeikin(hizukeZurasu(kyo, -7));
-  const sa = (konshuHeikin.heikin !== null && senshuHeikin.heikin !== null)
-    ? konshuHeikin.heikin - senshuHeikin.heikin : null;
-  const kaishiKara = (konshuHeikin.heikin !== null)
-    ? konshuHeikin.heikin - settei.kaishiTaiju : null;
-
-  const uesutoHeikin = idoHeikin(kyo, 7, "waistCm");
-
-  const menu = kyoNoMenu(kyo, settei);
-  const konYasumi = (menu.suburi === 0 && menu.shoko === 0);
-  const hibi = konshuNoHi(kyo);
-  const jisshiSu = hibi.filter(h => h.jotai === "jisshi").length;
-  const kyuyoSu  = hibi.filter(h => h.jotai === "kyuyo").length;
-
-  if (legModeErabi === null) legModeErabi = settei.kiteiLegMode;
-
-  const zenjitsu = kirokuToru(hizukeZurasu(kyo, -1));
-  const sayuChui = !konYasumi && menu.shoko > 0 && legModeErabi !== "kogo" &&
-                   zenjitsu && zenjitsu.legModeUsed && zenjitsu.legModeUsed !== "kogo";
-
-  const [y,m,d] = kyo.split("-");
-  const hizukeHyoji = `${Number(m)}月${Number(d)}日（${YOBI[yobiBango(kyo)]}）`;
-
-  const taijuHyouji = nyuryokuChu !== null ? nyuryokuChu
-             : (taiju !== null ? su(taiju) : "");
-  const uesutoHyouji = uesutoNyuryokuChu !== null ? uesutoNyuryokuChu
-             : (uesuto !== null ? su(uesuto) : "");
-
-  app.innerHTML = `
-  <div class="app-header">
-    <span class="app-title">素振り＋一段昇降</span>
-    <span class="app-version">v${APP_VERSION}</span>
-    <div class="teema-kirikae">
-      <button data-teema="sawayaka" class="${settei.colorTeema==='sawayaka' ? 'eranda':''}">爽やか</button>
-      <button data-teema="hade" class="${settei.colorTeema==='hade' ? 'eranda':''}">派手</button>
-    </div>
-  </div>
-  <p class="hizuke">${hizukeHyoji}</p>
-
-  ${session ? `
-  <div class="modoshi-banner">
-    <p>運動の途中です。</p>
-    <button id="saikaiBtn">再開する</button>
-  </div>` : ""}
-
-  <section class="taiju">
-    ${taiju !== null
-      ? `<div class="taiju-kazu">${su(taiju)}<span class="tani">kg</span></div>`
-      : `<div class="taiju-mikeisoku">風呂上がりに測る</div>`}
-
-    ${konshuHeikin.heikin !== null ? `
-    <div class="taiju-shita">
-      <dl class="kumi">
-        <dt>7日平均</dt>
-        <dd>${su(konshuHeikin.heikin)}<span class="kensu">　${konshuHeikin.kensu}日分</span></dd>
-      </dl>
-      ${sa !== null ? `
-      <dl class="kumi">
-        <dt>先週比</dt>
-        <dd>${fuKi(sa)}</dd>
-      </dl>` : ""}
-      ${kaishiKara !== null ? `
-      <dl class="kumi">
-        <dt>開始から</dt>
-        <dd>${fuKi(kaishiKara)}</dd>
-      </dl>` : ""}
-    </div>` : ""}
-
-    <div class="nyuryoku">
-      <input id="taijuNyu" type="number" inputmode="decimal" step="0.1" min="20" max="200"
-             value="${esc(taijuHyouji)}" placeholder="––.–" aria-label="風呂上がりの体重（kg）">
-      <span class="tani">kg</span>
-      <button class="hozon" id="hozonBtn">${taiju !== null ? "書き直す" : "記録する"}</button>
-    </div>
-    ${konshuHeikin.heikin === null && taiju === null
-      ? `<p class="yobikake">最初の1回を入れると、平均の計算が始まります。</p>` : ""}
-
-    <div class="uesuto">
-      <div class="uesuto-atai-retsu">
-        <span class="uesuto-label">ウエスト</span>
-        ${uesuto !== null ? `<span class="uesuto-genzai">${su(uesuto)}<small>cm</small></span>` : ""}
-        ${uesutoHeikin.heikin !== null ? `<span class="uesuto-heikin">7日平均 ${su(uesutoHeikin.heikin)}cm</span>` : ""}
-      </div>
-      <div class="nyuryoku">
-        <input id="uesutoNyu" type="number" inputmode="decimal" step="0.1" min="40" max="200"
-               value="${esc(uesutoHyouji)}" placeholder="––.–" aria-label="ウエスト（cm）">
-        <span class="tani">cm</span>
-        <button class="hozon" id="uesutoBtn">${uesuto !== null ? "書き直す" : "記録する"}</button>
-      </div>
-    </div>
-  </section>
-
-  <hr>
-
-  <section class="kondate">
-    <h2 class="midashi">今日のこと</h2>
-    ${menu.itamiKakuninMachi ? `
-      <div class="taicho-check">
-        <p class="taicho-check-toi">昨日は${esc(itamiLabelHyouji(menu.itamiBui))}に痛みの記録があります。今日の調子はどうですか？</p>
-        <div class="taicho-check-btns">
-          <button data-kotae="daijobu">もう大丈夫</button>
-          <button data-kotae="mada_itai">まだ少し痛い</button>
-          <button data-kotae="yasumu" class="yasumu">今日は休みたい</button>
-        </div>
-      </div>
-    ` : konYasumi ? `
-      <p class="chosei itami">${esc(menu.riyu[0] || "今日は休みます。")}</p>
-    ` : `
-      <div class="shurui">
-        <span>木刀素振り</span>
-        <span class="${menu.suburi ? "fun c-suburi" : "nashi"}">${menu.suburi ? menu.suburi + "分" : "今日は休む"}</span>
-      </div>
-      <div class="shurui">
-        <span>一段昇降</span>
-        <span class="${menu.shoko ? "fun c-shoko" : "nashi"}">${menu.shoko ? menu.shoko + "分" : "今日は休む"}</span>
-      </div>
-      <div class="shurui">
-        <span>準備・整理</span>
-        <span class="fun">${menu.sonota}分</span>
-      </div>
-      ${menu.riyu.length ? `<p class="chosei ${menu.itamiAri ? "itami" : ""}">${menu.riyu.map(esc).join("<br>")}</p>` : ""}
-      ${menu.shoko > 0 ? `
-        <div class="legmode-retsu">
-          <button data-leg="kogo"   class="${legModeErabi==='kogo'   ? 'eranda':''}">左右交互</button>
-          <button data-leg="migi"   class="${legModeErabi==='migi'   ? 'eranda':''}">右足のみ</button>
-          <button data-leg="hidari" class="${legModeErabi==='hidari' ? 'eranda':''}">左足のみ</button>
-        </div>
-        ${sayuChui ? `<p class="legmode-chui">左右差が開いています。今日は交互がおすすめです。</p>` : ""}
-      ` : ""}
-      <button class="kaishi" id="kaishiBtn">運動をはじめる</button>
-    `}
-  </section>
-
-  <section class="konshu">
-    <h2 class="midashi">今週</h2>
-    <div class="masu">
-      ${hibi.map(h => `
-        <div class="hi ${h.jotai} ${h.kyo ? "kyo" : ""}" ${h.mirai ? "" : `data-hizuke="${h.hizuke}"`}>
-          <div class="yobi">${h.yobi}</div>
-          <div class="shirushi">${
-            h.jotai === "jisshi" ? Math.round(h.fun)
-            : h.jotai === "kyuyo" ? "休"
-            : h.mirai ? "" : "・"
-          }</div>
-        </div>`).join("")}
-    </div>
-    <p class="shukei">実施 ${jisshiSu}日${kyuyoSu ? `・休養 ${kyuyoSu}日` : ""}（日付をタップすると記録を修正できます）</p>
-  </section>
-
-  <button class="suii-link" id="suiiLinkBtn">推移をもっと見る →</button>
-
-  <p class="chui">
-    体重は日ごとに水分で±0.5kgほど動きます。見るのは7日平均のほうです。
-    ${Kioku.tsukaeru ? "" : "<br>この画面では記録が保存されません。ファイルを保存してブラウザで開いてください。"}
-  </p>
-  `;
-
-  app.querySelectorAll(".teema-kirikae button").forEach(b => {
-    b.addEventListener("click", () => teemaKirikae(b.dataset.teema));
-  });
-  document.getElementById("suiiLinkBtn").addEventListener("click", () => { gamen = "suii"; hyouji(); });
-
-  if (menu.itamiKakuninMachi){
-    app.querySelectorAll("[data-kotae]").forEach(b => {
-      b.addEventListener("click", () => { taichoKaku(b.dataset.kotae); hyouji(); });
-    });
-  }
-  app.querySelectorAll(".hi[data-hizuke]").forEach(b => {
-    b.addEventListener("click", () => shuseiHiraku(b.dataset.hizuke, "home"));
-  });
-
-  const nyu = document.getElementById("taijuNyu");
-  nyu.addEventListener("input", e => { nyuryokuChu = e.target.value; });
-  nyu.addEventListener("keydown", e => { if (e.key === "Enter") hozonSuru(); });
-  document.getElementById("hozonBtn").addEventListener("click", hozonSuru);
-
-  const uesutoNyu = document.getElementById("uesutoNyu");
-  uesutoNyu.addEventListener("input", e => { uesutoNyuryokuChu = e.target.value; });
-  uesutoNyu.addEventListener("keydown", e => { if (e.key === "Enter") uesutoHozonSuru(); });
-  document.getElementById("uesutoBtn").addEventListener("click", uesutoHozonSuru);
-
-  if (session){
-    document.getElementById("saikaiBtn").addEventListener("click", () => {
-      gamen = "undou"; hyouji();
-    });
-  }
-
-  if (!konYasumi){
-    if (menu.shoko > 0){
-      app.querySelectorAll(".legmode-retsu button").forEach(b => {
-        b.addEventListener("click", () => { legModeErabi = b.dataset.leg; hyouji(); });
-      });
-    }
-    document.getElementById("kaishiBtn").addEventListener("click", () => undouKaishi(legModeErabi));
-  }
-}
-
-function hozonSuru(){
-  const nyu = document.getElementById("taijuNyu");
-  const v = parseFloat(nyu.value);
-  if (!isFinite(v) || v < 20 || v > 200){
-    nyu.focus(); nyu.select();
-    return;
-  }
-  kirokuKaku(kyoNoHizuke(), { weightKg: Math.round(v * 10) / 10 });
-
+/* ---------- ホーム ---------- */
+function egakuHome(){
   const s = setteiYomu();
-  const zenbu = kirokuZenbu();
-  const kensu = Object.values(zenbu).filter(r => typeof r.weightKg === "number").length;
-  if (kensu === 1){ s.kaishiTaiju = Math.round(v * 10) / 10; s.kaishiBi = kyoNoHizuke(); setteiKaku(s); }
-
-  nyuryokuChu = null;
-  nyu.blur();
-  hyouji();
-}
-
-function uesutoHozonSuru(){
-  const nyu = document.getElementById("uesutoNyu");
-  const v = parseFloat(nyu.value);
-  if (!isFinite(v) || v < 40 || v > 200){
-    nyu.focus(); nyu.select();
-    return;
-  }
-  kirokuKaku(kyoNoHizuke(), { waistCm: Math.round(v * 10) / 10 });
-
-  uesutoNyuryokuChu = null;
-  nyu.blur();
-  hyouji();
-}
-
-/* ---------- 推移画面 --------------------------------------------------
-   継続日数（ストリーク）・ヒートマップ・切替式の折れ線グラフを
-   1画面にまとめる。全部見たいが、ごちゃつかせないための構成。 */
-const SHIHYO_TEIGI = {
-  goukei:      { label:"合計時間",   tani:"分", iroHen:"suburi" },
-  taiju:       { label:"体重",       tani:"kg", iroHen:"accent" },
-  suburiHonsu: { label:"素振り本数", tani:"本", iroHen:"suburi" },
-  shokoKaisu:  { label:"昇降回数",   tani:"回", iroHen:"shoko" }
-};
-const KIKAN_TEIGI = {
-  "2shukan":  { label:"2週間",   nissu: 14 },
-  "1kagetsu": { label:"1ヶ月",   nissu: 30 },
-  "zenkikan": { label:"全期間",  nissu: null }
-};
-
-function egakuSuii(){
-  undouTaimaaTomeru();
-  const renzoku = genzaiRenzokuNissu();
-  const heatmap = heatmapDeta(16);
-
-  const kikanTeigi = KIKAN_TEIGI[suiiKikan];
-  const nissu = kikanTeigi.nissu || zenkikanNissu();
-  const ten = suiiKeiretsu(suiiMetric, nissu);
-  const shihyo = SHIHYO_TEIGI[suiiMetric];
-  const svgIro = `var(--${shihyo.iroHen})`;
-  const zu = suiiSvgTsukuru(ten, svgIro);
-
-  app.innerHTML = `
-  <div class="suii-header">
-    <button class="modoru-btn" id="modoruBtn">← 戻る</button>
-    <span class="suii-title">推移</span>
-  </div>
-
-  <div class="renzoku-panel">
-    <div class="renzoku-kazu">${renzoku}</div>
-    <p class="renzoku-tani">日連続</p>
-  </div>
-
-  <h2 class="midashi-suii">日々の実施状況</h2>
-  <div class="heatmap-wrap">
-    <div class="heatmap">
-      ${heatmap.map(shuu => shuu.map(h => `
-        <div class="heat-cell heat-${funLevel(h.fun)} ${h.kyo ? 'kyo' : ''} ${h.mirai ? 'mirai' : ''}" ${h.mirai ? "" : `data-hizuke="${h.hizuke}"`} title="${h.hizuke}　${h.fun}分"></div>
-      `).join("")).join("")}
-    </div>
-  </div>
-  <div class="heatmap-hanrei">
-    <span>少</span>
-    <div class="heat-cell heat-0"></div><div class="heat-cell heat-1"></div>
-    <div class="heat-cell heat-2"></div><div class="heat-cell heat-3"></div><div class="heat-cell heat-4"></div>
-    <span>多</span>
-  </div>
-
-  <h2 class="midashi-suii">推移グラフ</h2>
-  <div class="metric-tabs">
-    ${Object.entries(SHIHYO_TEIGI).map(([k,v]) => `
-      <button data-metric="${k}" class="${suiiMetric===k ? 'eranda':''}">${v.label}</button>
-    `).join("")}
-  </div>
-  <div class="kikan-tabs">
-    ${Object.entries(KIKAN_TEIGI).map(([k,v]) => `
-      <button data-kikan="${k}" class="${suiiKikan===k ? 'eranda':''}">${v.label}</button>
-    `).join("")}
-  </div>
-
-  <div class="suii-chart-wrap">
-    ${zu ? `
-      <div class="suii-atai-hyoji">
-        <span>${nissu}日間</span>
-        <span class="ima">${Math.round(zu.saishinAtai * 10) / 10}${shihyo.tani}</span>
-      </div>
-      <svg viewBox="0 0 ${zu.W} ${zu.H}" preserveAspectRatio="none">
-        <path class="suii-line" d="${zu.d}" stroke="${zu.iro}"></path>
-        ${zu.tenSvg.map((t,i) => t.saigo
-          ? `<circle class="suii-ten suii-ima" cx="${t.px}" cy="${t.py}" r="4" fill="${zu.iro}"></circle>`
-          : `<circle class="suii-ten" cx="${t.px}" cy="${t.py}" r="2" fill="${zu.iro}" style="animation-delay:${i*15}ms"></circle>`
-        ).join("")}
-      </svg>
-    ` : `<p class="suii-nashi">まだデータが足りません。記録が増えるとここにグラフが出ます。</p>`}
-  </div>
-  `;
-
-  document.getElementById("modoruBtn").addEventListener("click", () => { gamen = "home"; hyouji(); });
-  app.querySelectorAll(".heat-cell[data-hizuke]").forEach(b => {
-    b.addEventListener("click", () => shuseiHiraku(b.dataset.hizuke, "suii"));
-  });
-  app.querySelectorAll("[data-metric]").forEach(b => {
-    b.addEventListener("click", () => { suiiMetric = b.dataset.metric; hyouji(); });
-  });
-  app.querySelectorAll("[data-kikan]").forEach(b => {
-    b.addEventListener("click", () => { suiiKikan = b.dataset.kikan; hyouji(); });
-  });
-}
-
-/* ---------- 過去の記録の修正画面 --------------------------------------
-   今週表示・ヒートマップの日付をタップすると開く。誤タップで進んだ
-   ままになっている記録、遡って直したい日を、いつでも書き直せる。 */
-function shuseiHiraku(hizuke, modoriSaki){
-  const r = kirokuToru(hizuke);
-  shuseiHizuke = hizuke;
-  shuseiModoriSaki = modoriSaki || "home";
-  shuseiState = {
-    weightKg: (r && r.weightKg != null) ? String(r.weightKg) : "",
-    waistCm:  (r && r.waistCm  != null) ? String(r.waistCm)  : "",
-    suburiMin: r ? String(r.suburiMin || 0) : "0",
-    suburiCount: (r && r.suburiCount != null) ? String(r.suburiCount) : "",
-    shokoMin: r ? String((r.shokoMigiMin||0) + (r.shokoHidariMin||0)) : "0",
-    shokoCount: (r && r.shokoCount != null) ? String(r.shokoCount) : "",
-    legModeUsed: (r && r.legModeUsed) ? r.legModeUsed : "kogo",
-    fatigue: (r && r.fatigue != null) ? r.fatigue : null,
-    pain: (r && r.pain) ? r.pain.slice() : []
-  };
-  gamen = "shusei";
-  hyouji();
-}
-
-function egakuShusei(){
-  undouTaimaaTomeru();
-  if (!shuseiHizuke || !shuseiState){ gamen = "home"; hyouji(); return; }
-  const kiroku = kirokuToru(shuseiHizuke);
-  const [y,m,d] = shuseiHizuke.split("-");
-  const hizukeHyoji = `${Number(m)}月${Number(d)}日（${YOBI[yobiBango(shuseiHizuke)]}）`;
-  const st = shuseiState;
-
-  app.innerHTML = `
-  <div class="suii-header">
-    <button class="modoru-btn" id="shuseiModoruBtn">← 戻る</button>
-    <span class="suii-title">記録の修正　${hizukeHyoji}</span>
-  </div>
-  ${!kiroku ? `<p class="shusei-mikiroku">この日はまだ記録がありません。入力すると新しく記録されます。</p>` : ""}
-
-  <div class="shusei-retsu">
-    <label>体重</label>
-    <input id="stWeight" type="number" inputmode="decimal" step="0.1" value="${esc(st.weightKg)}" placeholder="––.–">
-  </div>
-  <div class="shusei-retsu">
-    <label>ウエスト</label>
-    <input id="stWaist" type="number" inputmode="decimal" step="0.1" value="${esc(st.waistCm)}" placeholder="––.–">
-  </div>
-  <div class="shusei-retsu">
-    <label>木刀素振り（分）</label>
-    <input id="stSuburiMin" type="number" inputmode="numeric" min="0" step="1" value="${esc(st.suburiMin)}">
-  </div>
-  <div class="shusei-retsu">
-    <label>素振り本数</label>
-    <input id="stSuburiCount" type="number" inputmode="numeric" min="0" step="1" value="${esc(st.suburiCount)}" placeholder="任意">
-  </div>
-  <div class="shusei-retsu">
-    <label>一段昇降（分）</label>
-    <input id="stShokoMin" type="number" inputmode="numeric" min="0" step="1" value="${esc(st.shokoMin)}">
-  </div>
-  <div class="shusei-retsu">
-    <label>昇降回数</label>
-    <input id="stShokoCount" type="number" inputmode="numeric" min="0" step="1" value="${esc(st.shokoCount)}" placeholder="任意">
-  </div>
-  <div class="shusei-retsu">
-    <label>昇降の足</label>
-    <select id="stLegMode">
-      <option value="kogo"   ${st.legModeUsed==='kogo'   ? 'selected':''}>左右交互</option>
-      <option value="migi"   ${st.legModeUsed==='migi'   ? 'selected':''}>右足のみ</option>
-      <option value="hidari" ${st.legModeUsed==='hidari' ? 'selected':''}>左足のみ</option>
-    </select>
-  </div>
-
-  <p class="hirou-midashi">疲労度</p>
-  <div class="hirou-retsu">
-    ${HIROU_LABELS.map(h => `
-      <button data-hirou="${h.v}" class="${st.fatigue===h.v ? 'eranda':''}">${h.v}<br>${h.t}</button>
-    `).join("")}
-  </div>
-
-  <p class="itami-midashi">痛み</p>
-  <div class="itami-retsu">
-    ${ITAMI_LABELS.map(i => `
-      <button class="itami-chip ${st.pain.includes(i.v) ? 'eranda':''}" data-itami="${i.v}">${i.t}</button>
-    `).join("")}
-  </div>
-
-  <button class="hozon-owari" id="shuseiHozonBtn">この内容で保存する</button>
-  `;
-
-  document.getElementById("shuseiModoruBtn").addEventListener("click", () => {
-    gamen = shuseiModoriSaki; shuseiHizuke = null; shuseiState = null; hyouji();
-  });
-
-  const bind = (id, field) => {
-    document.getElementById(id).addEventListener("input", e => { shuseiState[field] = e.target.value; });
-  };
-  bind("stWeight", "weightKg");
-  bind("stWaist", "waistCm");
-  bind("stSuburiMin", "suburiMin");
-  bind("stSuburiCount", "suburiCount");
-  bind("stShokoMin", "shokoMin");
-  bind("stShokoCount", "shokoCount");
-  document.getElementById("stLegMode").addEventListener("change", e => { shuseiState.legModeUsed = e.target.value; });
-
-  app.querySelectorAll("[data-hirou]").forEach(b => {
-    b.addEventListener("click", () => { shuseiState.fatigue = Number(b.dataset.hirou); hyouji(); });
-  });
-  app.querySelectorAll("[data-itami]").forEach(b => {
-    b.addEventListener("click", () => {
-      const v = b.dataset.itami;
-      const i = shuseiState.pain.indexOf(v);
-      if (i >= 0) shuseiState.pain.splice(i,1); else shuseiState.pain.push(v);
-      hyouji();
-    });
-  });
-
-  document.getElementById("shuseiHozonBtn").addEventListener("click", shuseiHozon);
-}
-
-function shuseiHozon(){
-  const st = shuseiState;
-  const settei = setteiYomu();
-
-  const weightKg = st.weightKg.trim() === "" ? null : Math.round(parseFloat(st.weightKg) * 10) / 10;
-  const waistCm  = st.waistCm.trim()  === "" ? null : Math.round(parseFloat(st.waistCm)  * 10) / 10;
-  const suburiMin = seisu(st.suburiMin, 0);
-  const suburiCount = st.suburiCount.trim() === "" ? null : seisu(st.suburiCount, 0);
-  const shokoMin = seisu(st.shokoMin, 0);
-  const shokoCount = st.shokoCount.trim() === "" ? null : seisu(st.shokoCount, 0);
-
-  const wake = ashiWake(shokoMin * 60000, settei.kirikaeFun, st.legModeUsed);
-
-  kirokuKaku(shuseiHizuke, {
-    weightKg: (weightKg !== null && isFinite(weightKg)) ? weightKg : null,
-    waistCm:  (waistCm  !== null && isFinite(waistCm))  ? waistCm  : null,
-    suburiMin,
-    suburiCount,
-    shokoMigiMin: Math.round(wake.migiMs / 60000),
-    shokoHidariMin: Math.round(wake.hidariMs / 60000),
-    shokoCount,
-    legModeUsed: st.legModeUsed,
-    fatigue: st.fatigue,
-    pain: st.pain.slice()
-  });
-
-  gamen = shuseiModoriSaki;
-  shuseiHizuke = null; shuseiState = null;
-  hyouji();
-}
-
-/* ---------- 運動画面 -------------------------------------------------
-   素振り・昇降それぞれに自分の時計を持たせ、タブでいつでも
-   行き来できるようにする。タップ間違いで進んでしまっても、
-   もう片方のタブを押せばすぐ戻せる。時間は各フェーズごとに
-   独立して積み上がる（行き来しても消えない）。                    */
-function undouKaishi(legModeSentaku){
   const kyo = kyoNoHizuke();
-  const settei = setteiYomu();
-  const menu = kyoNoMenu(kyo, settei);
-  const phase = menu.suburi > 0 ? "suburi" : "shoko";
-  const session = {
-    date: kyo,
-    legMode: legModeSentaku,
-    phase,
-    suburiClock: { accumulatedMs:0, runningSince: phase === "suburi" ? Date.now() : null },
-    shokoClock:  { accumulatedMs:0, runningSince: phase === "shoko"  ? Date.now() : null },
-    suburiCount: 0,
-    shokoCount: 0,
-    menuSuburiMin: menu.suburi,
-    menuShokoMin: menu.shoko,
-    suburiGoalFlashed: false,
-    shokoGoalFlashed: false
-  };
-  sessionKaku(session);
-  gamen = "undou";
-  hyouji();
-}
+  const r = kirokuToru(kyo);
+  const taiju = r && typeof r.weightKg === "number" ? r.weightKg : null;
+  const waist = r && typeof r.waistCm === "number" ? r.waistCm : null;
+  const w = genzaiTaiju(kyo);
 
-function phaseKirikae(newPhase){
-  const s = sessionYomu(); if (!s || s.phase === newPhase) return;
-  if (s.phase === "suburi") s.suburiClock = keiIchiji(s.suburiClock);
-  else s.shokoClock = keiIchiji(s.shokoClock);
-  s.phase = newPhase;
-  if (newPhase === "suburi") s.suburiClock = keiSaikai(s.suburiClock);
-  else s.shokoClock = keiSaikai(s.shokoClock);
-  sessionKaku(s);
-  hyouji();
-}
+  let ses = sessionYomu();
+  if (ses && ses.date !== kyo){ sessionKaku(null); ses = null; }
 
-let tasseiEnshutsuChu = false; // 直前の描画で達成演出を出したか（連続で出さないため）
+  const menu = kyoNoMenu(kyo, s);
+  const yasumi = menu.suburi === 0 && menu.nawatobi === 0;
 
-function egakuUndou(){
-  undouTaimaaTomeru();
-  const s = sessionYomu();
-  if (!s){ gamen = "home"; hyouji(); return; }
+  const heikin = idoHeikin(kyo, 7, "weightKg");
+  const senshu = idoHeikin(hizukeZurasu(kyo, -7), 7, "weightKg");
+  const sa = (heikin.heikin !== null && senshu.heikin !== null) ? heikin.heikin - senshu.heikin : null;
+  const nokori = heikin.heikin !== null ? heikin.heikin - s.mokuhyoTaiju : null;
+  const waistH = idoHeikin(kyo, 7, "waistCm");
 
-  const settei = setteiYomu();
-  const isSuburi = s.phase === "suburi";
-  const clock = isSuburi ? s.suburiClock : s.shokoClock;
-  const keika = keiKeika(clock);
-  const ugoiteiru = !!(clock && clock.runningSince);
-  const mokuhyoFun = isSuburi ? s.menuSuburiMin : s.menuShokoMin;
-  const goalMs = mokuhyoFun * 60000;
+  const meyasu = mokuhyoKcal(s, w);
+  const undouK = kcalUndou(r, w);
+  const tabeta = kcalSesshu(r);
+  const waku = meyasu + undouK;
+  const ritsu = Math.min(100, Math.round(tabeta / waku * 100));
+  const nokoriK = waku - tabeta;
 
-  const showSuburiTab = s.menuSuburiMin > 0 || (s.suburiClock && s.suburiClock.accumulatedMs > 0);
-  const showShokoTab  = s.menuShokoMin  > 0 || (s.shokoClock  && s.shokoClock.accumulatedMs  > 0);
+  const y = yobiBango(kyo);
+  const getsu = hizukeZurasu(kyo, y === 0 ? -6 : -(y - 1));
+  const hibi = Array.from({length:7}, (_,i) => {
+    const d = hizukeZurasu(getsu, i);
+    const f = goukeiFun(kirokuToru(d));
+    return { d, yobi:YOBI[yobiBango(d)], f, kyo:d === kyo, mirai:d > kyo };
+  });
 
-  let ashiHyouji = "";
-  if (!isSuburi){
-    const wake = ashiWake(keika, settei.kirikaeFun, s.legMode);
-    ashiHyouji = wake.ima === "migi" ? "右足先行" : "左足先行";
-  }
-
-  /* 目標到達の一度きりの達成演出 */
-  let ima_tassei = false;
-  if (goalMs > 0 && keika >= goalMs){
-    const flagKey = isSuburi ? "suburiGoalFlashed" : "shokoGoalFlashed";
-    if (!s[flagKey]){ s[flagKey] = true; sessionKaku(s); ima_tassei = true; }
-  }
-
-  const ringIro = isSuburi ? "var(--suburi)" : "var(--shoko)";
-  const ratio = goalMs > 0 ? Math.min(1, keika / goalMs) : 0;
-  const deg = Math.round(ratio * 360);
-
-  const particles = ima_tassei
-    ? Array.from({length:14}).map((_,i) => `<div class="particle" style="--ang:${Math.round(i*(360/14))}deg;animation-delay:${(i%4)*40}ms"></div>`).join("")
-    : "";
+  const tv = taijuNyu !== null ? taijuNyu : (taiju !== null ? su1(taiju) : "");
+  const wv = waistNyu !== null ? waistNyu : (waist !== null ? su1(waist) : "");
 
   app.innerHTML = `
-    <div class="undou ${isSuburi ? 'p-suburi' : 'p-shoko'}">
-      ${(showSuburiTab && showShokoTab) ? `
-      <div class="phase-tabs">
-        <button class="phase-tab p-suburi ${isSuburi ? 'active' : ''}" id="tabSuburi">木刀素振り</button>
-        <button class="phase-tab p-shoko ${!isSuburi ? 'active' : ''}" id="tabShoko">一段昇降</button>
-      </div>` : ""}
+  ${header()}
+  <p class="hizuke">${hizukeHyoji(kyo)}</p>
 
-      <p class="undou-midashi">${isSuburi ? "木刀素振り" : "一段昇降"}</p>
-      ${!isSuburi ? `<p class="undou-ashi">${ashiHyouji}</p>` : ""}
+  ${ses ? `<div class="saikai"><p>運動の途中です</p><button class="btn-mini" id="saikaiBtn">再開する</button></div>` : ""}
 
-      <div class="ring-wrap">
-        <div class="ring" style="background:conic-gradient(${ringIro} ${deg}deg, rgba(255,255,255,.07) ${deg}deg)"></div>
-        <div class="ring-inner">
-          <p class="undou-taimaa">${funByouHyouji(keika)}</p>
-          <p class="undou-mokuhyo">目安 ${mokuhyoFun}分</p>
+  <section class="card">
+    <h2 class="midashi">今日の運動</h2>
+    ${menu.kakuninMachi ? `
+      <div class="taicho">
+        <p>昨日は${esc(itamiHyoji(menu.itamiBui))}に痛みの記録があります。今日の調子はどうですか？</p>
+        <div class="btns">
+          <button class="btn btn-sub" data-kotae="daijobu">もう大丈夫</button>
+          <button class="btn btn-sub" data-kotae="mada_itai">まだ少し痛い</button>
+          <button class="btn btn-sub c-dim" data-kotae="yasumu">今日は休みたい</button>
         </div>
-        <div class="particle-layer">${particles}</div>
-      </div>
-      ${ima_tassei ? `<div class="tassei-badge">目標達成！</div>` : ""}
+      </div>` : yasumi ? `
+      <p class="chosei itami">${esc(menu.riyu[0] || "今日は休みです。")}</p>
+      <button class="btn btn-sub mt12" id="kaishiBtn">それでも少し動く</button>` : `
+      <div class="menu-gyo"><span>木刀素振り</span><span class="atai ${menu.suburi?'c-suburi':'c-dim'}">${menu.suburi ? menu.suburi + "分" : "休み"}</span></div>
+      <div class="menu-gyo"><span>縄跳び</span><span class="atai ${menu.nawatobi?'c-nawa':'c-dim'}">${menu.nawatobi ? menu.nawatobi + "分" : "休み"}</span></div>
+      ${menu.riyu.length ? `<p class="chosei ${menu.itamiAri?'itami':''}">${menu.riyu.map(esc).join("<br>")}</p>` : ""}
+      <button class="btn btn-main mt12" id="kaishiBtn">運動をはじめる</button>
+      <p class="hint">目安の時間は「ここまでやればOK」の線です。疲れたらいつでも止めて大丈夫。</p>`}
+  </section>
 
-      <p class="honsu-retsu"><span class="honsu-atai">${isSuburi ? s.suburiCount : s.shokoCount}${isSuburi ? "本" : "回"}</span></p>
-      <div class="kazu-btn-retsu plus">
-        ${(isSuburi ? [10,50,100] : [1,10,50]).map(n => `<button data-add="${n}">＋${n}</button>`).join("")}
-      </div>
-      <div class="kazu-btn-retsu minus">
-        ${(isSuburi ? [10,50,100] : [1,10,50]).map(n => `<button data-add="${-n}">－${n}</button>`).join("")}
-      </div>
-      ${isSuburi ? "" : `<p class="kazu-hint">歩いたりして数えられない時は、無理に数えず時間だけ記録すればOKです。</p>`}
-      <div class="sosa-retsu">
-        <button id="ichijiBtn" class="ichiji-btn">${ugoiteiru ? "一時停止" : "再開"}</button>
-        <button id="owariBtn" class="owari-btn">運動を終える</button>
+  <section class="card">
+    <h2 class="midashi">今日のカロリー</h2>
+    <div class="kcal-ue"><span class="ookii">${tabeta}</span><span class="chiisai">/ ${waku} kcal</span></div>
+    <div class="bar ${tabeta > waku ? 'over':''}"><i style="width:${ritsu}%"></i></div>
+    <div class="kcal-shita">
+      <span>目安 ${meyasu}${undouK ? ` ＋ 運動 ${undouK}` : ""}</span>
+      <span>${nokoriK >= 0 ? `あと ${nokoriK}` : `${-nokoriK} オーバー`}</span>
+    </div>
+    <button class="btn btn-shoku mt12" id="shokujiAddBtn">食事を記録する</button>
+  </section>
+
+  <section class="card">
+    <h2 class="midashi">体重</h2>
+    <div class="taiju-retsu">
+      ${taiju !== null ? `<span class="taiju-kazu">${su1(taiju)}<small>kg</small></span>` : `<span class="taiju-mikei">風呂上がりに測る</span>`}
+    </div>
+    ${heikin.heikin !== null ? `
+    <div class="kumi-retsu">
+      <dl class="kumi"><dt>7日平均</dt><dd>${su1(heikin.heikin)}</dd></dl>
+      ${sa !== null ? `<dl class="kumi"><dt>先週比</dt><dd>${fugo(sa)}</dd></dl>` : ""}
+      ${nokori !== null ? `<dl class="kumi"><dt>目標${su1(s.mokuhyoTaiju)}まで</dt><dd>${nokori > 0 ? su1(nokori) : "達成"}</dd></dl>` : ""}
+      <dl class="kumi"><dt>BMI</dt><dd>${su1(bmi(s, heikin.heikin))}</dd></dl>
+    </div>` : ""}
+    <div class="nyuryoku mt12">
+      <input id="taijuNyu" class="num" type="number" inputmode="decimal" step="0.1" value="${esc(tv)}" placeholder="––.–" aria-label="体重（kg）">
+      <span class="tani">kg</span>
+      <button class="btn-mini" id="taijuBtn">${taiju !== null ? "書き直す" : "記録"}</button>
+    </div>
+    <div class="bunkatsu">
+      <div class="nyuryoku">
+        <input id="waistNyu" class="num" type="number" inputmode="decimal" step="0.1" value="${esc(wv)}" placeholder="––.–" aria-label="ウエスト（cm）">
+        <span class="tani">cm ウエスト${waistH.heikin !== null ? `（7日平均 ${su1(waistH.heikin)}）` : ""}</span>
+        <button class="btn-mini sub" id="waistBtn">${waist !== null ? "書き直す" : "記録"}</button>
       </div>
     </div>
+  </section>
+
+  <section class="card">
+    <h2 class="midashi">ほかにした運動</h2>
+    ${(r && (r.sonota||[]).length) ? r.sonota.map(x => `
+      <div class="sonota-gyo"><span>${esc(sonotaInfo(x.shurui).t)}　<span class="num">${x.fun}分</span></span>
+      <button class="batsu" data-sonota-del="${x.id}" aria-label="削除">×</button></div>`).join("") : `<p class="hint" style="margin:0">ウォーキングなど、素振り・縄跳び以外に動いた分を足せます。</p>`}
+    <div class="sonota-add">
+      <select id="sonotaSel" class="field">${SONOTA_SHURUI.map(x => `<option value="${x.v}" ${sonotaSentaku===x.v?'selected':''}>${x.t}</option>`).join("")}</select>
+      <input id="sonotaFun" class="field num" type="number" inputmode="numeric" min="1" value="${esc(sonotaFunNyu)}" placeholder="分">
+      <button class="btn-mini" id="sonotaBtn">追加</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2 class="midashi">今週</h2>
+    <div class="masu">${hibi.map(h => `
+      <div class="hi ${h.f > 0 ? 'jisshi':''} ${h.kyo?'kyo':''}" ${h.mirai ? "" : `data-hizuke="${h.d}"`}>
+        <div class="yobi">${h.yobi}</div>
+        <div class="shirushi">${h.f > 0 ? Math.round(h.f) : h.mirai ? "" : "・"}</div>
+      </div>`).join("")}</div>
+    <p class="hint">日付をタップすると、その日の記録を直せます。</p>
+  </section>
+
+  <p class="chui">体重は水分で日に±0.5kgほど動きます。見るのは7日平均です。カロリーはすべて目安です。
+  ${Kioku.tsukaeru ? "" : "<br>この画面では記録が保存されません。"}</p>
   `;
 
-  if (showSuburiTab && showShokoTab){
-    document.getElementById("tabSuburi").addEventListener("click", () => phaseKirikae("suburi"));
-    document.getElementById("tabShoko").addEventListener("click", () => phaseKirikae("shoko"));
+  on("saikaiBtn", "click", () => { overlay = "undou"; hyouji(); });
+  onAll("[data-kotae]", "click", b => { taichoKaku(b.dataset.kotae); hyouji(); });
+  on("kaishiBtn", "click", () => undouKaishi(menu));
+  on("shokujiAddBtn", "click", () => shokujiAddHiraku(kyo));
+  on("taijuNyu", "input", e => { taijuNyu = e.target.value; });
+  on("taijuBtn", "click", () => {
+    const v = shosu($("taijuNyu").value);
+    if (v === null || v < 20 || v > 250){ $("taijuNyu").focus(); return; }
+    kirokuKaku(kyo, { weightKg:v });
+    const zen = Object.values(kirokuZenbu()).filter(x => typeof x.weightKg === "number").length;
+    if (zen === 1){ const s2 = setteiYomu(); s2.kaishiTaiju = v; s2.kaishiBi = kyo; setteiKaku(s2); }
+    taijuNyu = null; hyouji();
+  });
+  on("waistNyu", "input", e => { waistNyu = e.target.value; });
+  on("waistBtn", "click", () => {
+    const v = shosu($("waistNyu").value);
+    if (v === null || v < 40 || v > 200){ $("waistNyu").focus(); return; }
+    kirokuKaku(kyo, { waistCm:v }); waistNyu = null; hyouji();
+  });
+  on("sonotaSel", "change", e => { sonotaSentaku = e.target.value; });
+  on("sonotaFun", "input", e => { sonotaFunNyu = e.target.value; });
+  on("sonotaBtn", "click", () => {
+    const f = seisu($("sonotaFun").value, 0);
+    if (!f){ $("sonotaFun").focus(); return; }
+    const cur = kirokuToru(kyo);
+    const list = (cur && cur.sonota) ? cur.sonota.slice() : [];
+    list.push({ id:shinId(), shurui:sonotaSentaku, fun:f });
+    kirokuKaku(kyo, { sonota:list }); sonotaFunNyu = ""; hyouji();
+  });
+  onAll("[data-sonota-del]", "click", b => {
+    const cur = kirokuToru(kyo);
+    kirokuKaku(kyo, { sonota:(cur.sonota||[]).filter(x => x.id !== b.dataset.sonotaDel) }); hyouji();
+  });
+  onAll(".hi[data-hizuke]", "click", b => shuseiHiraku(b.dataset.hizuke));
+}
+
+/* ---------- 運動 ---------- */
+function undouKaishi(menu){
+  otoJunbi();
+  const kyo = kyoNoHizuke();
+  const phase = menu.suburi > 0 || menu.nawatobi === 0 ? "suburi" : "nawatobi";
+  sessionKaku({
+    date:kyo, phase,
+    suburiClock:{ acc:0, since: phase === "suburi" ? Date.now() : null },
+    nawaClock:  { acc:0, since: phase === "nawatobi" ? Date.now() : null },
+    suburiCount:0, nawaCount:0,
+    menuSuburi:menu.suburi, menuNawa:menu.nawatobi,
+    suburiFlash:false, nawaFlash:false
+  });
+  intervalMae = -1;
+  overlay = "undou"; hyouji(); window.scrollTo(0,0);
+}
+function phaseKirikae(p){
+  const s = sessionYomu(); if (!s || s.phase === p) return;
+  otoJunbi();
+  const ugoiteta = s.phase === "suburi" ? !!s.suburiClock.since : !!s.nawaClock.since;
+  s.suburiClock = tomeru(s.suburiClock); s.nawaClock = tomeru(s.nawaClock);
+  s.phase = p;
+  if (ugoiteta){ if (p === "suburi") s.suburiClock = ugokasu(s.suburiClock); else s.nawaClock = ugokasu(s.nawaClock); }
+  intervalMae = -1;
+  sessionKaku(s); hyouji();
+}
+function egakuUndou(){
+  const s = sessionYomu();
+  if (!s){ overlay = null; hyouji(); return; }
+  const st = setteiYomu();
+  const isS = s.phase === "suburi";
+  const clock = isS ? s.suburiClock : s.nawaClock;
+  const ms = keika(clock);
+  const ugoku = !!clock.since;
+  const mokuhyo = isS ? s.menuSuburi : s.menuNawa;
+  const goal = mokuhyo * 60000;
+  const iro = isS ? "var(--suburi)" : "var(--nawa)";
+  const deg = goal > 0 ? Math.round(Math.min(1, ms / goal) * 360) : 0;
+
+  tasseiIma = false;
+  const fk = isS ? "suburiFlash" : "nawaFlash";
+  if (goal > 0 && ms >= goal && !s[fk]){ s[fk] = true; sessionKaku(s); tasseiIma = true; pi(1320); }
+
+  let intervalHtml = "";
+  if (!isS && st.nawaInterval){
+    const sec = Math.floor(ms / 1000);
+    const idx = Math.floor(sec / 30);
+    const tobu = idx % 2 === 0;
+    const nokori = 30 - (sec % 30);
+    if (ugoku && intervalMae !== -1 && idx !== intervalMae) pi(tobu ? 880 : 520);
+    intervalMae = idx;
+    intervalHtml = `<div class="interval ${tobu?'tobu':'yasumu'}">${tobu ? "跳ぶ" : "休む"}　${nokori}</div>`;
   }
 
-  app.querySelectorAll(".kazu-btn-retsu button").forEach(b => {
-    b.addEventListener("click", () => {
-      const s2 = sessionYomu(); if (!s2) return;
-      const field = isSuburi ? "suburiCount" : "shokoCount";
-      s2[field] = Math.max(0, s2[field] + Number(b.dataset.add));
-      sessionKaku(s2);
-      hyouji();
-    });
-  });
+  const cnt = isS ? s.suburiCount : s.nawaCount;
+  const steps = [10, 50, 100];
+  const parts = tasseiIma ? Array.from({length:14}, (_,i) => `<div class="particle" style="--ang:${Math.round(i*360/14)}deg"></div>`).join("") : "";
 
-  document.getElementById("ichijiBtn").addEventListener("click", () => {
+  app.innerHTML = `
+  <div class="gamen-head"><span class="gamen-title">運動中</span></div>
+  <div class="phase-tabs">
+    <button class="phase-tab ${isS?'on-suburi':''}" data-phase="suburi">木刀素振り</button>
+    <button class="phase-tab ${!isS?'on-nawa':''}" data-phase="nawatobi">縄跳び</button>
+  </div>
+  <div class="undou">
+    <div class="ring-wrap">
+      <div class="ring" style="background:conic-gradient(${iro} ${deg}deg, rgba(255,255,255,.07) ${deg}deg)"></div>
+      <div class="ring-uchi">
+        <div class="taimaa" style="color:${iro}">${funByou(ms)}</div>
+        <p class="mokuhyo">${mokuhyo ? `目安 ${mokuhyo}分` : "目安なし（自由に）"}</p>
+      </div>
+      <div class="particle-layer">${parts}</div>
+    </div>
+    ${intervalHtml}
+    ${tasseiIma ? `<div><span class="tassei">目安達成！</span></div>` : ""}
+    <div class="kazu" style="color:${iro}">${cnt}${isS ? "本" : "回"}</div>
+    <div class="kazu-btns">${steps.map(n => `<button data-add="${n}">＋${n}</button>`).join("")}</div>
+    <div class="kazu-btns minus">${steps.map(n => `<button data-add="-${n}">－${n}</button>`).join("")}</div>
+    <p class="hint">数えられたときだけでOK。${!isS ? "膝や足首に違和感が出たら、すぐやめましょう。" : ""}</p>
+    <div class="sosa">
+      <button class="btn btn-sub" id="ichijiBtn">${ugoku ? "一時停止" : "再開"}</button>
+      <button class="btn btn-warn" id="owariBtn">運動を終える</button>
+    </div>
+  </div>`;
+
+  onAll("[data-phase]", "click", b => phaseKirikae(b.dataset.phase));
+  onAll("[data-add]", "click", b => {
     const s2 = sessionYomu(); if (!s2) return;
-    if (isSuburi) s2.suburiClock = ugoiteiru ? keiIchiji(s2.suburiClock) : keiSaikai(s2.suburiClock);
-    else          s2.shokoClock  = ugoiteiru ? keiIchiji(s2.shokoClock)  : keiSaikai(s2.shokoClock);
-    sessionKaku(s2);
-    hyouji();
+    const k = s2.phase === "suburi" ? "suburiCount" : "nawaCount";
+    s2[k] = Math.max(0, s2[k] + Number(b.dataset.add)); sessionKaku(s2); hyouji();
   });
-
-  document.getElementById("owariBtn").addEventListener("click", undouShuryo);
-
-  if (ugoiteiru){
-    undouTaimaaId = setInterval(() => { if (gamen === "undou") egakuUndou(); }, 1000);
-  }
+  on("ichijiBtn", "click", () => {
+    otoJunbi();
+    const s2 = sessionYomu(); if (!s2) return;
+    const k = s2.phase === "suburi" ? "suburiClock" : "nawaClock";
+    s2[k] = s2[k].since ? tomeru(s2[k]) : ugokasu(s2[k]);
+    sessionKaku(s2); hyouji();
+  });
+  on("owariBtn", "click", () => {
+    const s2 = sessionYomu(); if (!s2) return;
+    s2.suburiClock = tomeru(s2.suburiClock); s2.nawaClock = tomeru(s2.nawaClock); sessionKaku(s2);
+    shuryo = {
+      suburiMin:String(Math.round(s2.suburiClock.acc / 60000)),
+      suburiCount:s2.suburiCount ? String(s2.suburiCount) : "",
+      nawaMin:String(Math.round(s2.nawaClock.acc / 60000)),
+      nawaCount:s2.nawaCount ? String(s2.nawaCount) : "",
+      fatigue:null, pain:[]
+    };
+    overlay = "shuryo"; hyouji(); window.scrollTo(0,0);
+  });
+  if (ugoku) timerId = setInterval(() => { if (overlay === "undou") hyouji(); }, 1000);
 }
 
-function undouShuryo(){
-  const s = sessionYomu(); if (!s) return;
-  s.suburiClock = keiIchiji(s.suburiClock);
-  s.shokoClock  = keiIchiji(s.shokoClock);
-  s.suburiFinalMs = s.suburiClock ? s.suburiClock.accumulatedMs : 0;
-  s.shokoFinalMs  = s.shokoClock  ? s.shokoClock.accumulatedMs  : 0;
-  sessionKaku(s);
-  erabaretaHirouido = null; erabaretaItami = [];
-  shuryoSuburiHosei = null; shuryoShokoHosei = null;
-  gamen = "shuryo";
-  hyouji();
-}
-
-/* ---------- 終了記録画面 ----------------------------------------------
-   素振り・昇降の分数は手入力で補正できる。操作を忘れたまま
-   実際には運動していた、という場合はここで実際の分数に直せる。 */
-const HIROU_LABELS = [
-  { v:1, t:"余裕あり" }, { v:2, t:"軽い疲労" }, { v:3, t:"通常" },
-  { v:4, t:"強い疲労" }, { v:5, t:"かなり強い" }
+/* ---------- 終了記録 ---------- */
+const HIROU = [{v:1,t:"余裕"},{v:2,t:"軽い"},{v:3,t:"ふつう"},{v:4,t:"強い"},{v:5,t:"かなり"}];
+const ITAMI = [
+  {v:"kata_migi",t:"右肩"},{v:"kata_hidari",t:"左肩"},{v:"hiji_migi",t:"右肘"},{v:"hiji_hidari",t:"左肘"},
+  {v:"tekubi_migi",t:"右手首"},{v:"tekubi_hidari",t:"左手首"},{v:"koshi",t:"腰"},
+  {v:"hiza_migi",t:"右膝"},{v:"hiza_hidari",t:"左膝"},{v:"ashikubi_migi",t:"右足首"},{v:"ashikubi_hidari",t:"左足首"},
+  {v:"sonota",t:"その他"}
 ];
-const ITAMI_LABELS = [
-  { v:"kata_migi",     t:"右肩" },  { v:"kata_hidari",     t:"左肩" },
-  { v:"hiji_migi",     t:"右肘" },  { v:"hiji_hidari",     t:"左肘" },
-  { v:"tekubi_migi",   t:"右手首" },{ v:"tekubi_hidari",   t:"左手首" },
-  { v:"koshi",         t:"腰" },
-  { v:"hiza_migi",     t:"右膝" },  { v:"hiza_hidari",     t:"左膝" },
-  { v:"ashikubi_migi", t:"右足首" },{ v:"ashikubi_hidari", t:"左足首" },
-  { v:"sonota",        t:"その他" }
-];
-function itamiLabelHyouji(codes){
-  return (codes||[]).map(c => {
-    const f = ITAMI_LABELS.find(i => i.v === c);
-    return f ? f.t : c;
-  }).join("・");
+function itamiHyoji(codes){ return (codes||[]).map(c => (ITAMI.find(i => i.v === c) || {t:c}).t).join("・"); }
+function hirouHtml(sel){
+  return `<div class="hirou">${HIROU.map(h => `<button data-hirou="${h.v}" class="${sel===h.v?'eranda':''}">${h.v}<br>${h.t}</button>`).join("")}</div>`;
 }
+function itamiHtml(sel){
+  return `<div class="chip-retsu">${ITAMI.map(i => `<button class="chip warn ${sel.includes(i.v)?'eranda':''}" data-itami="${i.v}">${i.t}</button>`).join("")}</div>`;
+}
+function itamiToggle(list, v){ const i = list.indexOf(v); if (i >= 0) list.splice(i,1); else list.push(v); }
 
 function egakuShuryo(){
-  undouTaimaaTomeru();
   const s = sessionYomu();
-  if (!s){ gamen = "home"; hyouji(); return; }
-
-  const settei = setteiYomu();
-  const kyo = s.date;
-
-  const suburiMinKijun = Math.round((s.suburiFinalMs || 0) / 60000);
-  const shokoMinKijun  = Math.round((s.shokoFinalMs  || 0) / 60000);
-  const suburiMinHyouji = shuryoSuburiHosei !== null ? shuryoSuburiHosei : String(suburiMinKijun);
-  const shokoMinHyouji  = shuryoShokoHosei  !== null ? shuryoShokoHosei  : String(shokoMinKijun);
-  const suburiMinIma = seisu(suburiMinHyouji, suburiMinKijun);
-  const shokoMinIma  = seisu(shokoMinHyouji, shokoMinKijun);
-  const soukeiMin = suburiMinIma + shokoMinIma;
-
-  const kirokuKyo = kirokuToru(kyo);
-  const weight = (kirokuKyo && typeof kirokuKyo.weightKg === "number")
-    ? kirokuKyo.weightKg : (saishinTaiju(kyo) || 60);
-  const kcal = kcalMitsumori(suburiMinIma * 60000, shokoMinIma * 60000, weight);
-
-  const mokuhyoGoukei = (s.menuSuburiMin || 0) + (s.menuShokoMin || 0);
-  const mokuhyoTassei = mokuhyoGoukei > 0 && soukeiMin >= mokuhyoGoukei;
-  const jikoBest = s.suburiCount > 0 && s.suburiCount > suburiCountSaikou(kyo);
+  if (!s || !shuryo){ overlay = null; hyouji(); return; }
+  const d = shuryo;
+  const sm = seisu(d.suburiMin, 0), nm = seisu(d.nawaMin, 0);
+  const w = genzaiTaiju(s.date);
+  const kcal = Math.round((METS.suburi*w*sm/60 + METS.nawatobi*w*nm/60) * 1.05);
+  const goal = (s.menuSuburi||0) + (s.menuNawa||0);
+  const zenSaikou = Object.values(kirokuZenbu()).filter(r => r.date !== s.date).reduce((a,r) => Math.max(a, r.suburiCount||0), 0);
+  const sc = seisu(d.suburiCount, 0);
 
   app.innerHTML = `
-    <div class="shuryo">
-      <h2 class="shuryo-midashi">おつかれさまでした</h2>
-      <p class="shuryo-sub">今日の記録を確認してください</p>
+  <div class="gamen-head"><span class="gamen-title">おつかれさまでした</span></div>
+  ${(goal > 0 && sm + nm >= goal) || (sc > 0 && sc > zenSaikou) ? `<div class="mt8">
+    ${goal > 0 && sm + nm >= goal ? `<span class="badge">目安達成</span>` : ""}
+    ${sc > 0 && sc > zenSaikou ? `<span class="badge">素振り本数 自己ベスト</span>` : ""}</div>` : ""}
+  <section class="card">
+    <div class="gyo"><label>木刀素振り（分）</label><input class="field num" id="shSm" type="number" inputmode="numeric" value="${esc(d.suburiMin)}"></div>
+    <div class="gyo"><label>素振り本数</label><input class="field num" id="shSc" type="number" inputmode="numeric" value="${esc(d.suburiCount)}" placeholder="任意"></div>
+    <div class="gyo"><label>縄跳び（分）</label><input class="field num" id="shNm" type="number" inputmode="numeric" value="${esc(d.nawaMin)}"></div>
+    <div class="gyo"><label>縄跳び回数</label><input class="field num" id="shNc" type="number" inputmode="numeric" value="${esc(d.nawaCount)}" placeholder="任意"></div>
+    <p class="hint">タイマーと実際が違うときは、数字を書き換えてください。消費 約${kcal}kcal（目安）</p>
+  </section>
+  <section class="card">
+    <h2 class="midashi">今日の疲労度</h2>${hirouHtml(d.fatigue)}
+    <h2 class="midashi mt16">痛みはありますか</h2>${itamiHtml(d.pain)}
+  </section>
+  <button class="btn btn-accent mt16" id="shHozon" ${d.fatigue === null ? "disabled" : ""}>${d.fatigue === null ? "疲労度を選ぶと保存できます" : "記録して終わる"}</button>
+  <button class="btn btn-sub mt8" id="shModoru">運動に戻る</button>`;
 
-      ${(mokuhyoTassei || jikoBest) ? `
-      <div class="badge-retsu">
-        ${mokuhyoTassei ? `<span class="badge">目標達成</span>` : ""}
-        ${jikoBest ? `<span class="badge">素振り本数 自己ベスト</span>` : ""}
-      </div>` : ""}
-
-      <div class="shuryo-koumoku c-suburi">
-        <span>木刀素振り</span>
-        <input class="hosei-nyu" id="suburiHoseiNyu" type="number" inputmode="numeric" min="0" step="1" value="${esc(suburiMinHyouji)}" aria-label="素振りの分数（補正可）">
-      </div>
-      ${s.suburiCount ? `<div class="shuryo-koumoku"><span>本数</span><span class="atai">${s.suburiCount}本</span></div>` : ""}
-      <div class="shuryo-koumoku c-shoko">
-        <span>一段昇降</span>
-        <input class="hosei-nyu" id="shokoHoseiNyu" type="number" inputmode="numeric" min="0" step="1" value="${esc(shokoMinHyouji)}" aria-label="一段昇降の分数（補正可）">
-      </div>
-      ${s.shokoCount ? `<div class="shuryo-koumoku"><span>回数</span><span class="atai">${s.shokoCount}回</span></div>` : ""}
-      <div class="shuryo-koumoku"><span>合計</span><span class="atai">${soukeiMin}分</span></div>
-      <p class="hosei-hint">タイマーの分数が実際と違う場合は、上の数字を書き換えてください。</p>
-      <p class="shuryo-kcal">消費 約${kcal}kcal（目安）</p>
-
-      <p class="hirou-midashi">今日の疲労度</p>
-      <div class="hirou-retsu">
-        ${HIROU_LABELS.map(h => `
-          <button data-hirou="${h.v}" class="${erabaretaHirouido===h.v ? 'eranda':''}">${h.v}<br>${h.t}</button>
-        `).join("")}
-      </div>
-
-      <p class="itami-midashi">痛みはありますか</p>
-      <div class="itami-retsu">
-        ${ITAMI_LABELS.map(i => `
-          <button class="itami-chip ${erabaretaItami.includes(i.v) ? 'eranda':''}" data-itami="${i.v}">${i.t}</button>
-        `).join("")}
-      </div>
-
-      <button class="hozon-owari" id="hozonOwariBtn" ${erabaretaHirouido===null ? "disabled" : ""}>記録して終わる</button>
-    </div>
-  `;
-
-  const suburiNyu = document.getElementById("suburiHoseiNyu");
-  suburiNyu.addEventListener("input", e => { shuryoSuburiHosei = e.target.value; });
-  suburiNyu.addEventListener("blur", () => hyouji());
-  suburiNyu.addEventListener("keydown", e => { if (e.key === "Enter") suburiNyu.blur(); });
-
-  const shokoNyu = document.getElementById("shokoHoseiNyu");
-  shokoNyu.addEventListener("input", e => { shuryoShokoHosei = e.target.value; });
-  shokoNyu.addEventListener("blur", () => hyouji());
-  shokoNyu.addEventListener("keydown", e => { if (e.key === "Enter") shokoNyu.blur(); });
-
-  app.querySelectorAll("[data-hirou]").forEach(b => {
-    b.addEventListener("click", () => { erabaretaHirouido = Number(b.dataset.hirou); hyouji(); });
+  [["shSm","suburiMin"],["shSc","suburiCount"],["shNm","nawaMin"],["shNc","nawaCount"]].forEach(([id,k]) => {
+    on(id, "input", e => { shuryo[k] = e.target.value; });
+    on(id, "change", () => hyouji());
   });
-  app.querySelectorAll("[data-itami]").forEach(b => {
-    b.addEventListener("click", () => {
-      const v = b.dataset.itami;
-      const i = erabaretaItami.indexOf(v);
-      if (i >= 0) erabaretaItami.splice(i,1); else erabaretaItami.push(v);
-      hyouji();
+  onAll("[data-hirou]", "click", b => { shuryo.fatigue = Number(b.dataset.hirou); hyouji(); });
+  onAll("[data-itami]", "click", b => { itamiToggle(shuryo.pain, b.dataset.itami); hyouji(); });
+  on("shModoru", "click", () => { shuryo = null; overlay = "undou"; hyouji(); });
+  on("shHozon", "click", () => {
+    const cur = kirokuToru(s.date) || {};
+    const scN = d.suburiCount.trim() === "" ? null : seisu(d.suburiCount, 0);
+    const ncN = d.nawaCount.trim() === "" ? null : seisu(d.nawaCount, 0);
+    // 同じ日に2回運動したときは足し合わせる
+    kirokuKaku(s.date, {
+      suburiMin:(cur.suburiMin||0) + seisu(d.suburiMin, 0),
+      suburiCount: scN === null ? (cur.suburiCount ?? null) : (cur.suburiCount||0) + scN,
+      nawatobiMin:(cur.nawatobiMin||0) + seisu(d.nawaMin, 0),
+      nawatobiCount: ncN === null ? (cur.nawatobiCount ?? null) : (cur.nawatobiCount||0) + ncN,
+      fatigue:d.fatigue,
+      pain:Array.from(new Set([...(cur.pain||[]), ...d.pain]))
     });
+    sessionKaku(null); shuryo = null; overlay = null; tab = "home"; hyouji(); window.scrollTo(0,0);
   });
-  if (erabaretaHirouido !== null){
-    document.getElementById("hozonOwariBtn").addEventListener("click", hozonOwariSuru);
+}
+
+/* ---------- 過去の記録の修正 ---------- */
+function shuseiHiraku(h, modori){
+  const r = kirokuToru(h) || {};
+  shusei = {
+    h, modori: modori || tab,
+    weightKg: r.weightKg != null ? String(r.weightKg) : "",
+    waistCm:  r.waistCm  != null ? String(r.waistCm)  : "",
+    suburiMin: String(r.suburiMin || 0),
+    suburiCount: r.suburiCount != null ? String(r.suburiCount) : "",
+    nawaMin: String(r.nawatobiMin || 0),
+    nawaCount: r.nawatobiCount != null ? String(r.nawatobiCount) : "",
+    shokoMin: String(shokoFun(r)),
+    sonota: (r.sonota || []).map(x => Object.assign({}, x)),
+    fatigue: r.fatigue ?? null,
+    pain: (r.pain || []).slice(),
+    sonotaSel: "walk", sonotaFun: ""
+  };
+  overlay = "shusei"; hyouji(); window.scrollTo(0,0);
+}
+function egakuShusei(){
+  const d = shusei;
+  if (!d){ overlay = null; hyouji(); return; }
+  const r = kirokuToru(d.h);
+  const kyuShoko = seisu(d.shokoMin, 0) > 0;
+  app.innerHTML = `
+  <div class="gamen-head"><button class="modoru" id="ssModoru">← 戻る</button><span class="gamen-title">${hizukeHyoji(d.h)} の記録</span></div>
+  ${!r ? `<p class="hint">この日はまだ記録がありません。入れると新しく記録されます。</p>` : ""}
+  <section class="card">
+    <div class="gyo"><label>体重（kg）</label><input class="field num" data-f="weightKg" type="number" inputmode="decimal" step="0.1" value="${esc(d.weightKg)}" placeholder="––.–"></div>
+    <div class="gyo"><label>ウエスト（cm）</label><input class="field num" data-f="waistCm" type="number" inputmode="decimal" step="0.1" value="${esc(d.waistCm)}" placeholder="––.–"></div>
+    <div class="gyo"><label>木刀素振り（分）</label><input class="field num" data-f="suburiMin" type="number" inputmode="numeric" value="${esc(d.suburiMin)}"></div>
+    <div class="gyo"><label>素振り本数</label><input class="field num" data-f="suburiCount" type="number" inputmode="numeric" value="${esc(d.suburiCount)}" placeholder="任意"></div>
+    <div class="gyo"><label>縄跳び（分）</label><input class="field num" data-f="nawaMin" type="number" inputmode="numeric" value="${esc(d.nawaMin)}"></div>
+    <div class="gyo"><label>縄跳び回数</label><input class="field num" data-f="nawaCount" type="number" inputmode="numeric" value="${esc(d.nawaCount)}" placeholder="任意"></div>
+    ${kyuShoko ? `<div class="gyo"><label>一段昇降（旧・分）</label><input class="field num" data-f="shokoMin" type="number" inputmode="numeric" value="${esc(d.shokoMin)}"></div>` : ""}
+  </section>
+  <section class="card">
+    <h2 class="midashi">ほかにした運動</h2>
+    ${d.sonota.map(x => `<div class="sonota-gyo"><span>${esc(sonotaInfo(x.shurui).t)}　<span class="num">${x.fun}分</span></span><button class="batsu" data-ss-del="${x.id}">×</button></div>`).join("")}
+    <div class="sonota-add">
+      <select id="ssSel" class="field">${SONOTA_SHURUI.map(x => `<option value="${x.v}" ${d.sonotaSel===x.v?'selected':''}>${x.t}</option>`).join("")}</select>
+      <input id="ssFun" class="field num" type="number" inputmode="numeric" value="${esc(d.sonotaFun)}" placeholder="分">
+      <button class="btn-mini" id="ssAdd">追加</button>
+    </div>
+  </section>
+  <section class="card">
+    <h2 class="midashi">疲労度</h2>${hirouHtml(d.fatigue)}
+    <h2 class="midashi mt16">痛み</h2>${itamiHtml(d.pain)}
+  </section>
+  <button class="btn btn-accent mt16" id="ssHozon">この内容で保存する</button>
+  <p class="hint">食事の記録は「食事」タブで日付を切り替えて直せます。</p>`;
+
+  app.querySelectorAll("[data-f]").forEach(el => el.addEventListener("input", e => { shusei[el.dataset.f] = e.target.value; }));
+  on("ssSel", "change", e => { shusei.sonotaSel = e.target.value; });
+  on("ssFun", "input", e => { shusei.sonotaFun = e.target.value; });
+  on("ssAdd", "click", () => {
+    const f = seisu(shusei.sonotaFun, 0); if (!f) return;
+    shusei.sonota.push({ id:shinId(), shurui:shusei.sonotaSel, fun:f }); shusei.sonotaFun = ""; hyouji();
+  });
+  onAll("[data-ss-del]", "click", b => { shusei.sonota = shusei.sonota.filter(x => x.id !== b.dataset.ssDel); hyouji(); });
+  onAll("[data-hirou]", "click", b => { const v = Number(b.dataset.hirou); shusei.fatigue = shusei.fatigue === v ? null : v; hyouji(); });
+  onAll("[data-itami]", "click", b => { itamiToggle(shusei.pain, b.dataset.itami); hyouji(); });
+  on("ssModoru", "click", () => { const m = shusei.modori; shusei = null; overlay = null; tab = m; hyouji(); });
+  on("ssHozon", "click", () => {
+    const opt = v => String(v).trim() === "" ? null : seisu(v, 0);
+    const sk = seisu(d.shokoMin, 0);
+    const w = shosu(d.weightKg), wc = shosu(d.waistCm);
+    kirokuKaku(d.h, {
+      weightKg: w, waistCm: wc,
+      suburiMin: seisu(d.suburiMin, 0), suburiCount: opt(d.suburiCount),
+      nawatobiMin: seisu(d.nawaMin, 0), nawatobiCount: opt(d.nawaCount),
+      shokoMigiMin: Math.ceil(sk/2), shokoHidariMin: Math.floor(sk/2),
+      sonota: d.sonota, fatigue: d.fatigue, pain: d.pain.slice()
+    });
+    const m = shusei.modori; shusei = null; overlay = null; tab = m; hyouji();
+  });
+}
+
+/* ---------- 食事 ---------- */
+const KUBUN = [{v:"asa",t:"朝"},{v:"hiru",t:"昼"},{v:"yoru",t:"夜"},{v:"kanshoku",t:"間食"}];
+function kubunT(v){ return (KUBUN.find(k => k.v === v) || {t:""}).t; }
+function kubunJidou(){
+  const h = new Date().getHours();
+  return h < 10 ? "asa" : h < 15 ? "hiru" : h < 17 ? "kanshoku" : "yoru";
+}
+
+function egakuShokuji(){
+  const h = shokujiHizuke || kyoNoHizuke();
+  const s = setteiYomu();
+  const r = kirokuToru(h);
+  const meals = (r && r.meals) || [];
+  const w = genzaiTaiju(h);
+  const tabeta = kcalSesshu(r);
+  const waku = mokuhyoKcal(s, w) + kcalUndou(r, w);
+  const kyo = kyoNoHizuke();
+
+  app.innerHTML = `
+  ${header()}
+  <div class="hi-nav">
+    <button id="mPrev" aria-label="前の日">‹</button>
+    <span class="hyoji">${h === kyo ? "今日　" : ""}${hizukeHyoji(h)}</span>
+    <button id="mNext" aria-label="次の日" ${h >= kyo ? "disabled" : ""}>›</button>
+  </div>
+  <section class="card">
+    <div class="kcal-ue"><span class="ookii">${tabeta}</span><span class="chiisai">/ ${waku} kcal（運動分を含む目安）</span></div>
+    <div class="bar ${tabeta > waku ? 'over':''}"><i style="width:${Math.min(100, Math.round(tabeta / waku * 100))}%"></i></div>
+    <button class="btn btn-shoku mt12" id="mAdd">＋ 食事を記録する</button>
+  </section>
+  <section class="card">
+    <h2 class="midashi">記録した食事</h2>
+    ${meals.length ? meals.map(m => `
+      <div class="meal">
+        ${m.thumb ? `<img class="meal-thumb" src="${m.thumb}" alt="">` : `<div class="meal-thumb">${esc(kubunT(m.kubun))}</div>`}
+        <div class="meal-hon">
+          <div class="meal-ue"><span class="meal-namae">${esc(m.namae || "食事")}</span><span class="meal-kcal">${m.kcal}kcal</span></div>
+          <div class="meal-sub">${esc(kubunT(m.kubun))}　${esc(m.jikan || "")}</div>
+          ${m.advice ? `<div class="meal-adv">${esc(m.advice)}</div>` : ""}
+          <div class="meal-sosa">
+            <button data-m-kcal="${m.id}">kcalを直す</button>
+            <button data-m-del="${m.id}">削除</button>
+          </div>
+        </div>
+      </div>`).join("") : `<p class="hint" style="margin:0">まだありません。写真を撮るか、カロリーを手で入れて記録できます。</p>`}
+  </section>`;
+
+  on("mPrev", "click", () => { shokujiHizuke = hizukeZurasu(h, -1); hyouji(); });
+  on("mNext", "click", () => { if (h < kyo){ shokujiHizuke = hizukeZurasu(h, 1); hyouji(); } });
+  on("mAdd", "click", () => shokujiAddHiraku(h));
+  onAll("[data-m-del]", "click", b => {
+    if (!confirm("この食事の記録を削除しますか？")) return;
+    const cur = kirokuToru(h);
+    kirokuKaku(h, { meals:(cur.meals||[]).filter(m => m.id !== b.dataset.mDel) }); hyouji();
+  });
+  onAll("[data-m-kcal]", "click", b => {
+    const cur = kirokuToru(h);
+    const m = (cur.meals||[]).find(x => x.id === b.dataset.mKcal); if (!m) return;
+    const v = prompt("カロリー（kcal）を入力してください", m.kcal);
+    if (v === null) return;
+    const n = seisu(v, -1); if (n < 0) return;
+    m.kcal = n; kirokuKaku(h, { meals:cur.meals }); hyouji();
+  });
+}
+
+function shokujiAddHiraku(h){
+  draft = { h, kubun:kubunJidou(), memo:"", gazo:null, thumb:null, kekka:null, namae:"", kcal:"", loading:false, err:null };
+  overlay = "shokujiAdd"; hyouji(); window.scrollTo(0,0);
+}
+function egakuShokujiAdd(){
+  const d = draft;
+  if (!d){ overlay = null; hyouji(); return; }
+  const s = setteiYomu();
+  const aiOk = !!(s.gasUrl && s.gasToken);
+  const k = d.kekka;
+
+  app.innerHTML = `
+  <div class="gamen-head"><button class="modoru" id="daModoru">← 戻る</button><span class="gamen-title">食事を記録　${hizukeHyoji(d.h)}</span></div>
+  <div class="chip-retsu mt8">${KUBUN.map(x => `<button class="chip ${d.kubun===x.v?'eranda':''}" data-kubun="${x.v}">${x.t}</button>`).join("")}</div>
+
+  <section class="card">
+    <div class="photo-waku">${d.gazo ? `<img src="${d.gazo}" alt="食事の写真">` : `<div class="nashi">料理全体が入るように<br>真上か斜め上から撮ると推定しやすくなります</div>`}</div>
+    <div class="btn btn-sub mt12 file-btn">${d.gazo ? "写真を撮り直す・選び直す" : "写真を撮る・選ぶ"}<input type="file" accept="image/*" id="daFile"></div>
+    <textarea class="field mt12" id="daMemo" placeholder="量や味付けのメモ（例：ご飯大盛り、味濃いめ、半分残した）">${esc(d.memo)}</textarea>
+    <button class="btn btn-shoku mt12" id="daAi" ${(!d.gazo || !aiOk || d.loading) ? "disabled" : ""}>AIでカロリーを推定する</button>
+    ${!aiOk ? `<p class="hint">AI推定は「設定」タブでAI連携を入れると使えます。カロリーを手で入れて記録することもできます。</p>` : ""}
+    ${d.loading ? `<p class="loading">推定しています…</p>` : ""}
+    ${d.err ? `<p class="err">${esc(d.err)}</p>` : ""}
+  </section>
+
+  ${k ? `<section class="card">
+    <h2 class="midashi">推定結果</h2>
+    ${(k.ryori||[]).map(x => `<div class="kekka-ryori"><span>${esc(x.name)}<span class="ryo">${esc(x.ryo || "")}</span></span><span class="num">${x.kcal}kcal</span></div>`).join("")}
+    <div class="kekka-goukei"><span class="c-dim" style="font-size:12px">合計${k.kcalMin && k.kcalMax ? `（幅 ${k.kcalMin}〜${k.kcalMax}）` : ""}</span><span class="num">${k.goukeiKcal}<small style="font-size:14px">kcal</small></span></div>
+    ${k.pfc ? `<p class="hint">たんぱく質 ${k.pfc.p}g・脂質 ${k.pfc.f}g・炭水化物 ${k.pfc.c}g</p>` : ""}
+    ${k.advice ? `<div class="adv-box">${esc(k.advice)}</div>` : ""}
+  </section>` : ""}
+
+  <section class="card">
+    <h2 class="midashi">記録する内容</h2>
+    <div class="gyo"><label>料理名</label><input class="field" id="daNamae" style="width:62%;font-size:14px;text-align:left" value="${esc(d.namae)}" placeholder="例：カレーライス"></div>
+    <div class="gyo"><label>カロリー（kcal）</label><input class="field num" id="daKcal" type="number" inputmode="numeric" value="${esc(d.kcal)}" placeholder="例：650"></div>
+    <button class="btn btn-accent mt12" id="daHozon" ${seisu(d.kcal, -1) < 0 || String(d.kcal).trim() === "" ? "disabled" : ""}>記録する</button>
+  </section>`;
+
+  on("daModoru", "click", () => { draft = null; overlay = null; hyouji(); });
+  onAll("[data-kubun]", "click", b => { draft.kubun = b.dataset.kubun; hyouji(); });
+  on("daMemo", "input", e => { draft.memo = e.target.value; });
+  on("daNamae", "input", e => { draft.namae = e.target.value; });
+  on("daKcal", "input", e => {
+    draft.kcal = e.target.value;
+    const btn = $("daHozon"); if (btn) btn.disabled = seisu(draft.kcal, -1) < 0 || String(draft.kcal).trim() === "";
+  });
+  on("daFile", "change", async e => {
+    const f = e.target.files && e.target.files[0]; if (!f) return;
+    try{
+      draft.gazo = await gazoShukusho(f, 1024, 0.8);
+      draft.thumb = await gazoShukusho(f, 200, 0.6);
+      draft.kekka = null; draft.err = null;
+    }catch(err){ draft.err = err.message; }
+    hyouji();
+  });
+  on("daAi", "click", async () => {
+    const st = setteiYomu();
+    const w = genzaiTaiju(draft.h);
+    const r = kirokuToru(draft.h);
+    draft.loading = true; draft.err = null; hyouji();
+    try{
+      const j = await gasYobu({
+        action:"meal",
+        image: draft.gazo.split(",")[1], mimeType:"image/jpeg",
+        memo: draft.memo, kubun: kubunT(draft.kubun),
+        profile:{
+          seibetsu: st.seibetsu === "josei" ? "女性" : "男性",
+          nenrei: st.nenrei, shinchoCm: st.shinchoCm, taijuKg: w, mokuhyoTaiju: st.mokuhyoTaiju,
+          mokuhyoKcal: mokuhyoKcal(st, w), kyoSesshu: kcalSesshu(r), kyoUndou: kcalUndou(r, w)
+        }
+      });
+      if (!draft) return;
+      draft.kekka = j;
+      draft.namae = (j.ryori || []).map(x => x.name).join("・");
+      draft.kcal = String(j.goukeiKcal ?? "");
+    }catch(err){ if (draft) draft.err = err.message; }
+    if (draft){ draft.loading = false; hyouji(); }
+  });
+  on("daHozon", "click", () => {
+    const n = seisu(draft.kcal, -1); if (n < 0) return;
+    const cur = kirokuToru(draft.h);
+    const meals = (cur && cur.meals) ? cur.meals.slice() : [];
+    meals.push({
+      id:shinId(), jikan: draft.h === kyoNoHizuke() ? jikanMoji() : "", kubun:draft.kubun,
+      namae: draft.namae.trim() || kubunT(draft.kubun) + "の食事", kcal:n,
+      naiyo: draft.kekka ? (draft.kekka.ryori || []) : [],
+      advice: draft.kekka ? (draft.kekka.advice || "") : "",
+      thumb: draft.thumb || undefined
+    });
+    kirokuKaku(draft.h, { meals });
+    thumbSeiri();
+    shokujiHizuke = draft.h; draft = null; overlay = null; tab = "shokuji"; hyouji(); window.scrollTo(0,0);
+  });
+}
+
+/* ---------- 推移 ---------- */
+const SHIHYO = {
+  goukei:{ t:"運動時間", tani:"分", iro:"suburi" },
+  taiju:{ t:"体重", tani:"kg", iro:"accent" },
+  sesshu:{ t:"食べたkcal", tani:"kcal", iro:"shoku" },
+  suburiHonsu:{ t:"素振り本数", tani:"本", iro:"suburi" },
+  nawaKaisu:{ t:"縄跳び回数", tani:"回", iro:"nawa" }
+};
+const KIKAN = { "2shukan":{ t:"2週間", n:14 }, "1kagetsu":{ t:"1ヶ月", n:30 }, "zenkikan":{ t:"全期間", n:null } };
+function egakuSuii(){
+  const n = KIKAN[suiiKikan].n || zenkikanNissu();
+  const sh = SHIHYO[suiiMetric];
+  const zu = chartSvg(keiretsu(suiiMetric, n), `var(--${sh.iro})`);
+  const hm = heatmapDeta(16);
+  app.innerHTML = `
+  ${header()}
+  <section class="card renzoku"><div class="kazu-ookii">${renzokuNissu()}</div><p>日連続で運動中</p></section>
+  <section class="card">
+    <h2 class="midashi">日々の運動量</h2>
+    <div class="heatmap-wrap"><div class="heatmap">${hm.map(x =>
+      `<div class="hc l${funLv(x.fun)} ${x.kyo?'kyo':''} ${x.mirai?'mirai':''}" ${x.mirai ? "" : `data-hizuke="${x.h}"`}></div>`).join("")}</div></div>
+    <div class="hanrei"><span>少</span><div class="hc"></div><div class="hc l1"></div><div class="hc l2"></div><div class="hc l3"></div><div class="hc l4"></div><span>多</span></div>
+    <p class="hint">マスをタップすると、その日の記録を直せます。</p>
+  </section>
+  <section class="card">
+    <h2 class="midashi">推移グラフ</h2>
+    <div class="tabs-sm">${Object.entries(SHIHYO).map(([k,v]) => `<button data-metric="${k}" class="${suiiMetric===k?'eranda':''}">${v.t}</button>`).join("")}</div>
+    <div class="tabs-sm mt8">${Object.entries(KIKAN).map(([k,v]) => `<button data-kikan="${k}" class="${suiiKikan===k?'eranda':''}">${v.t}</button>`).join("")}</div>
+    <div class="chart mt12">${zu ? `
+      <div class="chart-ue"><span>${n}日間</span><span class="ima">${Math.round(zu.saishin * 10) / 10}${sh.tani}</span></div>
+      <svg viewBox="0 0 ${zu.W} ${zu.H}" preserveAspectRatio="none">
+        <path class="chart-line" d="${zu.d}" stroke="${zu.iro}"></path>
+        ${zu.pts.map(p => `<circle ${p.last ? 'class="chart-ima"' : ''} cx="${p.px}" cy="${p.py}" r="${p.last ? 4 : 2}" fill="${zu.iro}"></circle>`).join("")}
+      </svg>` : `<p class="chart-nashi">記録が増えると、ここにグラフが出ます。</p>`}</div>
+  </section>`;
+  onAll(".hc[data-hizuke]", "click", b => shuseiHiraku(b.dataset.hizuke, "suii"));
+  onAll("[data-metric]", "click", b => { suiiMetric = b.dataset.metric; hyouji(); });
+  onAll("[data-kikan]", "click", b => { suiiKikan = b.dataset.kikan; hyouji(); });
+}
+
+/* ---------- 設定 ---------- */
+function egakuSettei(){
+  const s = setteiYomu();
+  if (!setteiDraft){
+    setteiDraft = {
+      shinchoCm:String(s.shinchoCm), nenrei:String(s.nenrei), mokuhyoTaiju:String(s.mokuhyoTaiju),
+      seibetsu:s.seibetsu, katsudo:s.katsudo, nawaInterval:s.nawaInterval, gasUrl:s.gasUrl, gasToken:s.gasToken
+    };
   }
-}
+  const d = setteiDraft;
+  const w = genzaiTaiju(kyoNoHizuke());
+  const tmp = Object.assign({}, s, { shinchoCm:shosu(d.shinchoCm) || s.shinchoCm, nenrei:seisu(d.nenrei, s.nenrei), mokuhyoTaiju:shosu(d.mokuhyoTaiju) || s.mokuhyoTaiju, seibetsu:d.seibetsu, katsudo:d.katsudo });
 
-function hozonOwariSuru(){
-  const s = sessionYomu(); if (!s) return;
-  const settei = setteiYomu();
+  app.innerHTML = `
+  ${header()}
+  <section class="card">
+    <h2 class="midashi">からだ</h2>
+    <div class="settei-gyo"><label>身長（cm）</label><input class="field num" data-sd="shinchoCm" type="number" inputmode="decimal" step="0.1" value="${esc(d.shinchoCm)}"></div>
+    <div class="settei-gyo"><label>年齢</label><input class="field num" data-sd="nenrei" type="number" inputmode="numeric" value="${esc(d.nenrei)}"></div>
+    <div class="settei-gyo"><label>目標体重（kg）</label><input class="field num" data-sd="mokuhyoTaiju" type="number" inputmode="decimal" step="0.1" value="${esc(d.mokuhyoTaiju)}"></div>
+    <div class="settei-gyo"><label>性別（計算用）</label>
+      <select class="field" data-sd="seibetsu"><option value="dansei" ${d.seibetsu==='dansei'?'selected':''}>男性</option><option value="josei" ${d.seibetsu==='josei'?'selected':''}>女性</option></select></div>
+    <div class="settei-gyo"><label>ふだんの活動量</label>
+      <select class="field" data-sd="katsudo">${Object.entries(KATSUDO).map(([k,v]) => `<option value="${k}" ${d.katsudo===k?'selected':''}>${v.t}</option>`).join("")}</select></div>
+    <p class="hint">いまの体重 ${su1(w)}kg で計算すると、1日の摂取目安は 約${mokuhyoKcal(tmp, w)}kcal（BMI ${su1(bmi(tmp, w))}）。目標体重より重いあいだは、少し控えめな数字になります。</p>
+  </section>
 
-  const suburiMinKijun = Math.round((s.suburiFinalMs || 0) / 60000);
-  const shokoMinKijun  = Math.round((s.shokoFinalMs  || 0) / 60000);
-  const suburiMinFinal = seisu(shuryoSuburiHosei !== null ? shuryoSuburiHosei : String(suburiMinKijun), suburiMinKijun);
-  const shokoMinFinal  = seisu(shuryoShokoHosei  !== null ? shuryoShokoHosei  : String(shokoMinKijun),  shokoMinKijun);
+  <section class="card">
+    <h2 class="midashi">運動</h2>
+    <div class="settei-gyo"><label>縄跳びの合図（30秒跳ぶ・30秒休む）</label>
+      <button class="chip ${d.nawaInterval?'eranda':''}" id="sdInterval">${d.nawaInterval ? "オン" : "オフ"}</button></div>
+  </section>
 
-  const wake = ashiWake(shokoMinFinal * 60000, settei.kirikaeFun, s.legMode);
+  <section class="card">
+    <h2 class="midashi">AI連携（食事の写真推定）</h2>
+    <div class="settei-tate"><label>GASウェブアプリのURL</label><input class="field" data-sd="gasUrl" type="url" value="${esc(d.gasUrl)}" placeholder="https://script.google.com/macros/s/…/exec" autocapitalize="off" autocorrect="off"></div>
+    <div class="settei-tate"><label>合言葉（GASのAPP_TOKENと同じもの）</label><input class="field" data-sd="gasToken" type="text" value="${esc(d.gasToken)}" autocapitalize="off" autocorrect="off"></div>
+    <button class="btn btn-sub mt12" id="sdTest" ${setteiTestChu ? "disabled" : ""}>${setteiTestChu ? "確認中…" : "接続をテストする"}</button>
+  </section>
 
-  kirokuKaku(s.date, {
-    suburiMin: suburiMinFinal,
-    suburiCount: s.suburiCount || null,
-    shokoMigiMin: Math.round(wake.migiMs / 60000),
-    shokoHidariMin: Math.round(wake.hidariMs / 60000),
-    shokoCount: s.shokoCount || null,
-    fatigue: erabaretaHirouido,
-    pain: erabaretaItami.slice(),
-    legModeUsed: s.legMode
+  <section class="card">
+    <h2 class="midashi">見た目</h2>
+    <div class="chip-retsu">
+      <button class="chip ${s.colorTeema==='sawayaka'?'eranda':''}" data-teema="sawayaka">爽やか</button>
+      <button class="chip ${s.colorTeema==='hade'?'eranda':''}" data-teema="hade">派手</button>
+    </div>
+  </section>
+
+  ${setteiMsg ? `<p class="ok-msg">${esc(setteiMsg)}</p>` : ""}
+  ${setteiErr ? `<p class="err">${esc(setteiErr)}</p>` : ""}
+  <button class="btn btn-accent mt16" id="sdHozon">設定を保存する</button>
+  <p class="chui">記録はこのiPhoneの中（ホーム画面のアイコンから開いたアプリ）に保存されています。Safariのタブで開くと別の保存場所になるので、いつもアイコンから開いてください。食事写真の縮小版は直近14日分だけ残します。</p>`;
+
+  app.querySelectorAll("[data-sd]").forEach(el => {
+    el.addEventListener(el.tagName === "SELECT" ? "change" : "input", e => {
+      setteiDraft[el.dataset.sd] = e.target.value;
+      if (el.tagName === "SELECT") hyouji();
+    });
+    if (el.tagName === "INPUT") el.addEventListener("change", () => hyouji());
   });
-
-  sessionKaku(null);
-  gamen = "home";
-  hyouji();
+  on("sdInterval", "click", () => { setteiDraft.nawaInterval = !setteiDraft.nawaInterval; hyouji(); });
+  onAll("[data-teema]", "click", b => { const s2 = setteiYomu(); s2.colorTeema = b.dataset.teema; setteiKaku(s2); teemaTekiyou(s2.colorTeema); hyouji(); });
+  on("sdTest", "click", async () => {
+    setteiTestChu = true; setteiMsg = null; setteiErr = null; hyouji();
+    try{
+      const j = await gasYobu({ action:"ping" }, setteiDraft.gasUrl.trim(), setteiDraft.gasToken.trim());
+      setteiMsg = j.keyAri ? `つながりました（モデル：${j.model}）。「設定を保存する」を押してください。` : "GASにはつながりましたが、GEMINI_API_KEY が未設定です。";
+    }catch(err){ setteiErr = err.message; }
+    setteiTestChu = false; hyouji();
+  });
+  on("sdHozon", "click", () => {
+    const s2 = setteiYomu();
+    const sc = shosu(d.shinchoCm), mt = shosu(d.mokuhyoTaiju), nn = seisu(d.nenrei, -1);
+    if (!sc || sc < 100 || sc > 230){ setteiErr = "身長を確認してください。"; setteiMsg = null; hyouji(); return; }
+    if (!mt || mt < 30 || mt > 200){ setteiErr = "目標体重を確認してください。"; setteiMsg = null; hyouji(); return; }
+    if (nn < 10 || nn > 110){ setteiErr = "年齢を確認してください。"; setteiMsg = null; hyouji(); return; }
+    Object.assign(s2, { shinchoCm:sc, mokuhyoTaiju:mt, nenrei:nn, seibetsu:d.seibetsu, katsudo:d.katsudo,
+      nawaInterval:!!d.nawaInterval, gasUrl:d.gasUrl.trim(), gasToken:d.gasToken.trim() });
+    setteiKaku(s2);
+    setteiMsg = "保存しました。"; setteiErr = null; hyouji();
+  });
 }
 
+/* ---------- 起動 ---------- */
 teemaTekiyou(setteiYomu().colorTeema);
+thumbSeiri();
 hyouji();
 </script>
 </body>
