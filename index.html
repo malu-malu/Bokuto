@@ -205,6 +205,17 @@ select.field{font-family:var(--gothic);font-size:14px}
 .radio input[type=date]{font-size:14px;padding:6px 8px}
 .radio input[type=date]:disabled{opacity:.4}
 details.shosai summary{font-size:12.5px;color:var(--text-dim);cursor:pointer;padding:6px 0}
+.mk-ue{display:flex;align-items:baseline;gap:4px;font-size:14px;color:var(--text-dim)}
+.mk-hi{font-size:20px;font-weight:800;color:var(--text)}
+.mk-kg{font-family:var(--mono);font-size:24px;font-weight:800;color:var(--accent);margin-left:4px}
+.mk-midashi{margin:14px 0 6px;font-size:12px;font-weight:800;color:var(--text-dim);letter-spacing:.06em}
+.mk-wake{display:flex;gap:8px}
+.mk-wake div{flex:1;padding:10px;border-radius:10px;background:var(--bg2);border:1px solid var(--line);font-size:12px}
+.mk-wake b{display:block;font-size:22px;margin-top:2px}
+.mk-wake small{color:var(--text-dim);margin-left:2px}
+.mk-rei div{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--line);font-size:13.5px}
+.mk-rei div:last-child{border-bottom:0}
+.mk-rei b{font-size:16px}
 .link-btn{font-size:12.5px;color:var(--shoku);text-decoration:underline;padding:4px 0}
 .kettei-bar{position:fixed;left:0;right:0;bottom:0;z-index:40;padding:10px 16px calc(12px + env(safe-area-inset-bottom));background:rgba(10,13,19,.95);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-top:1px solid var(--line)}
 .kettei-bar p{margin:0 auto 6px;max-width:30rem;font-size:12px;color:var(--text-dim);text-align:center}
@@ -312,8 +323,12 @@ body.overlay.kettei{padding-bottom:calc(120px + env(safe-area-inset-bottom))}
    v1.10.2 2026-11-04 iPhoneで「通信できませんでした」になる問題への対策：ブラウザに
                     止められたら、事前チェック不要の簡単な形式で送り直す。失敗時は
                     原因の手がかり（エラー名）を表示
+   v1.11 2026-11-05 「○月○日に○kg」の目標を設定し、1日に減らすkcalを食事と運動に
+                    分けて逆算。素振り・縄跳び・ウォーキングの分数、ここ7日の運動との
+                    差、今の減り方での到達見込み、速すぎるペースの警告をホームに表示。
+                    AIの通信回数を1回あたり最大5回に減らした
    =========================================================== */
-const APP_VERSION = "1.10.2";
+const APP_VERSION = "1.11";
 
 /* ---------- 保存層 ---------- */
 const Kioku = (() => {
@@ -357,6 +372,7 @@ const KITEI_SETTEI = {
   kaishiBi: null,
   kaishiTaiju: 74.0,
   mokuhyoTaiju: 66.0,
+  mokuhyoBi: "",
   shinchoCm: 173.5,
   nenrei: 54,
   seibetsu: "dansei",
@@ -518,11 +534,89 @@ function kcalSesshu(r){ return ((r && r.meals) || []).reduce((a,m) => a + (Numbe
 function kisoTaisha(s, w){
   return 10*w + 6.25*s.shinchoCm - 5*s.nenrei + (s.seibetsu === "josei" ? -161 : 5);
 }
+function shohiKcal(s, w){ return kisoTaisha(s, w) * (KATSUDO[s.katsudo] || KATSUDO.karui).k; }
 function mokuhyoKcal(s, w){
   const bmr = kisoTaisha(s, w);
-  const tdee = bmr * (KATSUDO[s.katsudo] || KATSUDO.karui).k;
-  const herasu = w > s.mokuhyoTaiju ? 400 : 0;
+  const tdee = shohiKcal(s, w);
+  const k = mokuhyoKeikaku(s, w);
+  const herasu = k && k.jotai === "susumu" ? k.shokuCut : (w > s.mokuhyoTaiju ? 400 : 0);
   return Math.round(Math.max(bmr, tdee - herasu) / 10) * 10;
+}
+
+/* ---------- 目標（○月○日に○kg）から逆算する ----------
+   脂肪1kg ≒ 7200kcal。1日に減らすべきkcalを「食事」と「運動」に分ける。
+   安全の目安は週に体重の1%まで。食事は基礎代謝を下回らないようにする。 */
+const KCAL_PER_KG = 7200;
+function nissuSa(a, b){
+  const [y1,m1,d1] = a.split("-").map(Number), [y2,m2,d2] = b.split("-").map(Number);
+  return Math.round((new Date(y2,m2-1,d2) - new Date(y1,m1-1,d1)) / 86400000);
+}
+function kcalPerFun(mets, w){ return mets * w / 60 * 1.05; }
+function mokuhyoKeikaku(s, wIma, kyoH){
+  if (!s.mokuhyoBi || !s.mokuhyoTaiju) return null;
+  const kyo = kyoH || kyoNoHizuke();
+  const h = idoHeikin(kyo, 7, "weightKg");
+  const w = h.heikin !== null ? h.heikin : wIma;
+  const nokoriKg = w - s.mokuhyoTaiju;
+  const nissu = nissuSa(kyo, s.mokuhyoBi);
+  const base = { w, nokoriKg, nissu, mokuhyoBi:s.mokuhyoBi, mokuhyoTaiju:s.mokuhyoTaiju };
+  if (nokoriKg <= 0) return Object.assign(base, { jotai:"tassei" });
+  if (nissu <= 0) return Object.assign(base, { jotai:"kigengire" });
+  const hitsuyo = nokoriKg * KCAL_PER_KG / nissu;              // 1日に減らすkcal
+  const shuPace = nokoriKg / nissu * 7;                         // 週に何kg
+  const anzenShu = Math.min(0.75, w * 0.01);                    // 週の安全ペース
+  const hayasugi = shuPace > anzenShu;
+  const anzenBi = hizukeZurasu(kyo, Math.ceil(nokoriKg / anzenShu * 7));
+  const tdee = shohiKcal(s, w), bmr = kisoTaisha(s, w);
+  const shokuMax = Math.max(0, Math.min(500, tdee - bmr));      // 食事で減らせる上限
+  const shokuCut = Math.round(Math.min(shokuMax, hitsuyo / 2) / 10) * 10;
+  const undou = Math.max(0, Math.round((hitsuyo - shokuCut) / 10) * 10);
+  const fun = mets => Math.ceil(undou / kcalPerFun(mets, w) / 5) * 5;
+  const nawa10 = kcalPerFun(METS.nawatobi, w) * 10;
+  const kumiSuburi = Math.max(0, Math.ceil((undou - nawa10) / kcalPerFun(METS.suburi, w) / 5) * 5);
+  // ここ7日の運動の平均
+  let g = 0; for (let i = 1; i <= 7; i++) g += kcalUndou(kirokuToru(hizukeZurasu(kyo, -i)), w);
+  const heikinUndou = Math.round(g / 7);
+  // ここ2週間の7日平均の変化から、このままのペースを見る
+  const mae = idoHeikin(hizukeZurasu(kyo, -14), 7, "weightKg").heikin;
+  let yosokuBi = null, shuJissai = null;
+  if (mae !== null && h.heikin !== null){
+    shuJissai = (mae - h.heikin) / 2;                             // 週あたり
+    if (shuJissai > 0.05) yosokuBi = hizukeZurasu(kyo, Math.ceil(nokoriKg / shuJissai * 7));
+  }
+  return Object.assign(base, { jotai:"susumu", hitsuyo:Math.round(hitsuyo), shuPace, anzenShu, hayasugi, anzenBi,
+    shokuCut, undou, suburiFun:fun(METS.suburi), nawaFun:fun(METS.nawatobi), walkFun:fun(3.5), kumiSuburi,
+    heikinUndou, yosokuBi, shuJissai });
+}
+function hizukeMijikai(h){ const [, m, d] = h.split("-"); return `${Number(m)}月${Number(d)}日`; }
+function keikakuHtml(k){
+  if (!k) return `<p class="hint" style="margin:0">「何月何日に何kg」を決めると、1日に必要な運動と食事の目安を出します。</p>
+    <button class="btn btn-sub mt12" id="mokuhyoSettei">目標を決める</button>`;
+  const ue = `<div class="mk-ue"><span class="mk-hi">${hizukeMijikai(k.mokuhyoBi)}</span>に<span class="mk-kg">${su1(k.mokuhyoTaiju)}kg</span></div>`;
+  if (k.jotai === "tassei") return ue + `<p class="ok-msg">目標を達成しています（7日平均 ${su1(k.w)}kg）。次の目標を決めましょう。</p><button class="btn btn-sub mt8" id="mokuhyoSettei">目標を変える</button>`;
+  if (k.jotai === "kigengire") return ue + `<p class="chosei">目標の日を過ぎました（あと ${su1(k.nokoriKg)}kg）。日付を決め直しましょう。</p><button class="btn btn-sub mt8" id="mokuhyoSettei">目標を決め直す</button>`;
+  const tarinai = k.undou - k.heikinUndou;
+  return ue + `
+    <div class="kumi-retsu">
+      <dl class="kumi"><dt>あと</dt><dd>${su1(k.nokoriKg)}kg</dd></dl>
+      <dl class="kumi"><dt>残り</dt><dd>${k.nissu}日</dd></dl>
+      <dl class="kumi"><dt>必要なペース</dt><dd>週${su1(k.shuPace)}kg</dd></dl>
+    </div>
+    ${k.hayasugi ? `<p class="chosei itami">このペースは速すぎます（安全の目安は週${su1(k.anzenShu)}kgまで）。無理なく届くのは${hizukeMijikai(k.anzenBi)}ごろです。日付を延ばすのがおすすめです。</p>` : ""}
+    <p class="mk-midashi">1日あたり、約${k.hitsuyo}kcal 減らす</p>
+    <div class="mk-wake">
+      <div><span class="c-shoku">食事で</span><b class="num">−${k.shokuCut}</b><small>kcal</small></div>
+      <div><span class="c-suburi">運動で</span><b class="num">${k.undou}</b><small>kcal</small></div>
+    </div>
+    <p class="mk-midashi">運動${k.undou}kcalの目安（どれか1つ）</p>
+    <div class="mk-rei">
+      <div><span>素振りだけ</span><b class="num c-suburi">${k.suburiFun}分</b></div>
+      <div><span>縄跳び10分＋素振り</span><b class="num c-nawa">${k.kumiSuburi}分</b></div>
+      <div><span>ウォーキングだけ</span><b class="num">${k.walkFun}分</b></div>
+    </div>
+    <p class="hint">ここ7日の運動は1日平均 約${k.heikinUndou}kcal。${tarinai > 0 ? `あと約${tarinai}kcal（素振り${Math.ceil(tarinai / kcalPerFun(METS.suburi, k.w))}分ぶん）足りません。` : "目標のペースに足りています。この調子で。"}
+    ${k.yosokuBi ? `<br>今の減り方（週${su1(k.shuJissai)}kg）が続くと、${hizukeMijikai(k.yosokuBi)}ごろに届く見込みです。` : ""}</p>
+    ${k.undou > 600 ? `<p class="chosei">運動だけで${k.undou}kcalは負担が大きいので、日付を延ばすか、目標体重を段階的に（まず−2kgなど）するのがおすすめです。</p>` : ""}`;
 }
 function bmi(s, w){ const m = s.shinchoCm / 100; return w / (m*m); }
 
@@ -714,7 +808,8 @@ async function geminiYobu(parts, key, model, json){
   let saigo = 0;
   for (const m of junban){
     const url = "https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(m) + ":generateContent";
-    for (let i = 0; i < 2; i++){
+    const kaisu = m === junban[0] ? 2 : 1;      // 1つ目のモデルだけ1回やり直す（通信回数は最大5回）
+    for (let i = 0; i < kaisu; i++){
       let res;
       try{
         res = await tsushin(url, key, body);
@@ -738,7 +833,7 @@ async function geminiYobu(parts, key, model, json){
       }
       if (res.status === 404) break;                       // このモデルは使えない → 次へ
       if (res.status === 429 || res.status >= 500){
-        if (i === 0){ await new Promise(r => setTimeout(r, 1500)); continue; }
+        if (i < kaisu - 1){ await new Promise(r => setTimeout(r, 1500)); continue; }
         break;                                             // 混雑が続く → 次のモデルへ
       }
       throw new Error("AIでエラーが起きました（" + res.status + "）。");
@@ -972,6 +1067,11 @@ function egakuHome(){
   </section>
 
   <section class="card">
+    <h2 class="midashi">目標までの作戦</h2>
+    ${keikakuHtml(mokuhyoKeikaku(s, w, kyo))}
+  </section>
+
+  <section class="card">
     <h2 class="midashi">今日のカロリー</h2>
     <div class="kcal-ue"><span class="ookii">${tabeta}</span><span class="chiisai">/ ${waku} kcal</span></div>
     <div class="bar ${tabeta > waku ? 'over':''}"><i style="width:${ritsu}%"></i></div>
@@ -1039,6 +1139,7 @@ function egakuHome(){
   `;
 
   on("saikaiBtn", "click", () => { overlay = "undou"; hyouji(); });
+  on("mokuhyoSettei", "click", () => { tab = "settei"; setteiDraft = null; setteiMsg = null; setteiErr = null; hyouji(); window.scrollTo(0,0); });
   onAll("[data-kotae]", "click", b => { taichoKaku(b.dataset.kotae); hyouji(); });
   on("kaishiBtn", "click", () => undouKaishi(menu));
   on("shokujiAddBtn", "click", () => { teibanKiroku_msg = null; shokujiAddHiraku(kyo); });
@@ -1783,13 +1884,13 @@ function egakuSettei(){
   const s = setteiYomu();
   if (!setteiDraft){
     setteiDraft = {
-      shinchoCm:String(s.shinchoCm), nenrei:String(s.nenrei), mokuhyoTaiju:String(s.mokuhyoTaiju),
+      shinchoCm:String(s.shinchoCm), nenrei:String(s.nenrei), mokuhyoTaiju:String(s.mokuhyoTaiju), mokuhyoBi:s.mokuhyoBi || "",
       seibetsu:s.seibetsu, katsudo:s.katsudo, nawaInterval:s.nawaInterval, geminiKey:s.geminiKey, geminiModel:s.geminiModel, gasUrl:s.gasUrl, gasToken:s.gasToken
     };
   }
   const d = setteiDraft;
   const w = genzaiTaiju(kyoNoHizuke());
-  const tmp = Object.assign({}, s, { shinchoCm:shosu(d.shinchoCm) || s.shinchoCm, nenrei:seisu(d.nenrei, s.nenrei), mokuhyoTaiju:shosu(d.mokuhyoTaiju) || s.mokuhyoTaiju, seibetsu:d.seibetsu, katsudo:d.katsudo });
+  const tmp = Object.assign({}, s, { shinchoCm:shosu(d.shinchoCm) || s.shinchoCm, nenrei:seisu(d.nenrei, s.nenrei), mokuhyoTaiju:shosu(d.mokuhyoTaiju) || s.mokuhyoTaiju, mokuhyoBi:d.mokuhyoBi, seibetsu:d.seibetsu, katsudo:d.katsudo });
 
   app.innerHTML = `
   ${header()}
@@ -1798,11 +1899,12 @@ function egakuSettei(){
     <div class="settei-gyo"><label>身長（cm）</label><input class="field num" data-sd="shinchoCm" type="number" inputmode="decimal" step="0.1" value="${esc(d.shinchoCm)}"></div>
     <div class="settei-gyo"><label>年齢</label><input class="field num" data-sd="nenrei" type="number" inputmode="numeric" value="${esc(d.nenrei)}"></div>
     <div class="settei-gyo"><label>目標体重（kg）</label><input class="field num" data-sd="mokuhyoTaiju" type="number" inputmode="decimal" step="0.1" value="${esc(d.mokuhyoTaiju)}"></div>
+    <div class="settei-gyo"><label>目標の日</label><input class="field" data-sd="mokuhyoBi" type="date" min="${hizukeZurasu(kyoNoHizuke(), 1)}" value="${esc(d.mokuhyoBi)}" style="font-size:15px"></div>
     <div class="settei-gyo"><label>性別（計算用）</label>
       <select class="field" data-sd="seibetsu"><option value="dansei" ${d.seibetsu==='dansei'?'selected':''}>男性</option><option value="josei" ${d.seibetsu==='josei'?'selected':''}>女性</option></select></div>
     <div class="settei-gyo"><label>ふだんの活動量</label>
       <select class="field" data-sd="katsudo">${Object.entries(KATSUDO).map(([k,v]) => `<option value="${k}" ${d.katsudo===k?'selected':''}>${v.t}</option>`).join("")}</select></div>
-    <p class="hint">いまの体重 ${su1(w)}kg で計算すると、1日の摂取目安は 約${mokuhyoKcal(tmp, w)}kcal（BMI ${su1(bmi(tmp, w))}）。目標体重より重いあいだは、少し控えめな数字になります。</p>
+    <p class="hint">いまの体重 ${su1(w)}kg で計算すると、1日の摂取目安は 約${mokuhyoKcal(tmp, w)}kcal（BMI ${su1(bmi(tmp, w))}）。${(() => { const k = mokuhyoKeikaku(tmp, w); return k && k.jotai === "susumu" ? `目標の日までに、食事で1日${k.shokuCut}kcal・運動で${k.undou}kcal減らす計算です。${k.hayasugi ? `<span class="c-shoku">ペースが速すぎるので、${hizukeMijikai(k.anzenBi)}ごろがおすすめです。</span>` : ""}` : "目標の日を入れると、必要な運動と食事を逆算します。"; })()}</p>
   </section>
 
   <section class="card">
@@ -1879,7 +1981,8 @@ function egakuSettei(){
     if (!sc || sc < 100 || sc > 230){ setteiErr = "身長を確認してください。"; setteiMsg = null; hyouji(); return; }
     if (!mt || mt < 30 || mt > 200){ setteiErr = "目標体重を確認してください。"; setteiMsg = null; hyouji(); return; }
     if (nn < 10 || nn > 110){ setteiErr = "年齢を確認してください。"; setteiMsg = null; hyouji(); return; }
-    Object.assign(s2, { shinchoCm:sc, mokuhyoTaiju:mt, nenrei:nn, seibetsu:d.seibetsu, katsudo:d.katsudo,
+    if (d.mokuhyoBi && d.mokuhyoBi <= kyoNoHizuke()){ setteiErr = "目標の日は明日以降にしてください。"; setteiMsg = null; hyouji(); return; }
+    Object.assign(s2, { shinchoCm:sc, mokuhyoTaiju:mt, mokuhyoBi:d.mokuhyoBi || "", nenrei:nn, seibetsu:d.seibetsu, katsudo:d.katsudo,
       nawaInterval:!!d.nawaInterval, geminiKey:d.geminiKey.trim(), geminiModel:d.geminiModel.trim(),
       gasUrl:d.gasUrl.trim(), gasToken:d.gasToken.trim() });
     setteiKaku(s2);
