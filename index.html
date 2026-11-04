@@ -307,8 +307,10 @@ body.overlay.kettei{padding-bottom:calc(120px + env(safe-area-inset-bottom))}
                     kcalを入れずに記録して、あとから入れられる（未入力件数を表示）
    v1.10 2026-11-04 GASなしでAIを使えるように：設定にGeminiのAPIキーを貼るだけで、
                     iPhoneから直接カロリー推定（キーは端末内だけに保存）。GASは任意に
+   v1.10.1 2026-11-04 AIが混み合っているとき（503）に、自動で別のモデルへ切り替えて
+                    やり直すように修正
    =========================================================== */
-const APP_VERSION = "1.10";
+const APP_VERSION = "1.10.1";
 
 /* ---------- 保存層 ---------- */
 const Kioku = (() => {
@@ -685,29 +687,41 @@ function gazoShukusho(file, maxPx, q){
 const KITEI_MODEL = "gemini-flash-latest";
 function aiTsukaeru(s){ s = s || setteiYomu(); return !!(s.geminiKey || (s.gasUrl && s.gasToken)); }
 
+/* 混雑（503など）や使えないモデル（404）のときは、次のモデルに切り替えて試す */
+const KAWARI_MODELS = ["gemini-flash-latest", "gemini-flash-lite-latest", "gemini-2.5-flash", "gemini-2.5-flash-lite"];
+let saigoModel = null;
 async function geminiYobu(parts, key, model, json){
-  const url = "https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(model || KITEI_MODEL) + ":generateContent";
+  const junban = [];
+  [model, ...KAWARI_MODELS].forEach(m => { if (m && !junban.includes(m)) junban.push(m); });
   const body = { contents:[{ parts }], generationConfig:{ temperature:0.2 } };
   if (json) body.generationConfig.responseMimeType = "application/json";
-  for (let i = 0; i < 3; i++){
-    let res;
-    try{
-      res = await fetch(url, { method:"POST", headers:{ "Content-Type":"application/json", "x-goog-api-key":key }, body:JSON.stringify(body) });
-    }catch{ throw new Error("通信できませんでした。電波を確認してください。"); }
-    if (res.ok){
-      const j = await res.json();
-      const c = (j.candidates || [])[0];
-      if (!c || !c.content || !c.content.parts) throw new Error("AIから答えが返りませんでした。もう一度試してください。");
-      return c.content.parts.map(x => x.text || "").join("");
+  let saigo = 0;
+  for (const m of junban){
+    const url = "https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(m) + ":generateContent";
+    for (let i = 0; i < 2; i++){
+      let res;
+      try{
+        res = await fetch(url, { method:"POST", headers:{ "Content-Type":"application/json", "x-goog-api-key":key }, body:JSON.stringify(body) });
+      }catch{ throw new Error("通信できませんでした。電波を確認してください。"); }
+      if (res.ok){
+        const j = await res.json();
+        const c = (j.candidates || [])[0];
+        if (!c || !c.content || !c.content.parts) break;   // 答えが空なら次のモデルへ
+        saigoModel = m;
+        return c.content.parts.map(x => x.text || "").join("");
+      }
+      saigo = res.status;
+      if (res.status === 400 || res.status === 401 || res.status === 403) throw new Error("APIキーが使えないようです。設定タブで貼り直してください。");
+      if (res.status === 404) break;                       // このモデルは使えない → 次へ
+      if (res.status === 429 || res.status >= 500){
+        if (i === 0){ await new Promise(r => setTimeout(r, 1500)); continue; }
+        break;                                             // 混雑が続く → 次のモデルへ
+      }
+      throw new Error("AIでエラーが起きました（" + res.status + "）。");
     }
-    if ((res.status === 429 || res.status === 500 || res.status === 503) && i < 2){
-      await new Promise(r => setTimeout(r, 1500 * (i + 1))); continue;
-    }
-    if (res.status === 400 || res.status === 401 || res.status === 403) throw new Error("APIキーが使えないようです。設定タブで貼り直してください。");
-    if (res.status === 404) throw new Error("モデル名が使えません。設定タブのモデル名を空にしてください。");
-    if (res.status === 429) throw new Error("無料枠の上限か、混み合っています。少し時間をおいて試してください。");
-    throw new Error("AIでエラーが起きました（" + res.status + "）。");
   }
+  if (saigo === 429) throw new Error("無料枠の上限に達したようです。しばらく（翌日まで）時間をおいて試してください。カロリーを手で入れて記録することもできます。");
+  throw new Error("AIが混み合っています（" + (saigo || "応答なし") + "）。数分おいてもう一度押してください。カロリーを手で入れて記録することもできます。");
 }
 
 function shokujiPrompt(p){
@@ -1825,7 +1839,7 @@ function egakuSettei(){
       const key = setteiDraft.geminiKey.trim();
       if (key){
         const t = await geminiYobu([{ text:"「OK」とだけ返してください。" }], key, setteiDraft.geminiModel.trim(), false);
-        setteiMsg = `AIにつながりました（答え：${t.trim().slice(0, 10)}）。「設定を保存する」を押してください。`;
+        setteiMsg = `AIにつながりました（モデル：${saigoModel}）。「設定を保存する」を押してください。`;
       } else if (setteiDraft.gasUrl.trim()){
         const j = await gasYobu({ action:"ping" }, setteiDraft.gasUrl.trim(), setteiDraft.gasToken.trim());
         setteiMsg = j.keyAri ? `GASにつながりました（モデル：${j.model}）。「設定を保存する」を押してください。` : "GASにはつながりましたが、GEMINI_API_KEY が未設定です。";
