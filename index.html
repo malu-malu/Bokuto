@@ -233,6 +233,20 @@ details.shosai summary{font-size:12.5px;color:var(--text-dim);cursor:pointer;pad
 .tsuika-moto p{flex-basis:100%;margin:2px 0 0;font-size:12px;color:var(--text-dim)}
 .card.furui{opacity:.6}
 .furui-msg{margin:0 0 8px;padding:8px 10px;border-radius:8px;background:var(--shoku-dim);color:var(--text);font-size:12.5px;line-height:1.6}
+.ima-kcal{margin:6px 0 0;font-size:13px;color:var(--text-dim)}
+.ima-kcal b{font-size:20px;color:var(--text);margin:0 2px}
+.ima-kcal span{font-size:11.5px}
+.meyasu-hyo{margin-top:10px;border-radius:10px;background:var(--bg2);border:1px solid var(--line);padding:4px 12px}
+.meyasu-hyo div{display:grid;grid-template-columns:1fr auto;column-gap:10px;padding:7px 0;border-bottom:1px solid var(--line);font-size:13px}
+.meyasu-hyo div:last-child{border-bottom:0}
+.meyasu-hyo b{font-size:18px;text-align:right}
+.meyasu-hyo small{font-size:11px;color:var(--text-dim);margin-left:2px;font-weight:400}
+.meyasu-hyo em{grid-column:1 / -1;font-style:normal;font-size:11px;color:var(--text-dim)}
+.meyasu-hyo .goukei span{font-weight:800}
+.photo-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.photo-ko{position:relative;border-radius:10px;overflow:hidden;aspect-ratio:1;background:var(--bg2)}
+.photo-ko img{width:100%;height:100%;object-fit:cover;display:block}
+.photo-batsu{position:absolute;top:6px;right:6px;width:30px;height:30px;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;font-size:16px}
 .link-btn{font-size:12.5px;color:var(--shoku);text-decoration:underline;padding:4px 0}
 .kettei-bar{position:fixed;left:0;right:0;bottom:0;z-index:40;padding:10px 16px calc(12px + env(safe-area-inset-bottom));background:rgba(10,13,19,.95);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-top:1px solid var(--line)}
 .kettei-bar p{margin:0 auto 6px;max-width:30rem;font-size:12px;color:var(--text-dim);text-align:center}
@@ -355,8 +369,11 @@ body.overlay.kettei{padding-bottom:calc(120px + env(safe-area-inset-bottom))}
    v1.12.1 2026-11-12 記録する前に、AIで計算したあと書き足すと、足した分が入らない問題を
                     修正：書き足すとカロリーを空に戻し、③が「AIで計算し直す」に変わる。
                     結果の下に「＋ 食べたものを書き足す」ボタン
+   v1.13 2026-11-13 1回の食事に写真を4枚まで入れ、まとめて1回でAI推定。運動の消費kcalを
+                    入力途中に表示（運動中の画面・終わりの記録・ほかの運動）：時間から、
+                    時間がなければ本数・回数から計算し、100本・100回あたりの目安も出す
    =========================================================== */
-const APP_VERSION = "1.12.1";
+const APP_VERSION = "1.13";
 
 /* ---------- 保存層 ---------- */
 const Kioku = (() => {
@@ -543,6 +560,35 @@ function goukeiFun(r){
    運動はMETs法の目安。食事の目安はミフリン・セントジョア式の基礎代謝×活動量から、
    目標体重より重いあいだは1日400kcal控えめにする（基礎代謝は下回らない）。 */
 const METS = { suburi:4.5, nawatobi:7.0, shoko:4.0 };
+/* 回数からの目安：素振りは1分に約30本、縄跳びは跳んでいる間1分に約100回（そのときの強さ11METs）。
+   縄跳びの「時間」の7METsは、30秒休むインターバル込みの平均。 */
+const SUBURI_PACE = 30, NAWA_PACE = 100, NAWA_TOBU_METS = 11;
+function kcalMets(mets, w, fun){ return mets * w * fun / 60 * 1.05; }
+function undouMeyasu(sm, sc, nm, nc, w){
+  const r = {};
+  // 素振り
+  if (sm > 0){ r.suburi = kcalMets(METS.suburi, w, sm); r.suburiKara = "時間"; }
+  else if (sc > 0){ r.suburi = kcalMets(METS.suburi, w, sc / SUBURI_PACE); r.suburiKara = "本数"; }
+  else r.suburi = 0;
+  // 100本あたり：1分以上・50本以上で、ペースが自然なとき（全部数えたとき）は実際のペースで。
+  // 一部だけ数えた・始めたばかりのときは標準のペースで
+  r.suburi100 = (sm >= 1 && sc >= 50 && sc / sm >= 10 && sc / sm <= 80) ? r.suburi / sc * 100 : kcalMets(METS.suburi, w, 100 / SUBURI_PACE);
+  // 縄跳び
+  if (nm > 0){ r.nawa = kcalMets(METS.nawatobi, w, nm); r.nawaKara = "時間"; }
+  else if (nc > 0){ r.nawa = kcalMets(NAWA_TOBU_METS, w, nc / NAWA_PACE); r.nawaKara = "回数"; }
+  else r.nawa = 0;
+  r.nawa100 = (nm >= 1 && nc >= 50 && nc / nm >= 30 && nc / nm <= 200) ? r.nawa / nc * 100 : kcalMets(NAWA_TOBU_METS, w, 100 / NAWA_PACE);
+  r.goukei = r.suburi + r.nawa;
+  return r;
+}
+function undouMeyasuHtml(r){
+  const k = n => Math.round(n);
+  return `<div class="meyasu-hyo">
+    <div><span>木刀素振り</span><b class="num c-suburi">${k(r.suburi)}<small>kcal</small></b><em>100本で約${k(r.suburi100)}kcal</em></div>
+    <div><span>縄跳び</span><b class="num c-nawa">${k(r.nawa)}<small>kcal</small></b><em>100回で約${k(r.nawa100)}kcal</em></div>
+    <div class="goukei"><span>合計（目安）</span><b class="num">${k(r.goukei)}<small>kcal</small></b><em>${r.suburiKara === "本数" || r.nawaKara === "回数" ? "分が空の種目は回数から計算" : "時間から計算"}</em></div>
+  </div>`;
+}
 const SONOTA_SHURUI = [
   { v:"walk",     t:"ウォーキング", mets:3.5 },
   { v:"jitensha", t:"自転車",       mets:4.0 },
@@ -894,6 +940,7 @@ function shokujiPrompt(p){
   return [
     p.image
       ? "あなたは管理栄養士のアシスタントです。写真の食事を見て、料理ごとの推定量とカロリーを出してください。"
+        + ((p.images || []).length > 1 ? `写真は${p.images.length}枚あり、すべて同じ1回の食事です。別の皿・追加で頼んだもの・別の角度から撮ったものが混ざっています。同じ料理が複数の写真に写っていたら1回だけ数えてください。` : "")
       : "あなたは管理栄養士のアシスタントです。写真はありません。利用者が話した・書いた内容から、料理ごとの推定量とカロリーを出してください。音声入力の誤変換があっても意味をくみ取ってください。",
     "市販品（例：スーパーの6個入りパン、コンビニのおにぎり）は、一般的な商品の1個あたりの量とカロリーで見積もってください。",
     "日本の一般的な家庭料理・外食の分量を基準にし、メモがあれば優先して反映してください（例：大盛り、味付け濃いめ、半分残した）。",
@@ -930,7 +977,8 @@ async function aiYobu(payload){
   const s = setteiYomu();
   if (s.geminiKey){
     const parts = [{ text: shokujiPrompt(payload) }];
-    if (payload.image) parts.push({ inline_data:{ mime_type: payload.mimeType || "image/jpeg", data: payload.image } });
+    (payload.images || (payload.image ? [payload.image] : [])).forEach(img =>
+      parts.push({ inline_data:{ mime_type: payload.mimeType || "image/jpeg", data: img } }));
     return shokujiKekkaSeiri(await geminiYobu(parts, s.geminiKey, s.geminiModel, true));
   }
   return gasYobu(payload);
@@ -1171,6 +1219,7 @@ function egakuHome(){
       <input id="sonotaFun" class="field num" type="number" inputmode="numeric" min="1" value="${esc(sonotaFunNyu)}" placeholder="分">
       <button class="btn-mini" id="sonotaBtn">追加</button>
     </div>
+    <p class="hint c-suburi" id="sonotaYoso"></p>
   </section>
 
   <section class="card">
@@ -1216,7 +1265,13 @@ function egakuHome(){
     kirokuKaku(kyo, { waistCm:v }); waistNyu = null; hyouji();
   });
   on("sonotaSel", "change", e => { sonotaSentaku = e.target.value; });
-  on("sonotaFun", "input", e => { sonotaFunNyu = e.target.value; });
+  const sonotaYoso = () => {
+    const el = $("sonotaYoso"); if (!el) return;
+    const f = seisu(sonotaFunNyu, 0);
+    el.textContent = f > 0 ? `${sonotaInfo(sonotaSentaku).t} ${f}分で 約${Math.round(kcalMets(sonotaInfo(sonotaSentaku).mets, w, f))}kcal（目安）` : "";
+  };
+  on("sonotaFun", "input", e => { sonotaFunNyu = e.target.value; sonotaYoso(); });
+  on("sonotaSel", "change", sonotaYoso);
   on("sonotaBtn", "click", () => {
     const f = seisu($("sonotaFun").value, 0);
     if (!f){ $("sonotaFun").focus(); return; }
@@ -1308,6 +1363,10 @@ function egakuUndou(){
     ${intervalHtml}
     ${tasseiIma ? `<div><span class="tassei">目安達成！</span></div>` : ""}
     <div class="kazu" style="color:${iro}">${cnt}${isS ? "本" : "回"}</div>
+    ${(() => { const w = genzaiTaiju(s.date); const f = ms / 60000;
+      const r = isS ? undouMeyasu(f, cnt, 0, 0, w) : undouMeyasu(0, 0, f, cnt, w);
+      const k = isS ? r.suburi : r.nawa, p100 = isS ? r.suburi100 : r.nawa100;
+      return `<p class="ima-kcal">いま 約<b class="num">${Math.round(k)}</b>kcal　<span>（${isS ? "100本" : "100回"}で約${Math.round(p100)}kcal）</span></p>`; })()}
     <div class="kazu-btns">${steps.map(n => `<button data-add="${n}">＋${n}</button>`).join("")}</div>
     <div class="kazu-btns minus">${steps.map(n => `<button data-add="-${n}">－${n}</button>`).join("")}</div>
     <p class="hint">数えられたときだけでOK。${!isS ? "膝や足首に違和感が出たら、すぐやめましょう。" : ""}</p>
@@ -1368,7 +1427,7 @@ function egakuShuryo(){
   const d = shuryo;
   const sm = seisu(d.suburiMin, 0), nm = seisu(d.nawaMin, 0);
   const w = genzaiTaiju(s.date);
-  const kcal = Math.round((METS.suburi*w*sm/60 + METS.nawatobi*w*nm/60) * 1.05);
+  const meyasu = () => undouMeyasu(seisu(shuryo.suburiMin, 0), seisu(shuryo.suburiCount, 0), seisu(shuryo.nawaMin, 0), seisu(shuryo.nawaCount, 0), w);
   const goal = (s.menuSuburi||0) + (s.menuNawa||0);
   const zenSaikou = Object.values(kirokuZenbu()).filter(r => r.date !== s.date).reduce((a,r) => Math.max(a, r.suburiCount||0), 0);
   const sc = seisu(d.suburiCount, 0);
@@ -1383,7 +1442,8 @@ function egakuShuryo(){
     <div class="gyo"><label>素振り本数</label><input class="field num" id="shSc" type="number" inputmode="numeric" value="${esc(d.suburiCount)}" placeholder="任意"></div>
     <div class="gyo"><label>縄跳び（分）</label><input class="field num" id="shNm" type="number" inputmode="numeric" value="${esc(d.nawaMin)}"></div>
     <div class="gyo"><label>縄跳び回数</label><input class="field num" id="shNc" type="number" inputmode="numeric" value="${esc(d.nawaCount)}" placeholder="任意"></div>
-    <p class="hint">タイマーと実際が違うときは、数字を書き換えてください。消費 約${kcal}kcal（目安）</p>
+    <p class="hint">タイマーと実際が違うときは、数字を書き換えてください。下の消費の目安は、書き換えるとすぐ変わります。</p>
+    <div id="shMeyasu">${undouMeyasuHtml(meyasu())}</div>
   </section>
   <section class="card">
     <h2 class="midashi">今日の疲労度</h2>${hirouHtml(d.fatigue)}
@@ -1393,7 +1453,7 @@ function egakuShuryo(){
   <button class="btn btn-sub mt8" id="shModoru">運動に戻る</button>`;
 
   [["shSm","suburiMin"],["shSc","suburiCount"],["shNm","nawaMin"],["shNc","nawaCount"]].forEach(([id,k]) => {
-    on(id, "input", e => { shuryo[k] = e.target.value; });
+    on(id, "input", e => { shuryo[k] = e.target.value; const el = $("shMeyasu"); if (el) el.innerHTML = undouMeyasuHtml(meyasu()); });
     on(id, "change", () => hyouji());
   });
   onAll("[data-hirou]", "click", b => { shuryo.fatigue = Number(b.dataset.hirou); hyouji(); });
@@ -1620,12 +1680,12 @@ function tsuikaMoto(h, id){
 function shokujiAddHiraku(h, tsuzuki, tsuikaId){
   shokujiMsg = null;
   if (tsuzuki){
-    draft = Object.assign({ gazo:null, thumb:null, kekka:null, ikko:"", kosu:"", loading:false, err:null, kiku:false }, tsuzuki);
+    draft = Object.assign({ gazo:null, thumb:null, gazoList:[], kekka:null, ikko:"", kosu:"", loading:false, err:null, kiku:false }, tsuzuki);
     overlay = "shokujiAdd"; hyouji(); window.scrollTo(0,0); return;
   }
   draftKesu();
   const moto = tsuikaMoto(h, tsuikaId);
-  draft = { h, kubun: moto ? moto.kubun : kubunJidou(), memo:"", gazo:null, thumb:null, kekka:null, namae:"", kcal:"", ikko:"", kosu:"", loading:false, err:null, teiban:false, kiku:false, tsuikaId: moto ? moto.id : null };
+  draft = { h, kubun: moto ? moto.kubun : kubunJidou(), memo:"", gazo:null, thumb:null, gazoList:[], kekka:null, namae:"", kcal:"", ikko:"", kosu:"", loading:false, err:null, teiban:false, kiku:false, tsuikaId: moto ? moto.id : null };
   overlay = "shokujiAdd"; hyouji(); window.scrollTo(0,0);
 }
 
@@ -1723,8 +1783,8 @@ function egakuShokujiAdd(){
       <button class="mic ${d.kiku?'kiku':''}" id="daMic" aria-label="音声で入力">${d.kiku ? "■" : '<svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>'}</button>
     </div>
     ${d.kiku ? `<p class="hint c-shoku">聞いています…話し終わったら止まります</p>` : ""}
-    <div class="btn btn-sub mt8 file-btn">${d.gazo ? "写真を撮り直す" : "写真を足す（なくてもOK）"}<input type="file" accept="image/*" id="daFile"></div>
-    ${d.gazo ? `<div class="photo-waku mt8"><img src="${d.gazo}" alt="食事の写真"></div>` : ""}
+    ${(d.gazoList || []).length ? `<div class="photo-grid mt8">${d.gazoList.map((g, i) => `<div class="photo-ko"><img src="${g.gazo}" alt="食事の写真${i + 1}"><button class="photo-batsu" data-g-del="${i}" aria-label="この写真を外す">×</button></div>`).join("")}</div>` : ""}
+    ${(d.gazoList || []).length < GAZO_MAX ? `<div class="btn btn-sub mt8 file-btn">${(d.gazoList || []).length ? `写真をもう1枚足す（あと${GAZO_MAX - d.gazoList.length}枚）` : "写真を足す（なくてもOK・まとめて4枚まで）"}<input type="file" accept="image/*" multiple id="daFile"></div>` : `<p class="hint">写真は${GAZO_MAX}枚までです。</p>`}
   </section>
 
   ${k ? `<section class="card ${d.furui ? "furui" : ""}">
@@ -1785,14 +1845,20 @@ function egakuShokujiAdd(){
   });
   on("daTeiban", "change", e => { draft.teiban = e.target.checked; hyouji(); });
   on("daFile", "change", async e => {
-    const f = e.target.files && e.target.files[0]; if (!f) return;
+    const files = Array.from(e.target.files || []); if (!files.length) return;
+    draft.gazoList = draft.gazoList || [];
+    const amari = GAZO_MAX - draft.gazoList.length;
     try{
-      draft.gazo = await gazoShukusho(f, 768, 0.7);
-      draft.thumb = await gazoShukusho(f, 200, 0.6);
-      draft.kekka = null; draft.err = null;
+      for (const f of files.slice(0, amari)){
+        // 枚数が多いほど1枚を小さくして、送る量を抑える
+        const px = files.length + draft.gazoList.length > 2 ? 640 : 768;
+        draft.gazoList.push({ gazo: await gazoShukusho(f, px, 0.68), thumb: await gazoShukusho(f, 200, 0.6) });
+      }
+      draft.err = files.length > amari ? `写真は${GAZO_MAX}枚までなので、${amari}枚だけ入れました。` : null;
     }catch(err){ draft.err = err.message; }
-    hyouji();
+    gazoKoshin(); naiyoHenkoGazo(); hyouji();
   });
+  onAll("[data-g-del]", "click", b => { draft.gazoList.splice(Number(b.dataset.gDel), 1); gazoKoshin(); naiyoHenkoGazo(); hyouji(); });
   on("daKakitasu", "click", () => {
     const el = $("daMemo"); if (!el) return;
     if (el.value && !/[、,\s]$/.test(el.value)){ el.value += "、"; draft.memo = el.value; }
@@ -1819,6 +1885,21 @@ function egakuShokujiAdd(){
     hyouji();
     const el = $("daMemo"); if (el) el.focus();
   });
+}
+
+/* 写真は1回の食事に4枚まで。1回の依頼でまとめてAIに送る */
+const GAZO_MAX = 4;
+function gazoKoshin(){
+  const l = (draft && draft.gazoList) || [];
+  draft.gazo = l.length ? l[0].gazo : null;
+  draft.thumb = l.length ? l[0].thumb : null;
+}
+/* 写真を足したり外したりしたら、前の計算は古くなる */
+function naiyoHenkoGazo(){
+  if (!draft || !draft.kekka) return;
+  draft.furui = true;
+  if (draft.kcalJidou) draft.kcal = "";
+  if (draft.namaeJidou) draft.namae = "";
 }
 
 /* AIで計算したあとに書き足したら、その計算は古くなる → カロリーを空に戻して、
@@ -1877,7 +1958,10 @@ async function aiSuitei(){
         mokuhyoKcal: mokuhyoKcal(st, w), kyoSesshu: kcalSesshu(r), kyoUndou: kcalUndou(r, w)
       }
     };
-    if (draft.gazo){ payload.image = draft.gazo.split(",")[1]; payload.mimeType = "image/jpeg"; }
+    if ((draft.gazoList || []).length){
+      payload.images = draft.gazoList.map(g => g.gazo.split(",")[1]);
+      payload.image = payload.images[0]; payload.mimeType = "image/jpeg";   // GAS方式は1枚目だけ
+    }
     const moto = tsuikaMoto(draft.h, draft.tsuikaId);
     if (moto) payload.tsuikaMoto = moto.namae + (kcalAri(moto.kcal) ? `（${moto.kcal}kcal）` : "");
     const j = await aiYobu(payload);
