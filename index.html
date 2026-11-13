@@ -284,6 +284,21 @@ details.shosai summary{font-size:12.5px;color:var(--text-dim);cursor:pointer;pad
 .nl-tabe-gyo b small{display:inline;font-size:10px;margin-left:1px}
 .nl-tabe-gyo.teiban span{color:var(--shoku)}
 .tabbar button span{white-space:nowrap}
+.pro-ue{display:flex;align-items:baseline;gap:6px;font-size:12.5px;color:var(--text-dim)}
+.pro-ue b{font-size:20px;color:var(--text)}
+.pro-ue em{margin-left:auto;font-style:normal;font-size:12px}
+.bar.pro i{background:linear-gradient(90deg,var(--nawa),var(--accent))}
+.chip.tag.eranda{background:var(--shoku-dim);border-color:var(--shoku);color:var(--shoku)}
+.saikai.bk{background:var(--nawa-dim);border-color:var(--nawa)}
+.saikai.bk .btn-mini{background:var(--nawa);color:#04121D}
+.fk{border-color:rgba(61,255,176,.35)}
+.fk-gyo{display:grid;grid-template-columns:1fr auto;column-gap:10px;padding:7px 0;border-bottom:1px solid var(--line);font-size:13px}
+.fk-gyo b{font-size:16px;text-align:right}
+.fk-gyo small{grid-column:1 / -1;font-size:11px;color:var(--text-dim)}
+.fk-kankei{margin:10px 0 0;padding:10px 12px;border-radius:10px;background:var(--bg2);font-size:12.5px;line-height:1.8}
+.fk-kankei b{color:var(--shoku)}
+.chart-yotei{fill:none;stroke:var(--text-dim);stroke-width:1.6;stroke-dasharray:4 4;opacity:.8}
+.yotei-rei{display:inline-block;width:18px;border-top:2px dashed var(--text-dim);vertical-align:middle;margin-right:6px}
 .link-btn{font-size:12.5px;color:var(--shoku);text-decoration:underline;padding:4px 0}
 .kettei-bar{position:fixed;left:0;right:0;bottom:0;z-index:40;padding:10px 16px calc(12px + env(safe-area-inset-bottom));background:rgba(10,13,19,.95);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-top:1px solid var(--line)}
 .kettei-bar p{margin:0 auto 6px;max-width:30rem;font-size:12px;color:var(--text-dim);text-align:center}
@@ -422,8 +437,13 @@ body.overlay.kettei{padding-bottom:calc(120px + env(safe-area-inset-bottom))}
                     ○kcal燃やすのに必要な時間の表、食べ物（定番も）を燃やす時間の早見表、
                     今日のひと押し（目安オーバー分・作戦の残り）。運動の種類にジョギング・
                     階段のぼり・家事を追加
+   v1.17 2026-11-14 バックアップ（書き出し・読み戻し、14日ごとに催促）、週のふり返り
+                    （先週との比較・お酒などの翌日の体重変化・AIのひと言）、たんぱく質の
+                    目安と今日の量、体重グラフに目標までの予定線（点線）、その日のこと
+                    （お酒・夜食・寝不足・外食）と歩数の記録、体重リマインダーをiPhoneの
+                    カレンダーに追加
    =========================================================== */
-const APP_VERSION = "1.16";
+const APP_VERSION = "1.17";
 
 /* ---------- 保存層 ---------- */
 const Kioku = (() => {
@@ -749,6 +769,36 @@ function keikakuHtml(k){
 }
 function bmi(s, w){ const m = s.shinchoCm / 100; return w / (m*m); }
 
+/* ---------- たんぱく質 ----------
+   減量中に筋肉を落とさないための目安：体重1kgあたり約1.3g（幅1.2〜1.6g）。
+   食事ごとのたんぱく質はAIの推定（PFC）から。分からない食事は数えない。 */
+function proMeyasu(w){ return Math.round(w * 1.3 / 5) * 5; }
+function mealPro(m){
+  const parts = [m.pro, ...(m.tsuika || []).map(t => t.pro)];
+  const aru = parts.filter(v => typeof v === "number");
+  return { g: aru.reduce((a, b) => a + b, 0), fumei: aru.length < parts.length };
+}
+function hiNoPro(r){
+  let g = 0, fumei = 0;
+  ((r && r.meals) || []).forEach(m => { const x = mealPro(m); g += x.g; if (x.fumei) fumei++; });
+  return { g: Math.round(g), fumei };
+}
+
+/* ---------- その日のこと（タグ）と歩数 ---------- */
+const TAGS = [
+  { v:"sake", t:"お酒" }, { v:"yashoku", t:"夜食" }, { v:"nebusoku", t:"寝不足" }, { v:"gaishoku", t:"外食" }
+];
+function tagT(v){ return (TAGS.find(x => x.v === v) || { t:v }).t; }
+
+/* ---------- 体重の予定線（目標を決めた日から目標の日まで、まっすぐ下がる線）---------- */
+function yoteiTaiju(s, h){
+  if (!s.mokuhyoBi || !s.keikakuKaishiBi || typeof s.keikakuKaishiTaiju !== "number") return null;
+  if (h < s.keikakuKaishiBi || h > s.mokuhyoBi) return null;
+  const zen = nissuSa(s.keikakuKaishiBi, s.mokuhyoBi); if (zen <= 0) return null;
+  const ima = nissuSa(s.keikakuKaishiBi, h);
+  return s.keikakuKaishiTaiju + (s.mokuhyoTaiju - s.keikakuKaishiTaiju) * ima / zen;
+}
+
 /* ---------- 体調確認と今日のメニュー ---------- */
 const ITAMI_UDE  = ["kata","hiji","tekubi"];
 const ITAMI_ASHI = ["hiza","ashikubi"];
@@ -868,11 +918,11 @@ function zenkikanNissu(){
   const [y2,m2,d2] = kyoNoHizuke().split("-").map(Number);
   return Math.max(7, Math.round((new Date(y2,m2-1,d2) - new Date(y1,m1-1,d1)) / 86400000) + 1);
 }
-function chartSvg(ten, iro){
+function chartSvg(ten, iro, yotei){
   const W = 300, H = 110, Y = 12;
   const yuko = ten.filter(t => t.a !== null && t.a !== undefined);
   if (yuko.length < 2) return null;
-  const vs = yuko.map(t => t.a);
+  const vs = yuko.map(t => t.a).concat((yotei || []).filter(v => v !== null));
   let mn = Math.min(...vs), mx = Math.max(...vs);
   if (mn === mx){ mn -= 1; mx += 1; }
   const n = ten.length;
@@ -885,7 +935,12 @@ function chartSvg(ten, iro){
     d += (d ? " L" : "M") + px.toFixed(1) + " " + py.toFixed(1);
     pts.push({ px, py, last:i === n - 1 });
   });
-  return { W, H, d, pts, iro, saishin:yuko[yuko.length-1].a };
+  let dYotei = "";
+  (yotei || []).forEach((v, i) => {
+    if (v === null || v === undefined) return;
+    dYotei += (dYotei ? " L" : "M") + x(i).toFixed(1) + " " + y(v).toFixed(1);
+  });
+  return { W, H, d, pts, iro, saishin:yuko[yuko.length-1].a, dYotei };
 }
 
 /* ---------- 画像の縮小 ---------- */
@@ -1218,6 +1273,7 @@ function egakuHome(){
 
   ${ses ? `<div class="saikai"><p>運動の途中です</p><button class="btn-mini" id="saikaiBtn">再開する</button></div>` : ""}
   ${draftYomu() ? `<div class="saikai shoku"><p>書きかけの食事があります</p><button class="btn-mini" id="draftBtn">続ける</button></div>` : ""}
+  ${backupSaisoku() ? `<div class="saikai bk"><p>${esc(backupSaisoku())}</p><button class="btn-mini" id="bkSaisokuBtn">バックアップ</button></div>` : ""}
 
   <section class="card">
     <h2 class="midashi">今日の運動</h2>
@@ -1252,6 +1308,11 @@ function egakuHome(){
       <span>目安 ${meyasu}${undouK ? ` ＋ 運動 ${undouK}` : ""}</span>
       <span>${nokoriK >= 0 ? `あと ${nokoriK}` : `${-nokoriK} オーバー`}</span>
     </div>
+    ${(() => { const pr = hiNoPro(r), pm = proMeyasu(w); const pct = Math.min(100, Math.round(pr.g / pm * 100));
+      return `<div class="pro-ue mt12"><span>たんぱく質</span><b class="num">${pr.g}</b><span>/ ${pm} g</span>
+        <em>${pr.g >= pm ? "目安に届きました" : `あと約${pm - pr.g}g`}</em></div>
+        <div class="bar pro"><i style="width:${pct}%"></i></div>
+        ${pr.fumei ? `<p class="hint">たんぱく質が分からない食事が${pr.fumei}件あります（AIで計算した食事だけ数えます）。</p>` : ""}`; })()}
     ${teibanList().length ? `<div class="teiban-retsu mt12">${teibanList().map(t =>
       `<button class="teiban-btn" data-teiban-kyo="${t.id}"><span>${esc(t.namae)}</span><span class="num">${kcalHyoji(t.kcal)}</span></button>`).join("")}</div>
       <p class="hint">定番は1タップで今日の食事に記録されます。</p>` : ""}
@@ -1288,6 +1349,17 @@ function egakuHome(){
   </section>
 
   <section class="card">
+    <h2 class="midashi">今日のこと</h2>
+    <div class="chip-retsu">${TAGS.map(t => `<button class="chip tag ${((r && r.tags) || []).includes(t.v) ? 'eranda' : ''}" data-tag="${t.v}">${t.t}</button>`).join("")}</div>
+    <div class="nyuryoku mt12">
+      <input id="hosuNyu" class="num" type="number" inputmode="numeric" value="${esc(r && r.hosu != null ? r.hosu : "")}" placeholder="—" aria-label="歩数">
+      <span class="tani">歩</span>
+      <button class="btn-mini sub" id="hosuBtn">${r && r.hosu != null ? "書き直す" : "記録"}</button>
+    </div>
+    <p class="hint">お酒・夜食などは、体重の増減との関係を「推移」の週のふり返りで見ます。歩数は記録だけ（ふだんの動きは1日の目安に含まれているので、カロリーには足しません。まとまって歩いたときは下の「ほかにした運動」へ）。</p>
+  </section>
+
+  <section class="card">
     <h2 class="midashi">ほかにした運動</h2>
     ${(r && (r.sonota||[]).length) ? r.sonota.map(x => `
       <div class="sonota-gyo"><span>${esc(sonotaInfo(x.shurui).t)}　<span class="num">${x.fun}分</span></span>
@@ -1316,6 +1388,20 @@ function egakuHome(){
 
   on("saikaiBtn", "click", () => { overlay = "undou"; hyouji(); });
   on("draftBtn", "click", () => { const dr = draftYomu(); if (dr) shokujiAddHiraku(dr.h || kyo, dr); });
+  on("bkSaisokuBtn", "click", () => { tab = "settei"; setteiDraft = null; setteiMsg = null; setteiErr = null; hyouji();
+    const el = $("bkCard"); if (el && el.scrollIntoView) el.scrollIntoView(); });
+  onAll("[data-tag]", "click", b => {
+    const cur = kirokuToru(kyo) || {};
+    const tags = (cur.tags || []).slice(); const i = tags.indexOf(b.dataset.tag);
+    if (i >= 0) tags.splice(i, 1); else tags.push(b.dataset.tag);
+    kirokuKaku(kyo, { tags }); hyouji();
+  });
+  on("hosuBtn", "click", () => {
+    const v = $("hosuNyu").value.trim();
+    const n = v === "" ? null : seisu(v, -1);
+    if (n !== null && (n < 0 || n > 100000)){ $("hosuNyu").focus(); return; }
+    kirokuKaku(kyo, { hosu:n }); hyouji();
+  });
   on("mokuhyoSettei", "click", () => { tab = "settei"; setteiDraft = null; setteiMsg = null; setteiErr = null; hyouji(); window.scrollTo(0,0); });
   onAll("[data-kotae]", "click", b => { taichoKaku(b.dataset.kotae); hyouji(); });
   on("kaishiBtn", "click", () => undouKaishi(menu));
@@ -1569,6 +1655,8 @@ function shuseiHiraku(h, modori){
     sonota: (r.sonota || []).map(x => Object.assign({}, x)),
     fatigue: r.fatigue ?? null,
     pain: (r.pain || []).slice(),
+    tags: (r.tags || []).slice(),
+    hosu: r.hosu != null ? String(r.hosu) : "",
     sonotaSel: "walk", sonotaFun: ""
   };
   overlay = "shusei"; hyouji(); window.scrollTo(0,0);
@@ -1600,6 +1688,11 @@ function egakuShusei(){
     </div>
   </section>
   <section class="card">
+    <h2 class="midashi">その日のこと</h2>
+    <div class="chip-retsu">${TAGS.map(t => `<button class="chip tag ${d.tags.includes(t.v) ? 'eranda' : ''}" data-ss-tag="${t.v}">${t.t}</button>`).join("")}</div>
+    <div class="gyo mt8"><label>歩数</label><input class="field num" data-f="hosu" type="number" inputmode="numeric" value="${esc(d.hosu)}" placeholder="—"></div>
+  </section>
+  <section class="card">
     <h2 class="midashi">疲労度</h2>${hirouHtml(d.fatigue)}
     <h2 class="midashi mt16">痛み</h2>${itamiHtml(d.pain)}
   </section>
@@ -1608,6 +1701,7 @@ function egakuShusei(){
 
   app.querySelectorAll("[data-f]").forEach(el => el.addEventListener("input", e => { shusei[el.dataset.f] = e.target.value; }));
   on("ssSel", "change", e => { shusei.sonotaSel = e.target.value; });
+  onAll("[data-ss-tag]", "click", b => { itamiToggle(shusei.tags, b.dataset.ssTag); hyouji(); });
   on("ssFun", "input", e => { shusei.sonotaFun = e.target.value; });
   on("ssAdd", "click", () => {
     const f = seisu(shusei.sonotaFun, 0); if (!f) return;
@@ -1626,7 +1720,8 @@ function egakuShusei(){
       suburiMin: seisu(d.suburiMin, 0), suburiCount: opt(d.suburiCount),
       nawatobiMin: seisu(d.nawaMin, 0), nawatobiCount: opt(d.nawaCount),
       shokoMigiMin: Math.ceil(sk/2), shokoHidariMin: Math.floor(sk/2),
-      sonota: d.sonota, fatigue: d.fatigue, pain: d.pain.slice()
+      sonota: d.sonota, fatigue: d.fatigue, pain: d.pain.slice(),
+      tags: d.tags.slice(), hosu: String(d.hosu).trim() === "" ? null : seisu(d.hosu, 0)
     });
     const m = shusei.modori; shusei = null; overlay = null; tab = m; hyouji();
   });
@@ -1713,7 +1808,8 @@ function egakuShokuji(){
     if (t){
       if (!confirm(`「${namae}」はもう定番にあります。この食事をその定番の記録として結びつけますか？（定番のkcalは変えません）`)) return;
     } else {
-      t = { id:shinId(), namae, kcal, kubun:m.kubun };
+      const mp = mealPro(m);
+      t = { id:shinId(), namae, kcal, kubun:m.kubun, pro: mp.fumei ? undefined : Math.round(mp.g) };
       st.teiban.push(t);
     }
     setteiKaku(st);
@@ -1800,7 +1896,8 @@ function teibanKiroku(t, h){
   const cur = kirokuToru(h);
   const meals = (cur && cur.meals) ? cur.meals.slice() : [];
   meals.push({ id:shinId(), jikan: h === kyoNoHizuke() ? jikanMoji() : "", kubun:t.kubun || kubunJidou(),
-    namae:t.namae, kcal: kcalAri(t.kcal) ? Number(t.kcal) : null, naiyo:[], advice:"", teibanId:t.id });
+    namae:t.namae, kcal: kcalAri(t.kcal) ? Number(t.kcal) : null, naiyo:[], advice:"", teibanId:t.id,
+    pro: typeof t.pro === "number" ? t.pro : undefined });
   kirokuKaku(h, { meals });
 }
 /* 定番から記録した食事か（古い記録は名前で見分ける）*/
@@ -1932,7 +2029,7 @@ function egakuShokujiAdd(){
   onAll("[data-kubun]", "click", b => { draft.kubun = b.dataset.kubun; hyouji(); });
   onAll("[data-teiban]", "click", b => {
     const t = teibanList().find(x => x.id === b.dataset.teiban); if (!t) return;
-    draft.namae = t.namae; draft.kcal = kcalAri(t.kcal) ? String(t.kcal) : ""; draft.teibanId = t.id; if (t.kubun) draft.kubun = t.kubun; draft.kekka = null; draft.err = null; hyouji();
+    draft.namae = t.namae; draft.kcal = kcalAri(t.kcal) ? String(t.kcal) : ""; draft.teibanId = t.id; draft.teibanPro = typeof t.pro === "number" ? t.pro : undefined; if (t.kubun) draft.kubun = t.kubun; draft.kekka = null; draft.err = null; hyouji();
   });
   on("daMemo", "input", e => { draft.memo = e.target.value; naiyoHenko(); ketteiKoshin(); });
   on("daMemo", "change", () => hyouji());
@@ -2094,7 +2191,8 @@ function shokujiHozon(){
     const m = ((cur && cur.meals) || []).find(x => x.id === draft.tsuikaId);
     if (m){
       if (!m.tsuika){ m.tsuika = []; m.kcalMoto = kcalAri(m.kcal) ? Number(m.kcal) : null; }
-      m.tsuika.push({ id:shinId(), namae, kcal:n, jikan: draft.h === kyoNoHizuke() ? jikanMoji() : "" });
+      m.tsuika.push({ id:shinId(), namae, kcal:n, jikan: draft.h === kyoNoHizuke() ? jikanMoji() : "",
+        pro: draft.kekka && draft.kekka.pfc ? draft.kekka.pfc.p : draft.teibanPro });
       mealKeisan(m);
       if (draft.kekka && draft.kekka.advice) m.advice = draft.kekka.advice;
       kirokuKaku(draft.h, { meals:cur.meals });
@@ -2110,8 +2208,9 @@ function shokujiHozon(){
     const st = setteiYomu();
     st.teiban = st.teiban || [];
     const aru = st.teiban.find(t => t.namae === namae);
-    if (aru){ aru.kcal = n; aru.kubun = draft.kubun; teibanId = aru.id; }
-    else { teibanId = shinId(); st.teiban.push({ id:teibanId, namae, kcal:n, kubun:draft.kubun }); }
+    const pro = draft.kekka && draft.kekka.pfc ? draft.kekka.pfc.p : undefined;
+    if (aru){ aru.kcal = n; aru.kubun = draft.kubun; if (pro !== undefined) aru.pro = pro; teibanId = aru.id; }
+    else { teibanId = shinId(); st.teiban.push({ id:teibanId, namae, kcal:n, kubun:draft.kubun, pro }); }
     setteiKaku(st);
   }
   const cur = kirokuToru(draft.h);
@@ -2122,6 +2221,7 @@ function shokujiHozon(){
     naiyo: draft.kekka ? (draft.kekka.ryori || []) : [],
     memo: draft.memo.trim() || undefined,
     ai: draft.kekka ? true : undefined,
+    pro: draft.kekka && draft.kekka.pfc ? draft.kekka.pfc.p : draft.teibanPro,
     advice: draft.kekka ? (draft.kekka.advice || "") : "",
     thumb: draft.thumb || undefined
   });
@@ -2174,7 +2274,7 @@ async function saikeisanJikko(){
       const hosei = Number(st.aiHosei) || 0;
       let k = j.goukeiKcal || 0;
       if (hosei > 0 && k > 0) k = Math.round(k * (1 + hosei / 100) / 5) * 5;
-      x.ato = k; x.atoRyori = j.ryori || [];
+      x.ato = k; x.atoRyori = j.ryori || []; x.atoPro = j.pfc ? j.pfc.p : undefined;
       if (!k) x.erabu = false;
     }catch(e){ x.err = e.message.slice(0, 60); x.erabu = false; }
     hyouji();
@@ -2190,6 +2290,7 @@ function saikeisanHanei(){
     const m = ((zenbu[x.h] || {}).meals || []).find(y => y.id === x.id); if (!m) return;
     if ((m.tsuika || []).length){ m.kcalMoto = x.ato; mealKeisan(m); } else { m.kcal = x.ato; }
     if ((x.atoRyori || []).length) m.naiyo = x.atoRyori;
+    if (typeof x.atoPro === "number") m.pro = x.atoPro;
     m.saikeisan = kyoNoHizuke();
     sa += x.ato - (x.mae || 0); n++;
   });
@@ -2407,12 +2508,18 @@ const SHIHYO = {
 };
 const KIKAN = { "2shukan":{ t:"2週間", n:14 }, "1kagetsu":{ t:"1ヶ月", n:30 }, "zenkikan":{ t:"全期間", n:null } };
 function egakuSuii(){
+  const st = setteiYomu();
+  yoteiJunbi(st);
   const n = KIKAN[suiiKikan].n || zenkikanNissu();
   const sh = SHIHYO[suiiMetric];
-  const zu = chartSvg(keiretsu(suiiMetric, n), `var(--${sh.iro})`);
+  const ten = keiretsu(suiiMetric, n);
+  const yotei = suiiMetric === "taiju" ? ten.map(t => yoteiTaiju(st, t.h)) : null;
+  const zu = chartSvg(ten, `var(--${sh.iro})`, yotei && yotei.some(v => v !== null) ? yotei : null);
   const hm = heatmapDeta(16);
+  const fk = furikaeriKeisan();
   app.innerHTML = `
   ${header()}
+  ${furikaeriHtml(fk)}
   <section class="card renzoku"><div class="kazu-ookii">${renzokuNissu()}</div><p>日連続で運動中</p></section>
   <section class="card">
     <h2 class="midashi">日々の運動量</h2>
@@ -2428,16 +2535,194 @@ function egakuSuii(){
     <div class="chart mt12">${zu ? `
       <div class="chart-ue"><span>${n}日間</span><span class="ima">${Math.round(zu.saishin * 10) / 10}${sh.tani}</span></div>
       <svg viewBox="0 0 ${zu.W} ${zu.H}" preserveAspectRatio="none">
+        ${zu.dYotei ? `<path class="chart-yotei" d="${zu.dYotei}"></path>` : ""}
         <path class="chart-line" d="${zu.d}" stroke="${zu.iro}"></path>
         ${zu.pts.map(p => `<circle ${p.last ? 'class="chart-ima"' : ''} cx="${p.px}" cy="${p.py}" r="${p.last ? 4 : 2}" fill="${zu.iro}"></circle>`).join("")}
-      </svg>` : `<p class="chart-nashi">記録が増えると、ここにグラフが出ます。</p>`}</div>
+      </svg>
+      ${zu.dYotei ? `<p class="hint"><span class="yotei-rei"></span>点線は目標までの予定（${hizukeMijikai(st.keikakuKaishiBi)}の${su1(st.keikakuKaishiTaiju)}kg → ${hizukeMijikai(st.mokuhyoBi)}の${su1(st.mokuhyoTaiju)}kg）。線より下なら予定どおりです。</p>` : ""}` : `<p class="chart-nashi">記録が増えると、ここにグラフが出ます。</p>`}</div>
   </section>`;
+  on("fkAi", "click", furikaeriAi);
   onAll(".hc[data-hizuke]", "click", b => shuseiHiraku(b.dataset.hizuke, "suii"));
   onAll("[data-metric]", "click", b => { suiiMetric = b.dataset.metric; hyouji(); });
   onAll("[data-kikan]", "click", b => { suiiKikan = b.dataset.kikan; hyouji(); });
 }
 
-/* ---------- 設定 ---------- */
+/* 目標があるのに予定線の出発点がないとき（以前に目標を決めていた場合）は、今日を出発点にする */
+function yoteiJunbi(st){
+  if (!st.mokuhyoBi || st.keikakuKaishiBi) return;
+  const kyo = kyoNoHizuke();
+  const h = idoHeikin(kyo, 7, "weightKg");
+  const w = h.heikin !== null ? h.heikin : saishinTaiju(kyo);
+  if (w === null) return;
+  const s2 = setteiYomu(); s2.keikakuKaishiBi = kyo; s2.keikakuKaishiTaiju = Math.round(w * 10) / 10; setteiKaku(s2);
+  Object.assign(st, s2);
+}
+
+/* ---------- 週のふり返り ----------
+   直近7日（今日まで）と、その前の7日を比べる。お酒などのタグは、直近4週間で
+   「その日の翌日に体重がどう動いたか」を、タグがない日と比べる。 */
+const KEY_FURIKAERI = "bokuto.furikaeri.v1";
+function furikaeriKeisan(){
+  const st = setteiYomu();
+  const kyo = kyoNoHizuke();
+  const w = genzaiTaiju(kyo);
+  const hibi = (kara, n) => Array.from({ length:n }, (_, i) => hizukeZurasu(kara, i));
+  const kongo = hibi(hizukeZurasu(kyo, -6), 7);
+  const sum = days => {
+    let fun = 0, kcalU = 0, undouBi = 0, shokuBi = 0, sesshu = 0, pro = 0, proBi = 0, hosu = 0, hosuBi = 0;
+    const tags = {};
+    days.forEach(h => {
+      const r = kirokuToru(h); if (!r) return;
+      const f = goukeiFun(r); fun += f; if (f > 0) undouBi++;
+      kcalU += kcalUndou(r, w);
+      if ((r.meals || []).length){ shokuBi++; sesshu += kcalSesshu(r); }
+      const p = hiNoPro(r); if ((r.meals || []).length && p.g > 0){ pro += p.g; proBi++; }
+      if (typeof r.hosu === "number"){ hosu += r.hosu; hosuBi++; }
+      (r.tags || []).forEach(t => { tags[t] = (tags[t] || 0) + 1; });
+    });
+    return { fun, kcalU, undouBi, shokuBi, sesshuHeikin: shokuBi ? Math.round(sesshu / shokuBi) : null,
+      proHeikin: proBi ? Math.round(pro / proBi) : null, hosuHeikin: hosuBi ? Math.round(hosu / hosuBi) : null, tags };
+  };
+  const ima = sum(kongo), mae = sum(hibi(hizukeZurasu(kyo, -13), 7));
+  const tIma = idoHeikin(kyo, 7, "weightKg").heikin, tMae = idoHeikin(hizukeZurasu(kyo, -7), 7, "weightKg").heikin;
+  const kankei = [];
+  TAGS.forEach(t => {
+    const ari = [], nashi = [];
+    for (let i = 1; i <= 28; i++){
+      const h = hizukeZurasu(kyo, -i), r = kirokuToru(h), r2 = kirokuToru(hizukeZurasu(h, 1));
+      if (!r || !r2 || typeof r.weightKg !== "number" || typeof r2.weightKg !== "number") continue;
+      ((r.tags || []).includes(t.v) ? ari : nashi).push(r2.weightKg - r.weightKg);
+    }
+    if (ari.length >= 2 && nashi.length >= 3){
+      const avg = a => a.reduce((x, y) => x + y, 0) / a.length;
+      kankei.push({ t:t.t, sa: avg(ari) - avg(nashi), n: ari.length });
+    }
+  });
+  return { kyo, kara:kongo[0], ima, mae, tIma, tMae, meyasuKcal: mokuhyoKcal(st, w), proMeyasu: proMeyasu(w), kankei, w };
+}
+function furikaeriHtml(f){
+  const ai = Kioku.yomu(KEY_FURIKAERI, {})[f.kyo];
+  const saTaiju = (f.tIma !== null && f.tMae !== null) ? f.tIma - f.tMae : null;
+  const kcalSa = f.ima.sesshuHeikin !== null ? f.ima.sesshuHeikin - f.meyasuKcal : null;
+  const gyo = (label, atai, sub) => `<div class="fk-gyo"><span>${label}</span><b class="num">${atai}</b><small>${sub || ""}</small></div>`;
+  return `<section class="card fk">
+    <h2 class="midashi">週のふり返り（${hizukeMijikai(f.kara)}〜今日）</h2>
+    ${gyo("体重（7日平均）", f.tIma !== null ? su1(f.tIma) + "kg" : "—", saTaiju !== null ? `先週より ${fugo(saTaiju)}kg` : "")}
+    ${gyo("食べた量（1日平均）", f.ima.sesshuHeikin !== null ? f.ima.sesshuHeikin + "kcal" : "—", kcalSa !== null ? `目安より ${kcalSa >= 0 ? "＋" : "−"}${Math.abs(kcalSa)}（記録${f.ima.shokuBi}日）` : "記録なし")}
+    ${gyo("運動", f.ima.fun + "分", `${f.ima.undouBi}日・約${f.ima.kcalU}kcal（先週 ${f.mae.fun}分）`)}
+    ${gyo("たんぱく質（1日平均）", f.ima.proHeikin !== null ? f.ima.proHeikin + "g" : "—", `目安 ${f.proMeyasu}g`)}
+    ${f.ima.hosuHeikin !== null ? gyo("歩数（1日平均）", f.ima.hosuHeikin.toLocaleString() + "歩", "") : ""}
+    ${Object.keys(f.ima.tags).length ? gyo("その日のこと", Object.entries(f.ima.tags).map(([k, v]) => `${tagT(k)}${v}`).join("・"), "") : ""}
+    ${f.kankei.length ? `<p class="fk-kankei">${f.kankei.map(k => `${k.t}の翌日は、ほかの日より平均 <b>${fugo(k.sa)}kg</b>（${k.n}回）`).join("<br>")}</p>` : ""}
+    ${ai ? `<div class="adv-box mt8">${esc(ai)}</div>` : ""}
+    <button class="btn ${ai ? "btn-sub" : "btn-shoku"} mt12" id="fkAi">${ai ? "AIにもう一度聞く" : "AIに来週のひと言をもらう"}</button>
+  </section>`;
+}
+async function furikaeriAi(){
+  const st = setteiYomu();
+  const b = $("fkAi");
+  if (!st.geminiKey){ alert("設定タブでGeminiのAPIキーを入れると使えます。"); return; }
+  const f = furikaeriKeisan();
+  if (b){ b.disabled = true; b.textContent = "考えています…"; }
+  const naiyo = [
+    "あなたはダイエットを支えるコーチです。次の1週間の記録を見て、日本語で、前向きに、来週やることを1つだけ具体的に提案してください（3文以内。責めない。数字を1つ入れる）。",
+    `本人：${st.nenrei}歳、身長${st.shinchoCm}cm、目標体重${st.mokuhyoTaiju}kg${st.mokuhyoBi ? `（${st.mokuhyoBi}まで）` : ""}。運動は木刀の素振りと縄跳び。`,
+    `体重の7日平均：${f.tIma !== null ? su1(f.tIma) : "不明"}kg（先週 ${f.tMae !== null ? su1(f.tMae) : "不明"}kg）`,
+    `食べた量：1日平均${f.ima.sesshuHeikin ?? "不明"}kcal（目安${f.meyasuKcal}kcal、記録${f.ima.shokuBi}日）`,
+    `運動：合計${f.ima.fun}分・${f.ima.undouBi}日・約${f.ima.kcalU}kcal（先週${f.mae.fun}分）`,
+    `たんぱく質：1日平均${f.ima.proHeikin ?? "不明"}g（目安${f.proMeyasu}g）`,
+    f.ima.hosuHeikin !== null ? `歩数：1日平均${f.ima.hosuHeikin}歩` : "",
+    Object.keys(f.ima.tags).length ? "その日のこと：" + Object.entries(f.ima.tags).map(([k, v]) => `${tagT(k)}${v}回`).join("、") : "",
+    f.kankei.length ? "傾向：" + f.kankei.map(k => `${k.t}の翌日は平均${fugo(k.sa)}kg`).join("、") : ""
+  ].filter(Boolean).join("\n");
+  try{
+    const t = await geminiYobu([{ text:naiyo }], st.geminiKey, st.geminiModel, false);
+    const kioku = Kioku.yomu(KEY_FURIKAERI, {});
+    Object.keys(kioku).forEach(k => { if (k < hizukeZurasu(kyoNoHizuke(), -60)) delete kioku[k]; });
+    kioku[f.kyo] = t.trim().slice(0, 400);
+    Kioku.kaku(KEY_FURIKAERI, kioku);
+  }catch(e){ alert(e.message); }
+  hyouji();
+}
+
+/* ---------- バックアップ（書き出し・読み戻し）---------- */
+function backupSaisoku(){
+  const st = setteiYomu();
+  const kazu = Object.keys(kirokuZenbu()).length;
+  if (kazu < 7) return null;
+  if (!st.backupBi) return "記録はこのiPhoneの中だけです。バックアップを取っておきましょう";
+  const sa = nissuSa(st.backupBi, kyoNoHizuke());
+  if (sa >= 14) return `最後のバックアップから${sa}日たちました`;
+  return null;
+}
+function fileWatasu(namae, naiyo, type){
+  const blob = new Blob([naiyo], { type });
+  const file = typeof File === "function" ? new File([blob], namae, { type }) : null;
+  if (file && navigator.canShare && navigator.canShare({ files:[file] })){
+    return navigator.share({ files:[file], title:namae }).then(() => true).catch(e => { if (e && e.name === "AbortError") return false; throw e; });
+  }
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a"); a.href = url; a.download = namae;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+  return Promise.resolve(true);
+}
+function backupKakidashi(keyMo){
+  const data = {};
+  for (let i = 0; i < localStorage.length; i++){
+    const k = localStorage.key(i);
+    if (!k || !k.startsWith("bokuto.") || k === KEY_SESSION) continue;
+    data[k] = localStorage.getItem(k);
+  }
+  if (!keyMo && data[KEY_SETTEI]){
+    try{ const s2 = JSON.parse(data[KEY_SETTEI]); delete s2.geminiKey; delete s2.gasToken; data[KEY_SETTEI] = JSON.stringify(s2); }catch{}
+  }
+  const kyo = kyoNoHizuke();
+  const json = JSON.stringify({ app:"Bokuto", version:APP_VERSION, date:kyo, keyFukumu:!!keyMo, data }, null, 1);
+  return fileWatasu(`bokuto_backup_${kyo.replace(/-/g, "")}.json`, json, "application/json").then(ok => {
+    if (ok){ const s2 = setteiYomu(); s2.backupBi = kyo; setteiKaku(s2); }
+    return ok;
+  });
+}
+async function backupYomikomi(file){
+  let obj;
+  try{ obj = JSON.parse(await file.text()); }catch{ throw new Error("ファイルを読めませんでした。Bokutoのバックアップ（.json）を選んでください。"); }
+  if (!obj || obj.app !== "Bokuto" || !obj.data || !obj.data[KEY_KIROKU]) throw new Error("Bokutoのバックアップではないようです。");
+  const nissu = Object.keys(JSON.parse(obj.data[KEY_KIROKU] || "{}")).length;
+  if (!confirm(`${obj.date}のバックアップ（記録${nissu}日分）で、いまの記録をすべて置き換えます。よろしいですか？`)) return false;
+  const ima = setteiYomu();
+  Object.entries(obj.data).forEach(([k, v]) => { if (k.startsWith("bokuto.")) localStorage.setItem(k, v); });
+  const s2 = setteiYomu();
+  if (!s2.geminiKey && ima.geminiKey) s2.geminiKey = ima.geminiKey;
+  if (!s2.gasToken && ima.gasToken) s2.gasToken = ima.gasToken;
+  setteiKaku(s2);
+  return true;
+}
+
+/* ---------- 体重のリマインダー（iPhoneのカレンダーに毎日の予定として入れる）---------- */
+function remaindaIcs(jikan){
+  const kyo = kyoNoHizuke().replace(/-/g, "");
+  const [hh, mm] = jikan.split(":");
+  const now = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d+Z$/, "Z");
+  const owari = String(Math.min(59, Number(mm) + 5)).padStart(2, "0");
+  const ics = [
+    "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Bokuto//JA", "CALSCALE:GREGORIAN",
+    "BEGIN:VEVENT",
+    "UID:bokuto-taiju-" + Date.now() + "@bokuto",
+    "DTSTAMP:" + now,
+    `DTSTART;TZID=Asia/Tokyo:${kyo}T${hh}${mm}00`,
+    `DTEND;TZID=Asia/Tokyo:${kyo}T${hh}${owari}00`,
+    "RRULE:FREQ=DAILY",
+    "SUMMARY:風呂上がりに体重（Bokuto）",
+    "DESCRIPTION:体重を測ってBokutoに記録",
+    "URL:https://malu-malu.github.io/Bokuto/",
+    "BEGIN:VALARM", "ACTION:DISPLAY", "DESCRIPTION:体重を記録", "TRIGGER:PT0M", "END:VALARM",
+    "END:VEVENT", "END:VCALENDAR"
+  ].join("\r\n");
+  return fileWatasu("bokuto_taiju_reminder.ics", ics, "text/calendar");
+}
+
+/* ---------- 設定画面 ---------- */
 function egakuSettei(){
   const s = setteiYomu();
   if (!setteiDraft){
@@ -2500,6 +2785,21 @@ function egakuSettei(){
       : `<p class="hint" style="margin:0">食事を記録するとき「定番に登録する」にチェックすると、ここに並びます。</p>`}
   </section>
 
+  <section class="card" id="bkCard">
+    <h2 class="midashi">記録のバックアップ</h2>
+    <p class="hint" style="margin:0">記録はこのiPhoneの中だけにあります。ときどきファイルに書き出して、「ファイル」アプリやGoogleドライブに保存してください。機種変更のときは、新しいiPhoneで読み戻せます。</p>
+    <p class="hint">最後のバックアップ：${s.backupBi ? hizukeHyoji(s.backupBi) : "まだありません"}</p>
+    <label class="check mt8"><input type="checkbox" id="bkKey"> AIのキーも含める（ファイルを人に渡さない場合だけ）</label>
+    <button class="btn btn-accent mt12" id="bkDasu">書き出す</button>
+    <div class="btn btn-sub mt8 file-btn">バックアップから読み戻す<input type="file" accept="application/json,.json" id="bkFile"></div>
+  </section>
+
+  <section class="card">
+    <h2 class="midashi">体重のリマインダー</h2>
+    <p class="hint" style="margin:0">このアプリからは通知を出せないので、iPhoneのカレンダーに「毎日この時刻に体重」という予定を入れます。押すとカレンダーに追加する画面が開きます。</p>
+    <div class="nyuryoku mt12"><input class="field" type="time" id="rmJikan" value="${esc(s.remaindaJikan || "21:30")}" style="width:auto;font-size:16px"><button class="btn-mini" id="rmBtn">カレンダーに追加</button></div>
+  </section>
+
   <section class="card">
     <h2 class="midashi">見た目</h2>
     <div class="chip-retsu">
@@ -2522,6 +2822,24 @@ function egakuSettei(){
   });
   on("sdInterval", "click", () => { setteiDraft.nawaInterval = !setteiDraft.nawaInterval; hyouji(); });
   on("sdSaikeisan", "click", () => saikeisanHiraku("settei"));
+  on("bkDasu", "click", async () => {
+    try{ const ok = await backupKakidashi($("bkKey").checked); setteiMsg = ok ? "書き出しました。保存先（ファイル・ドライブなど）を確認してください。" : null; setteiErr = null; }
+    catch(e){ setteiErr = "書き出せませんでした：" + e.message; setteiMsg = null; }
+    hyouji();
+  });
+  on("bkFile", "change", async e => {
+    const f = e.target.files && e.target.files[0]; if (!f) return;
+    try{ if (await backupYomikomi(f)){ setteiDraft = null; teemaTekiyou(setteiYomu().colorTeema); setteiMsg = "読み戻しました。"; setteiErr = null; } }
+    catch(err){ setteiErr = err.message; setteiMsg = null; }
+    hyouji();
+  });
+  on("rmBtn", "click", async () => {
+    const j = $("rmJikan").value || "21:30";
+    const s2 = setteiYomu(); s2.remaindaJikan = j; setteiKaku(s2);
+    try{ await remaindaIcs(j); setteiMsg = `毎日${j}の予定ファイルを作りました。カレンダーに「追加」してください。`; setteiErr = null; }
+    catch(e){ setteiErr = "作れませんでした：" + e.message; }
+    hyouji();
+  });
   onAll("[data-aimode]", "click", b => { setteiDraft.aiMode = b.dataset.aimode; setteiMsg = "「設定を保存する」で決まります。"; hyouji(); });
   onAll("[data-hosei]", "click", b => { setteiDraft.aiHosei = Number(b.dataset.hosei); setteiMsg = "「設定を保存する」で決まります。"; hyouji(); });
   onAll("[data-teema]", "click", b => { const s2 = setteiYomu(); s2.colorTeema = b.dataset.teema; setteiKaku(s2); teemaTekiyou(s2.colorTeema); hyouji(); });
@@ -2553,6 +2871,12 @@ function egakuSettei(){
     if (!mt || mt < 30 || mt > 200){ setteiErr = "目標体重を確認してください。"; setteiMsg = null; hyouji(); return; }
     if (nn < 10 || nn > 110){ setteiErr = "年齢を確認してください。"; setteiMsg = null; hyouji(); return; }
     if (d.mokuhyoBi && d.mokuhyoBi <= kyoNoHizuke()){ setteiErr = "目標の日は明日以降にしてください。"; setteiMsg = null; hyouji(); return; }
+    if ((d.mokuhyoBi || "") !== (s2.mokuhyoBi || "") || mt !== s2.mokuhyoTaiju){
+      const kyo2 = kyoNoHizuke(), hh = idoHeikin(kyo2, 7, "weightKg");
+      const w2 = hh.heikin !== null ? hh.heikin : saishinTaiju(kyo2);
+      s2.keikakuKaishiBi = d.mokuhyoBi && w2 !== null ? kyo2 : "";
+      s2.keikakuKaishiTaiju = w2 !== null ? Math.round(w2 * 10) / 10 : null;
+    }
     Object.assign(s2, { shinchoCm:sc, mokuhyoTaiju:mt, mokuhyoBi:d.mokuhyoBi || "", nenrei:nn, seibetsu:d.seibetsu, katsudo:d.katsudo,
       nawaInterval:!!d.nawaInterval, geminiKey:d.geminiKey.trim(), geminiModel:d.geminiModel.trim(), aiMode:d.aiMode, aiHosei:Number(d.aiHosei) || 0,
       gasUrl:d.gasUrl.trim(), gasToken:d.gasToken.trim() });
