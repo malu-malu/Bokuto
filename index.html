@@ -256,6 +256,34 @@ details.shosai summary{font-size:12.5px;color:var(--text-dim);cursor:pointer;pad
 .sk-sub{font-size:11px;color:var(--text-dim)}
 .sk-kazu{font-size:13px;margin-top:2px}
 .sk-kazu b{color:var(--shoku);font-size:15px}
+.nl-title{margin:8px 0 2px;display:flex;flex-direction:column}
+.nl-title span{font-size:28px;font-weight:900;letter-spacing:.12em;background:linear-gradient(90deg,var(--shoku),var(--warn),var(--nawa));-webkit-background-clip:text;background-clip:text;color:transparent}
+.nl-title small{font-size:11.5px;color:var(--text-dim)}
+.nl-kyo{border-color:rgba(255,181,71,.45);background:linear-gradient(135deg,var(--shoku-dim),var(--panel) 60%)}
+.nl-kyo-bun{margin:0 0 10px;font-size:14px}
+.nl-kyo-bun b{font-size:20px;margin:0 2px}
+.nl-chips{display:flex;gap:6px}
+.nl-chips div{flex:1;padding:8px 6px;border-radius:10px;background:var(--bg2);border:1px solid var(--line);text-align:center;font-size:11px;color:var(--text-dim)}
+.nl-chips b{display:block;font-size:16px;color:var(--text);margin-top:2px}
+.nl-nyu{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px}
+.nl-nyu input{width:5.5em;font-size:18px;text-align:right}
+.nl-kekka{display:flex;align-items:baseline;gap:6px;margin-top:12px;color:var(--text-dim);font-size:14px}
+.nl-kekka b{font-size:44px;font-weight:900;color:var(--shoku);line-height:1}
+.nl-hyo{margin-top:10px}
+.nl-hyo div{display:grid;grid-template-columns:1fr auto 6.5em;gap:8px;align-items:baseline;padding:7px 0;border-bottom:1px solid var(--line);font-size:13.5px}
+.nl-hyo div:last-child{border-bottom:0}
+.nl-hyo b{font-size:16px;text-align:right}
+.nl-hyo small{font-size:11px;color:var(--text-dim);text-align:right}
+.nl-tabe{font-size:12.5px}
+.nl-tabe-ue,.nl-tabe-gyo{display:grid;grid-template-columns:1fr 4.2em 4.2em 4.2em;gap:6px;align-items:center;padding:7px 0;border-bottom:1px solid var(--line)}
+.nl-tabe-ue{font-size:10.5px;color:var(--text-dim);padding-top:0}
+.nl-tabe-ue span,.nl-tabe-gyo b{text-align:right}
+.nl-tabe-gyo:last-child{border-bottom:0}
+.nl-tabe-gyo small{display:block;font-size:10.5px;color:var(--text-dim)}
+.nl-tabe-gyo b{font-size:15px}
+.nl-tabe-gyo b small{display:inline;font-size:10px;margin-left:1px}
+.nl-tabe-gyo.teiban span{color:var(--shoku)}
+.tabbar button span{white-space:nowrap}
 .link-btn{font-size:12.5px;color:var(--shoku);text-decoration:underline;padding:4px 0}
 .kettei-bar{position:fixed;left:0;right:0;bottom:0;z-index:40;padding:10px 16px calc(12px + env(safe-area-inset-bottom));background:rgba(10,13,19,.95);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-top:1px solid var(--line)}
 .kettei-bar p{margin:0 auto 6px;max-width:30rem;font-size:12px;color:var(--text-dim);text-align:center}
@@ -390,8 +418,12 @@ body.overlay.kettei{padding-bottom:calc(120px + env(safe-area-inset-bottom))}
                     縮小写真を少し大きく保存し、食事にメモを残すように
    v1.15 2026-11-14 記録したあとの食事を「☆ 定番にする」で、さかのぼって定番に登録できる
                     （名前はその場で変えられる。追加注文つきは追加分も含めた全体で登録）
+   v1.16 2026-11-14 下のタブに「燃焼ラボ」を追加：運動ごとの消費kcal計算（分・回数）、
+                    ○kcal燃やすのに必要な時間の表、食べ物（定番も）を燃やす時間の早見表、
+                    今日のひと押し（目安オーバー分・作戦の残り）。運動の種類にジョギング・
+                    階段のぼり・家事を追加
    =========================================================== */
-const APP_VERSION = "1.15";
+const APP_VERSION = "1.16";
 
 /* ---------- 保存層 ---------- */
 const Kioku = (() => {
@@ -614,9 +646,12 @@ const SONOTA_SHURUI = [
   { v:"jitensha", t:"自転車",       mets:4.0 },
   { v:"stretch",  t:"ストレッチ",   mets:2.5 },
   { v:"kintore",  t:"筋トレ",       mets:3.5 },
+  { v:"jog",      t:"ジョギング",   mets:7.0 },
+  { v:"kaidan",   t:"階段のぼり",   mets:4.0 },
+  { v:"kaji",     t:"家事・掃除",   mets:3.3 },
   { v:"sonota",   t:"その他",       mets:3.0 }
 ];
-function sonotaInfo(v){ return SONOTA_SHURUI.find(x => x.v === v) || SONOTA_SHURUI[4]; }
+function sonotaInfo(v){ return SONOTA_SHURUI.find(x => x.v === v) || SONOTA_SHURUI[SONOTA_SHURUI.length - 1]; }
 function kcalUndou(r, w){
   if (!r) return 0;
   const h = m => (Number(m)||0) / 60;
@@ -1082,6 +1117,7 @@ let shuryo = null;       // 終了記録の下書き
 let shusei = null;       // 過去の記録の修正の下書き
 let setteiDraft = null, setteiMsg = null, setteiErr = null, setteiTestChu = false;
 let suiiMetric = "goukei", suiiKikan = "1kagetsu";
+let nl = { shurui:"suburi", fun:"20", kaisu:"", kcal:"" };   // 燃焼ラボの入力
 let tasseiIma = false, intervalMae = -1;
 let teibanKiroku_msg = null, shokujiMsg = null;
 
@@ -1107,6 +1143,7 @@ function hyouji(){
   else if (overlay === "saikeisan") egakuSaikeisan();
   else if (tab === "shokuji") egakuShokuji();
   else if (tab === "suii") egakuSuii();
+  else if (tab === "nensho") egakuNensho();
   else if (tab === "settei") egakuSettei();
   else egakuHome();
   egakuTabbar();
@@ -1116,12 +1153,13 @@ const ICON = {
   home:'<svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg>',
   shokuji:'<svg viewBox="0 0 24 24"><path d="M3 12h18a9 9 0 0 1-18 0z"/><path d="M8 7c0-2 2-2 2-4M13 7c0-2 2-2 2-4"/></svg>',
   suii:'<svg viewBox="0 0 24 24"><path d="M3 20h18"/><path d="M4 16l5-6 4 4 7-8"/></svg>',
+  nensho:'<svg viewBox="0 0 24 24"><path d="M12 3c1 3.5 5 5.5 5 10a5 5 0 0 1-10 0c0-2.2 1-3.7 2.2-4.8.3 1.6 1.2 2.6 2.3 2.8-.6-2.8-.2-5.6.5-8z"/></svg>',
   settei:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>'
 };
 function egakuTabbar(){
   if (overlay){ tabbarEl.className = "tabbar kakusu"; tabbarEl.innerHTML = ""; return; }
   tabbarEl.className = "tabbar";
-  const t = [["home","ホーム"],["shokuji","食事"],["suii","推移"],["settei","設定"]];
+  const t = [["home","ホーム"],["shokuji","食事"],["nensho","燃焼ラボ"],["suii","推移"],["settei","設定"]];
   tabbarEl.innerHTML = `<div class="tabbar-uchi">${t.map(([k,l]) =>
     `<button data-tab="${k}" class="${tab===k?'eranda':''}">${ICON[k]}<span>${l}</span></button>`).join("")}</div>`;
   tabbarEl.querySelectorAll("[data-tab]").forEach(b => b.addEventListener("click", () => {
@@ -2261,6 +2299,102 @@ function egakuTeibanHenshu(){
     if (m2 === "settei"){ setteiMsg = msg; setteiErr = null; } else { shokujiMsg = msg; }
     hyouji(); window.scrollTo(0,0);
   });
+}
+
+/* ---------- 燃焼ラボ（運動とカロリーの相談）----------
+   1) この運動を○分（○回）したら何kcal？ 2) ○kcal燃やすには何分？
+   3) 食べ物ごとの「燃やすのに必要な時間」早見表（定番も入る） 4) 今日の作戦の残り */
+const NL_UNDOU = [
+  { v:"suburi", t:"木刀素振り", mets:METS.suburi, kaisu:"本", pace:SUBURI_PACE },
+  { v:"nawa",   t:"縄跳び",     mets:METS.nawatobi, kaisu:"回", pace:NAWA_PACE, kaisuMets:NAWA_TOBU_METS, chu:"30秒休み込み" },
+  ...SONOTA_SHURUI.filter(x => x.v !== "sonota").map(x => ({ v:x.v, t:x.t, mets:x.mets }))
+];
+const NL_TABEMONO = [
+  { t:"ご飯 茶碗1杯（150g）", k:235 },
+  { t:"おにぎり 1個", k:180 },
+  { t:"食パン 6枚切り1枚", k:150 },
+  { t:"缶ビール 350ml", k:140 },
+  { t:"ラーメン 1杯", k:600 },
+  { t:"唐揚げ 1個", k:80 },
+  { t:"ポテトチップス 1袋（60g）", k:330 },
+  { t:"ショートケーキ 1個", k:300 }
+];
+function nlFunHitsuyo(kcal, mets, w){ return kcal / kcalMets(mets, w, 1); }
+function funHyoji(f){
+  if (!isFinite(f) || f <= 0) return "—";
+  if (f < 60) return Math.ceil(f) + "分";
+  const h = Math.floor(f / 60), m = Math.ceil(f - h * 60);
+  return `${h}時間${m ? m + "分" : ""}`;
+}
+function egakuNensho(){
+  const st = setteiYomu();
+  const kyo = kyoNoHizuke();
+  const w = genzaiTaiju(kyo);
+  const u = NL_UNDOU.find(x => x.v === nl.shurui) || NL_UNDOU[0];
+  const kaisuOk = !!u.kaisu;
+  const keisan = () => {
+    const f = seisu(nl.fun, 0), c = seisu(nl.kaisu, 0);
+    if (f > 0) return kcalMets(u.mets, w, f);
+    if (kaisuOk && c > 0) return kcalMets(u.kaisuMets || u.mets, w, c / u.pace);
+    return 0;
+  };
+  const r = kirokuToru(kyo);
+  const k = mokuhyoKeikaku(st, w, kyo);
+  const tabeta = kcalSesshu(r), waku = mokuhyoKcal(st, w) + kcalUndou(r, w);
+  const oobaa = tabeta - waku;
+  const nokoriUndou = k && k.jotai === "susumu" ? Math.max(0, k.undou - kcalUndou(r, w)) : null;
+  const moyasu = seisu(nl.kcal, 0) || (oobaa > 0 ? oobaa : nokoriUndou || 200);
+  const tb = teibanList().filter(t => kcalAri(t.kcal)).map(t => ({ t:t.namae, k:Number(t.kcal), teiban:true }));
+  const sanshoUndou = NL_UNDOU.filter(x => ["suburi","nawa","walk"].includes(x.v));
+
+  app.innerHTML = `
+  ${header()}
+  <div class="nl-title"><span>BURN LAB</span><small>燃焼ラボ — いまの体重 ${su1(w)}kg で計算</small></div>
+
+  ${nokoriUndou !== null || oobaa > 0 ? `<section class="card nl-kyo">
+    <h2 class="midashi">今日のひと押し</h2>
+    ${oobaa > 0 ? `<p class="nl-kyo-bun">今日は目安より <b class="num c-shoku">${oobaa}kcal</b> 多めです。</p>`
+      : `<p class="nl-kyo-bun">目標の作戦まで、今日あと <b class="num c-suburi">${nokoriUndou}kcal</b> の運動。</p>`}
+    <div class="nl-chips">${sanshoUndou.map(x => `<div><span>${x.t}</span><b class="num">${funHyoji(nlFunHitsuyo(oobaa > 0 ? oobaa : nokoriUndou, x.mets, w))}</b></div>`).join("")}</div>
+  </section>` : ""}
+
+  <section class="card">
+    <h2 class="midashi">この運動をしたら、何kcal？</h2>
+    <div class="chip-retsu">${NL_UNDOU.map(x => `<button class="chip ${nl.shurui===x.v?'eranda':''}" data-nl-u="${x.v}">${x.t}</button>`).join("")}</div>
+    <div class="nl-nyu mt12">
+      <input class="field num" id="nlFun" type="number" inputmode="numeric" value="${esc(nl.fun)}" placeholder="—"><span>分</span>
+      ${kaisuOk ? `<span class="c-dim">または</span><input class="field num" id="nlKaisu" type="number" inputmode="numeric" value="${esc(nl.kaisu)}" placeholder="—"><span>${u.kaisu}</span>` : ""}
+    </div>
+    <div class="nl-kekka"><span>約</span><b class="num" id="nlKekka">${Math.round(keisan())}</b><span>kcal</span></div>
+    <p class="hint">${u.t}は1分で約${su1(kcalMets(u.mets, w, 1))}kcal${u.chu ? `（${u.chu}）` : ""}。${kaisuOk ? `回数だけなら、1分に約${u.pace}${u.kaisu}のペースで計算。100${u.kaisu}で約${Math.round(kcalMets(u.kaisuMets || u.mets, w, 100 / u.pace))}kcal。` : ""}</p>
+  </section>
+
+  <section class="card">
+    <h2 class="midashi">○kcal 燃やすには？</h2>
+    <div class="nl-nyu"><input class="field num" id="nlKcal" type="number" inputmode="numeric" value="${esc(nl.kcal)}" placeholder="${moyasu}"><span>kcal</span></div>
+    <div class="nl-hyo" id="nlHyo">${nlHyoHtml(moyasu, w)}</div>
+  </section>
+
+  <section class="card">
+    <h2 class="midashi">食べ物を燃やすのに必要な時間</h2>
+    <div class="nl-tabe">
+      <div class="nl-tabe-ue"><span></span>${sanshoUndou.map(x => `<span>${x.t.replace("木刀", "").replace("ウォーキング", "歩く")}</span>`).join("")}</div>
+      ${[...tb, ...NL_TABEMONO].map(f => `<div class="nl-tabe-gyo ${f.teiban ? "teiban" : ""}">
+        <span>${f.teiban ? "☆ " : ""}${esc(f.t)}<small>${f.k}kcal</small></span>
+        ${sanshoUndou.map(x => `<b class="num">${Math.ceil(nlFunHitsuyo(f.k, x.mets, w))}<small>分</small></b>`).join("")}
+      </div>`).join("")}
+    </div>
+    <p class="hint">☆はあなたの定番。食べ物のkcalは一般的な目安です。体重が減ると、同じ運動で燃える量も少し減ります。</p>
+  </section>`;
+
+  onAll("[data-nl-u]", "click", b => { nl.shurui = b.dataset.nlU; if (!NL_UNDOU.find(x => x.v === nl.shurui).kaisu) nl.kaisu = ""; hyouji(); });
+  const kekkaKoshin = () => { const el = $("nlKekka"); if (el) el.textContent = Math.round(keisan()); };
+  on("nlFun", "input", e => { nl.fun = e.target.value; if (e.target.value && $("nlKaisu")){ nl.kaisu = ""; $("nlKaisu").value = ""; } kekkaKoshin(); });
+  on("nlKaisu", "input", e => { nl.kaisu = e.target.value; if (e.target.value){ nl.fun = ""; $("nlFun").value = ""; } kekkaKoshin(); });
+  on("nlKcal", "input", e => { nl.kcal = e.target.value; const el = $("nlHyo"); if (el) el.innerHTML = nlHyoHtml(seisu(nl.kcal, 0) || moyasu, w); });
+}
+function nlHyoHtml(kcal, w){
+  return NL_UNDOU.map(x => `<div><span>${x.t}</span><b class="num">${funHyoji(nlFunHitsuyo(kcal, x.mets, w))}</b>${x.kaisu ? `<small>（約${Math.round(kcal / kcalMets(x.kaisuMets || x.mets, w, 100 / x.pace) * 100)}${x.kaisu}）</small>` : "<small></small>"}</div>`).join("");
 }
 
 /* ---------- 推移 ---------- */
