@@ -142,6 +142,21 @@ select.field{font-family:var(--gothic);font-size:14px}
 .phase-tab{flex:1;padding:13px 4px;border:1px solid var(--line);border-radius:10px;background:var(--panel);font-size:14px;color:var(--text-dim);font-weight:800}
 .phase-tab.on-suburi{background:var(--suburi-dim);border-color:var(--suburi);color:var(--suburi)}
 .phase-tab.on-nawa{background:var(--nawa-dim);border-color:var(--nawa);color:var(--nawa)}
+.phase-tabs{flex-wrap:wrap}
+.phase-tab{flex:1 1 28%;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.phase-tab.on-my{background:var(--accent-dim);border-color:var(--accent);color:var(--accent)}
+.phase-tab.tasu{flex:0 0 52px;color:var(--accent);font-size:18px;padding:10px 0}
+.c-my{color:var(--accent)}
+.lv-retsu{justify-content:center;margin:4px 0 2px}
+.lv-retsu .chip{padding:8px 12px;font-size:13px}
+.lv-hyo{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.lv-btn{display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 4px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--text-dim)}
+.lv-btn b{font-size:15px}.lv-btn span{font-size:12.5px;font-weight:700}.lv-btn em{font-style:normal;font-size:10.5px}
+.lv-btn.eranda{background:var(--accent-dim);border-color:var(--accent);color:var(--accent)}
+.shm-gyo{display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--line)}
+.shm-gyo:last-child{border-bottom:none}
+.shm-gyo .tb-gyo{flex:1}
+.shm-tag{font-size:10.5px;padding:2px 7px;border-radius:8px;border:1px solid var(--accent);color:var(--accent);margin-left:6px;white-space:nowrap}
 .undou{text-align:center}
 .ring-wrap{position:relative;width:228px;height:228px;margin:6px auto 4px}
 .ring{position:absolute;inset:0;border-radius:50%}
@@ -311,6 +326,13 @@ details.shosai summary{font-size:12.5px;color:var(--text-dim);cursor:pointer;pad
 .kd-kcal{width:3.2em;text-align:right;font-size:15px}
 .kd-goukei{display:flex;justify-content:space-between;align-items:baseline;margin-top:12px;font-size:13px;color:var(--text-dim)}
 .kd-goukei b{font-size:26px;color:var(--shoku);font-weight:900}
+.osu{display:block;margin:14px auto 4px;width:150px;height:150px;border-radius:50%;font-size:26px;font-weight:900;letter-spacing:.1em;box-shadow:0 0 0 6px rgba(255,255,255,.04)}
+.osu.start{background:linear-gradient(135deg,var(--suburi),var(--nawa));color:#071015;box-shadow:0 0 24px var(--suburi-dim),0 0 0 6px rgba(255,255,255,.04)}
+.osu.kyukei{background:var(--panel2);color:var(--text);border:2px solid var(--line)}
+.osu:active{transform:scale(.97)}
+.ring-wrap.yasumi{opacity:.55}
+.undou-annai{text-align:center;margin:-6px 0 8px}
+.undou-sub{margin:6px 0 0;font-size:12px;color:var(--text-dim)}
 .link-btn{font-size:12.5px;color:var(--shoku);text-decoration:underline;padding:4px 0}
 .kettei-bar{position:fixed;left:0;right:0;bottom:0;z-index:40;padding:10px 16px calc(12px + env(safe-area-inset-bottom));background:rgba(10,13,19,.95);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-top:1px solid var(--line)}
 .kettei-bar p{margin:0 auto 6px;max-width:30rem;font-size:12px;color:var(--text-dim);text-align:center}
@@ -459,8 +481,18 @@ body.overlay.kettei{padding-bottom:calc(120px + env(safe-area-inset-bottom))}
    v1.19 2026-11-14 燃焼ラボに「今日の行動から計算」：1日の行動を話す・書くと、AIが行動ごとに
                     分類（運動・移動・仕事・家事・休息）して時間と強さを出し、体重から消費kcalを
                     計算。時間は書き換え可。チェックしたものだけ今日の運動に足す
+   v1.20 2026-11-14 運動画面：開いただけではタイマーが動かず、種目を選んで「スタート」。
+                    大きなボタン1つで「休憩」⇔「再開」を切り替え、休憩中はタイマーを止めて
+                    休憩の時間を数える。もう1つの種目の時間と休憩の合計も表示
+   v1.21 2026-11-14 種目をアプリの中で自分で足せる（ウォーキングなど）。「運動画面のメニューに
+                    加える」と、運動画面のタブに並び、スタート・休憩・再開・回数がそのまま使える。
+                    終わったら「ほかにした運動」に記録され、消費kcalにも入る。燃焼ラボにも並ぶ
+   v1.22 2026-11-14 足した種目に「強さ 弱・中・強」。種類（歩く・走る・自転車など）を選ぶと、
+                    その種目に合う言い方（ゆっくり・ふつう・速歩き など）と強さの数字が自動で入る。
+                    運動画面でその日の強さを選べ、途中で変えても時間で按分して計算。
+                    ウォーキングは歩数ではなく時間で記録（初期値を「数えない」に）
    =========================================================== */
-const APP_VERSION = "1.19";
+const APP_VERSION = "1.22";
 
 /* ---------- 保存層 ---------- */
 const Kioku = (() => {
@@ -675,6 +707,7 @@ function undouMeyasuHtml(r){
   return `<div class="meyasu-hyo">
     <div><span>木刀素振り</span><b class="num c-suburi">${k(r.suburi)}<small>kcal</small></b><em>100本で約${k(r.suburi100)}kcal</em></div>
     <div><span>縄跳び</span><b class="num c-nawa">${k(r.nawa)}<small>kcal</small></b><em>100回で約${k(r.nawa100)}kcal</em></div>
+    ${(r.my || []).map(x => `<div><span>${esc(x.namae)}</span><b class="num c-my">${k(x.kcal)}<small>kcal</small></b><em>10分で約${k(x.p10)}kcal</em></div>`).join("")}
     <div class="goukei"><span>合計（目安）</span><b class="num">${k(r.goukei)}<small>kcal</small></b><em>${r.suburiKara === "本数" || r.nawaKara === "回数" ? "分が空の種目は回数から計算" : "時間から計算"}</em></div>
   </div>`;
 }
@@ -691,6 +724,71 @@ const SONOTA_SHURUI = [
 function sonotaMets(x){ return typeof x.mets === "number" ? x.mets : sonotaInfo(x.shurui).mets; }
 function sonotaNamae(x){ return x.namae || sonotaInfo(x.shurui).t; }
 function sonotaInfo(v){ return SONOTA_SHURUI.find(x => x.v === v) || SONOTA_SHURUI[SONOTA_SHURUI.length - 1]; }
+function sonotaFunHyoji(x){ return `${x.fun}分${x.kaisu ? "・" + x.kaisu + (x.tani || "回") : ""}`; }
+
+/* ---------- 自分で足す種目（v1.21・強さは v1.22） ----------
+   設定に st.shumoku = [{id, namae, kata, tsuyosa:[{t,mets}×3 弱・中・強], lv:ふだんの強さ(0〜2),
+   mets:ふだんの強さの数字, tani:""|"回"|"本"|"歩", meyasu:分(0=なし), menu:true}]
+   menu が true のものは運動画面のタブに並ぶ。記録は「ほかにした運動」(sonota) に入る。 */
+const SHUMOKU_MAX = 10;
+const LV_T = ["弱", "中", "強"];
+/* 種類ごとの強さの言い方と数字（METs：国立健康・栄養研究所「改訂版 身体活動のメッツ表」に近い値） */
+const SHUMOKU_KATA = [
+  { v:"aruku",    t:"歩く",           lv:[["ゆっくり", 2.8], ["ふつう", 3.5], ["速歩き", 4.3]] },
+  { v:"hashiru",  t:"走る",           lv:[["ゆっくりジョグ", 6.0], ["ジョギング", 7.0], ["ランニング", 8.3]] },
+  { v:"jitensha", t:"自転車",         lv:[["のんびり", 4.0], ["ふつう", 6.8], ["速め", 8.0]] },
+  { v:"kintore",  t:"筋トレ",         lv:[["軽め", 3.5], ["ふつう", 5.0], ["きつめ", 6.0]] },
+  { v:"taiso",    t:"ストレッチ・体操", lv:[["ゆったり", 2.3], ["ふつう", 2.8], ["しっかり", 3.8]] },
+  { v:"kaidan",   t:"階段・山道",     lv:[["ゆっくり", 4.0], ["ふつう", 6.0], ["きつめ", 8.0]] },
+  { v:"sonota",   t:"その他",         lv:[["弱", 3.0], ["中", 4.5], ["強", 6.5]] }
+];
+function kataToru(v){ return SHUMOKU_KATA.find(x => x.v === v) || SHUMOKU_KATA[SHUMOKU_KATA.length - 1]; }
+function kataTsuyosa(v){ return kataToru(v).lv.map(([t, mets]) => ({ t, mets })); }
+const SHUMOKU_REI = [
+  { namae:"ウォーキング", kata:"aruku",    tani:"",  meyasu:20 },
+  { namae:"ジョギング",   kata:"hashiru",  tani:"",  meyasu:15 },
+  { namae:"自転車",       kata:"jitensha", tani:"",  meyasu:20 },
+  { namae:"スクワット",   kata:"kintore",  tani:"回", meyasu:5 },
+  { namae:"腕立て伏せ",   kata:"kintore",  tani:"回", meyasu:5 },
+  { namae:"ストレッチ",   kata:"taiso",    tani:"",  meyasu:10 },
+  { namae:"階段のぼり",   kata:"kaidan",   tani:"",  meyasu:10 }
+];
+const SHUMOKU_TANI = [{ v:"", t:"数えない（時間だけ）" }, { v:"回", t:"回" }, { v:"本", t:"本" }, { v:"歩", t:"歩" }];
+/* v1.21 で作った種目（強さが1つだけ）も、弱・中・強の形にそろえる */
+function shumokuSoroeru(x){
+  const y = Object.assign({}, x);
+  if (!Array.isArray(y.tsuyosa) || y.tsuyosa.length !== 3){
+    const m = Number(y.mets) || 3.5;
+    y.kata = y.kata || "sonota";
+    y.tsuyosa = [{ t:"弱", mets:Math.round(m * 0.8 * 10) / 10 }, { t:"中", mets:m }, { t:"強", mets:Math.round(m * 1.25 * 10) / 10 }];
+    y.lv = 1;
+  }
+  if (!(y.lv >= 0 && y.lv <= 2)) y.lv = 1;
+  y.mets = y.tsuyosa[y.lv].mets;
+  return y;
+}
+function shumokuList(st){ st = st || setteiYomu(); return Array.isArray(st.shumoku) ? st.shumoku.map(shumokuSoroeru) : []; }
+function shumokuMenu(st){ return shumokuList(st).filter(x => x.menu); }
+function shumokuToru(id, st){ return shumokuList(st).find(x => x.id === id); }
+function lvHyoji(x, i){ return `${LV_T[i]}・${x.tsuyosa[i].t}`; }
+/* 歩数しか入れなかったときは、1分に約100歩として時間に直す */
+function shumokuFun(min, count, tani){ return min > 0 ? min : (tani === "歩" && count > 0 ? Math.round(count / 100) : 0); }
+/* 「ほかにした運動」の選択肢：自分の種目（強さ別）を先に */
+function sonotaSentakushi(){
+  const my = [];
+  shumokuList().forEach(x => x.tsuyosa.forEach((l, i) => my.push({ v:`my:${x.id}:${i}`, t:`${x.namae}（${l.t}）`, mets:l.mets })));
+  return my.concat(SONOTA_SHURUI);
+}
+function sentakushiInfo(v){ return sonotaSentakushi().find(x => x.v === v) || sonotaInfo(v); }
+function sonotaKoumoku(v, fun){
+  if (String(v).indexOf("my:") === 0){
+    const [, id, lv] = String(v).split(":");
+    const m = shumokuToru(id);
+    if (m){ const i = lv === undefined ? m.lv : Number(lv);
+      return { id:shinId(), shurui:"custom", shumokuId:m.id, namae:`${m.namae}（${m.tsuyosa[i].t}）`, mets:m.tsuyosa[i].mets, fun }; }
+  }
+  return { id:shinId(), shurui:v, fun };
+}
 function kcalUndou(r, w){
   if (!r) return 0;
   const h = m => (Number(m)||0) / 60;
@@ -1216,6 +1314,7 @@ function hyouji(){
   else if (overlay === "shokujiAdd") egakuShokujiAdd();
   else if (overlay === "teibanHenshu") egakuTeibanHenshu();
   else if (overlay === "saikeisan") egakuSaikeisan();
+  else if (overlay === "shumoku") egakuShumoku();
   else if (tab === "shokuji") egakuShokuji();
   else if (tab === "suii") egakuSuii();
   else if (tab === "nensho") egakuNensho();
@@ -1310,9 +1409,11 @@ function egakuHome(){
       <button class="btn btn-sub mt12" id="kaishiBtn">それでも少し動く</button>` : `
       <div class="menu-gyo"><span>木刀素振り</span><span class="atai ${menu.suburi?'c-suburi':'c-dim'}">${menu.suburi ? menu.suburi + "分" : "休み"}</span></div>
       <div class="menu-gyo"><span>縄跳び</span><span class="atai ${menu.nawatobi?'c-nawa':'c-dim'}">${menu.nawatobi ? menu.nawatobi + "分" : "休み"}</span></div>
+      ${shumokuMenu(s).map(x => `<div class="menu-gyo"><span>${esc(x.namae)}</span><span class="atai ${x.meyasu?'c-my':'c-dim'}">${x.meyasu ? x.meyasu + "分" : "自由に"}</span></div>`).join("")}
       ${menu.riyu.length ? `<p class="chosei ${menu.itamiAri?'itami':''}">${menu.riyu.map(esc).join("<br>")}</p>` : ""}
       <button class="btn btn-main mt12" id="kaishiBtn">運動をはじめる</button>
       <p class="hint">目安の時間は「ここまでやればOK」の線です。疲れたらいつでも止めて大丈夫。</p>`}
+    ${menu.kakuninMachi ? "" : `<button class="btn btn-sub mt8" id="shumokuHomeBtn">＋ 種目を足す・変える（ウォーキングなど）</button>`}
   </section>
 
   <section class="card">
@@ -1382,10 +1483,10 @@ function egakuHome(){
   <section class="card">
     <h2 class="midashi">ほかにした運動</h2>
     ${(r && (r.sonota||[]).length) ? r.sonota.map(x => `
-      <div class="sonota-gyo"><span>${esc(sonotaNamae(x))}　<span class="num">${x.fun}分</span></span>
+      <div class="sonota-gyo"><span>${esc(sonotaNamae(x))}　<span class="num">${sonotaFunHyoji(x)}</span></span>
       <button class="batsu" data-sonota-del="${x.id}" aria-label="削除">×</button></div>`).join("") : `<p class="hint" style="margin:0">ウォーキングなど、素振り・縄跳び以外に動いた分を足せます。</p>`}
     <div class="sonota-add">
-      <select id="sonotaSel" class="field">${SONOTA_SHURUI.map(x => `<option value="${x.v}" ${sonotaSentaku===x.v?'selected':''}>${x.t}</option>`).join("")}</select>
+      <select id="sonotaSel" class="field">${sonotaSentakushi().map(x => `<option value="${x.v}" ${sonotaSentaku===x.v?'selected':''}>${x.t}</option>`).join("")}</select>
       <input id="sonotaFun" class="field num" type="number" inputmode="numeric" min="1" value="${esc(sonotaFunNyu)}" placeholder="分">
       <button class="btn-mini" id="sonotaBtn">追加</button>
     </div>
@@ -1425,6 +1526,8 @@ function egakuHome(){
   on("mokuhyoSettei", "click", () => { tab = "settei"; setteiDraft = null; setteiMsg = null; setteiErr = null; hyouji(); window.scrollTo(0,0); });
   onAll("[data-kotae]", "click", b => { taichoKaku(b.dataset.kotae); hyouji(); });
   on("kaishiBtn", "click", () => undouKaishi(menu));
+  on("shumokuHomeBtn", "click", () => { tab = "settei"; setteiDraft = null; setteiMsg = null; setteiErr = null; hyouji();
+    const el = $("shmCard"); if (el && el.scrollIntoView) el.scrollIntoView(); });
   on("shokujiAddBtn", "click", () => { teibanKiroku_msg = null; shokujiAddHiraku(kyo); });
   on("tsuikaHomeBtn", "click", e => { teibanKiroku_msg = null; shokujiAddHiraku(kyo, null, e.currentTarget.dataset.id); });
   onAll("[data-teiban-kyo]", "click", b => {
@@ -1452,7 +1555,8 @@ function egakuHome(){
   const sonotaYoso = () => {
     const el = $("sonotaYoso"); if (!el) return;
     const f = seisu(sonotaFunNyu, 0);
-    el.textContent = f > 0 ? `${sonotaInfo(sonotaSentaku).t} ${f}分で 約${Math.round(kcalMets(sonotaInfo(sonotaSentaku).mets, w, f))}kcal（目安）` : "";
+    const si = sentakushiInfo(sonotaSentaku);
+    el.textContent = f > 0 ? `${si.t} ${f}分で 約${Math.round(kcalMets(si.mets, w, f))}kcal（目安）` : "";
   };
   on("sonotaFun", "input", e => { sonotaFunNyu = e.target.value; sonotaYoso(); });
   on("sonotaSel", "change", sonotaYoso);
@@ -1461,7 +1565,7 @@ function egakuHome(){
     if (!f){ $("sonotaFun").focus(); return; }
     const cur = kirokuToru(kyo);
     const list = (cur && cur.sonota) ? cur.sonota.slice() : [];
-    list.push({ id:shinId(), shurui:sonotaSentaku, fun:f });
+    list.push(sonotaKoumoku(sonotaSentaku, f));
     kirokuKaku(kyo, { sonota:list }); sonotaFunNyu = ""; hyouji();
   });
   onAll("[data-sonota-del]", "click", b => {
@@ -1472,120 +1576,210 @@ function egakuHome(){
 }
 
 /* ---------- 運動 ---------- */
+/* 運動：開いただけではタイマーは動かない。種目を選んで「スタート」。
+   「休憩」でタイマーを止め、休憩の時間を数える。「再開」でまた動かす。 */
 function undouKaishi(menu){
   otoJunbi();
   const kyo = kyoNoHizuke();
-  const phase = menu.suburi > 0 || menu.nawatobi === 0 ? "suburi" : "nawatobi";
+  const myHajime = shumokuMenu().find(x => x.meyasu > 0);
+  const phase = menu.suburi > 0 ? "suburi" : menu.nawatobi > 0 ? "nawatobi" : myHajime ? "my:" + myHajime.id : "suburi";
   sessionKaku({
-    date:kyo, phase,
-    suburiClock:{ acc:0, since: phase === "suburi" ? Date.now() : null },
-    nawaClock:  { acc:0, since: phase === "nawatobi" ? Date.now() : null },
+    date:kyo, phase, jotai:"mae",
+    suburiClock:{ acc:0, since:null },
+    nawaClock:  { acc:0, since:null },
+    kyukeiSince:null, kyukeiAcc:0,
     suburiCount:0, nawaCount:0,
     menuSuburi:menu.suburi, menuNawa:menu.nawatobi,
-    suburiFlash:false, nawaFlash:false
+    suburiFlash:false, nawaFlash:false, custom:{}
   });
   intervalMae = -1;
   overlay = "undou"; hyouji(); window.scrollTo(0,0);
 }
+function undouJotai(s){
+  if (s.jotai) return s.jotai;
+  const my = Object.values(s.custom || {});
+  if (s.suburiClock.since || s.nawaClock.since || my.some(e => e.clock.since)) return "chu";
+  return (s.suburiClock.acc || s.nawaClock.acc || my.some(e => e.clock.acc)) ? "kyukei" : "mae";
+}
+function clockKey(p){ return p === "suburi" ? "suburiClock" : "nawaClock"; }
+/* 種目ごとのタイマーと回数。自分の種目は phase = "my:" + id */
+function isMy(p){ return typeof p === "string" && p.indexOf("my:") === 0; }
+function myEntry(s, p){
+  s.custom = s.custom || {};
+  const id = p.slice(3);
+  if (!s.custom[id]) s.custom[id] = { clock:{ acc:0, since:null }, count:0, flash:false };
+  const e = s.custom[id];
+  if (e.lv === undefined){ const m = shumokuToru(id); e.lv = m ? m.lv : 1; e.lvMs = [0, 0, 0]; e.markMs = 0; }
+  return e;
+}
+/* 強さを途中で変えたときは、強さごとの時間を積み立てておく */
+function myLvJikan(e){
+  const ms = (e.lvMs || [0, 0, 0]).slice();
+  ms[e.lv] += Math.max(0, keika(e.clock) - (e.markMs || 0));
+  return ms;
+}
+function myHeikinMets(e, m){
+  const ms = myLvJikan(e), t = ms[0] + ms[1] + ms[2];
+  return t > 0 ? ms.reduce((a, x, i) => a + x * m.tsuyosa[i].mets, 0) / t : m.tsuyosa[e.lv].mets;
+}
+function myLvTsukatta(e){ const ms = myLvJikan(e); const u = [0, 1, 2].filter(i => ms[i] >= 30000); return u.length ? u : [e.lv]; }
+function myLvKaeru(s, p, lv){
+  const e = myEntry(s, p); if (e.lv === lv) return;
+  e.lvMs = myLvJikan(e); e.markMs = keika(e.clock); e.lv = lv;
+}
+function getClock(s, p){ return isMy(p) ? myEntry(s, p).clock : s[clockKey(p)]; }
+function setClock(s, p, c){ if (isMy(p)) myEntry(s, p).clock = c; else s[clockKey(p)] = c; }
+function getCount(s, p){ return isMy(p) ? myEntry(s, p).count : (p === "suburi" ? s.suburiCount : s.nawaCount); }
+function setCount(s, p, n){ if (isMy(p)) myEntry(s, p).count = n; else if (p === "suburi") s.suburiCount = n; else s.nawaCount = n; }
+function zenTomeru(s){
+  s.suburiClock = tomeru(s.suburiClock); s.nawaClock = tomeru(s.nawaClock);
+  Object.values(s.custom || {}).forEach(e => { e.clock = tomeru(e.clock); });
+}
+function myTsukatta(s){ return Object.keys(s.custom || {}).filter(id => s.custom[id].clock.acc || s.custom[id].clock.since || s.custom[id].count); }
 function phaseKirikae(p){
   const s = sessionYomu(); if (!s || s.phase === p) return;
   otoJunbi();
-  const ugoiteta = s.phase === "suburi" ? !!s.suburiClock.since : !!s.nawaClock.since;
-  s.suburiClock = tomeru(s.suburiClock); s.nawaClock = tomeru(s.nawaClock);
+  const chu = undouJotai(s) === "chu";
+  zenTomeru(s);
   s.phase = p;
-  if (ugoiteta){ if (p === "suburi") s.suburiClock = ugokasu(s.suburiClock); else s.nawaClock = ugokasu(s.nawaClock); }
+  if (chu) setClock(s, p, ugokasu(getClock(s, p)));   // 動いている途中なら、そのまま次の種目で続ける
   intervalMae = -1;
+  sessionKaku(s); hyouji();
+}
+function undouOsu(){
+  otoJunbi();
+  const s = sessionYomu(); if (!s) return;
+  const j = undouJotai(s);
+  if (j === "chu"){
+    zenTomeru(s); s.jotai = "kyukei"; s.kyukeiSince = Date.now();
+  } else {
+    if (j === "kyukei" && s.kyukeiSince){ s.kyukeiAcc = (s.kyukeiAcc || 0) + (Date.now() - s.kyukeiSince); }
+    s.kyukeiSince = null; setClock(s, s.phase, ugokasu(getClock(s, s.phase))); s.jotai = "chu"; pi(j === "mae" ? 990 : 880);
+  }
   sessionKaku(s); hyouji();
 }
 function egakuUndou(){
   const s = sessionYomu();
   if (!s){ overlay = null; hyouji(); return; }
   const st = setteiYomu();
+  // 消した種目が選ばれていたら素振りに戻す
+  if (isMy(s.phase) && !shumokuToru(s.phase.slice(3), st)){ zenTomeru(s); s.phase = "suburi"; if (undouJotai(s) === "chu"){ s.suburiClock = ugokasu(s.suburiClock); } sessionKaku(s); }
+  const my = isMy(s.phase) ? shumokuToru(s.phase.slice(3), st) : null;
   const isS = s.phase === "suburi";
-  const clock = isS ? s.suburiClock : s.nawaClock;
+  const clock = getClock(s, s.phase);
   const ms = keika(clock);
-  const ugoku = !!clock.since;
-  const mokuhyo = isS ? s.menuSuburi : s.menuNawa;
+  const jotai = undouJotai(s);
+  const ugoku = jotai === "chu";
+  const mokuhyo = my ? (my.meyasu || 0) : isS ? s.menuSuburi : s.menuNawa;
   const goal = mokuhyo * 60000;
-  const iro = isS ? "var(--suburi)" : "var(--nawa)";
+  const iro = my ? "var(--accent)" : isS ? "var(--suburi)" : "var(--nawa)";
   const deg = goal > 0 ? Math.round(Math.min(1, ms / goal) * 360) : 0;
+  const kyukeiIma = jotai === "kyukei" && s.kyukeiSince ? Date.now() - s.kyukeiSince : 0;
+  const kyukeiGoukei = (s.kyukeiAcc || 0) + kyukeiIma;
 
   tasseiIma = false;
-  const fk = isS ? "suburiFlash" : "nawaFlash";
-  if (goal > 0 && ms >= goal && !s[fk]){ s[fk] = true; sessionKaku(s); tasseiIma = true; pi(1320); }
+  if (my){
+    const e = myEntry(s, s.phase);
+    if (goal > 0 && ms >= goal && !e.flash){ e.flash = true; sessionKaku(s); tasseiIma = true; pi(1320); }
+  } else {
+    const fk = isS ? "suburiFlash" : "nawaFlash";
+    if (goal > 0 && ms >= goal && !s[fk]){ s[fk] = true; sessionKaku(s); tasseiIma = true; pi(1320); }
+  }
 
   let intervalHtml = "";
-  if (!isS && st.nawaInterval){
+  if (s.phase === "nawatobi" && st.nawaInterval && ugoku){
     const sec = Math.floor(ms / 1000);
     const idx = Math.floor(sec / 30);
     const tobu = idx % 2 === 0;
     const nokori = 30 - (sec % 30);
-    if (ugoku && intervalMae !== -1 && idx !== intervalMae) pi(tobu ? 880 : 520);
+    if (intervalMae !== -1 && idx !== intervalMae) pi(tobu ? 880 : 520);
     intervalMae = idx;
     intervalHtml = `<div class="interval ${tobu?'tobu':'yasumu'}">${tobu ? "跳ぶ" : "休む"}　${nokori}</div>`;
   }
 
-  const cnt = isS ? s.suburiCount : s.nawaCount;
-  const steps = [10, 50, 100];
+  const cnt = getCount(s, s.phase);
+  const tani = my ? my.tani : isS ? "本" : "回";
+  const steps = my && my.tani === "歩" ? [100, 500, 1000] : [10, 50, 100];
   const parts = tasseiIma ? Array.from({length:14}, (_,i) => `<div class="particle" style="--ang:${Math.round(i*360/14)}deg"></div>`).join("") : "";
+  // いま選んでいない種目の時間（使った種目だけ）
+  const hokaList = [{ p:"suburi", t:"素振り" }, { p:"nawatobi", t:"縄跳び" }]
+    .concat(Object.keys(s.custom || {}).map(id => { const m = shumokuToru(id, st); return m ? { p:"my:" + id, t:m.namae } : null; }).filter(Boolean))
+    .filter(x => x.p !== s.phase && (keika(getClock(s, x.p)) > 0 || (!isMy(s.phase) && !isMy(x.p))));
+  const hokaHtml = hokaList.map(x => `${esc(x.t)} ${funByou(keika(getClock(s, x.p)))}`).join("　");
+  const tabMy = shumokuMenu(st).map(x => x.id);
+  myTsukatta(s).forEach(id => { if (!tabMy.includes(id) && shumokuToru(id, st)) tabMy.push(id); });
+
+  const osuLabel = jotai === "chu" ? "休憩" : jotai === "kyukei" ? "再開" : "スタート";
+  const osuKurasu = jotai === "chu" ? "kyukei" : "start";
 
   app.innerHTML = `
-  <div class="gamen-head"><span class="gamen-title">運動中</span></div>
+  <div class="gamen-head"><span class="gamen-title">${jotai === "mae" ? "運動の準備" : jotai === "kyukei" ? "休憩中" : "運動中"}</span></div>
   <div class="phase-tabs">
     <button class="phase-tab ${isS?'on-suburi':''}" data-phase="suburi">木刀素振り</button>
-    <button class="phase-tab ${!isS?'on-nawa':''}" data-phase="nawatobi">縄跳び</button>
+    <button class="phase-tab ${s.phase==='nawatobi'?'on-nawa':''}" data-phase="nawatobi">縄跳び</button>
+    ${tabMy.map(id => `<button class="phase-tab ${s.phase==='my:'+id?'on-my':''}" data-phase="my:${id}">${esc(shumokuToru(id, st).namae)}</button>`).join("")}
+    <button class="phase-tab tasu" id="shmTasuTab" aria-label="種目を足す">＋</button>
   </div>
+  ${jotai === "mae" ? `<p class="hint undou-annai">種目を選んで、下の「スタート」を押すとタイマーが動きます。</p>` : ""}
   <div class="undou">
-    <div class="ring-wrap">
+    <div class="ring-wrap ${jotai === "kyukei" ? "yasumi" : ""}">
       <div class="ring" style="background:conic-gradient(${iro} ${deg}deg, rgba(255,255,255,.07) ${deg}deg)"></div>
       <div class="ring-uchi">
         <div class="taimaa" style="color:${iro}">${funByou(ms)}</div>
-        <p class="mokuhyo">${mokuhyo ? `目安 ${mokuhyo}分` : "目安なし（自由に）"}</p>
+        <p class="mokuhyo">${jotai === "kyukei" ? `休憩 ${funByou(kyukeiIma)}` : mokuhyo ? `目安 ${mokuhyo}分` : "目安なし（自由に）"}</p>
       </div>
       <div class="particle-layer">${parts}</div>
     </div>
+    <button class="osu ${osuKurasu}" id="osuBtn">${osuLabel}</button>
     ${intervalHtml}
     ${tasseiIma ? `<div><span class="tassei">目安達成！</span></div>` : ""}
-    <div class="kazu" style="color:${iro}">${cnt}${isS ? "本" : "回"}</div>
-    ${(() => { const w = genzaiTaiju(s.date); const f = ms / 60000;
+    <p class="undou-sub">${hokaHtml}${kyukeiGoukei > 0 ? `　休憩の合計 ${funByou(kyukeiGoukei)}` : ""}</p>
+    ${my && !my.tani ? "" : `<div class="kazu" style="color:${iro}">${cnt}${tani}</div>`}
+    ${my ? (() => { const w = genzaiTaiju(s.date); const e = myEntry(s, s.phase); const f = shumokuFun(ms / 60000, cnt, my.tani);
+      const mi = my.tsuyosa[e.lv].mets;
+      return `<div class="chip-retsu lv-retsu">${my.tsuyosa.map((l, i) => `<button class="chip ${e.lv === i ? 'eranda' : ''}" data-lv="${i}">${lvHyoji(my, i)}</button>`).join("")}</div>
+      <p class="ima-kcal">いま 約<b class="num">${Math.round(kcalMets(myHeikinMets(e, my), w, f))}</b>kcal　<span>（${esc(my.tsuyosa[e.lv].t)}なら10分で約${Math.round(kcalMets(mi, w, 10))}kcal）</span></p>`; })() : (() => { const w = genzaiTaiju(s.date); const f = ms / 60000;
       const r = isS ? undouMeyasu(f, cnt, 0, 0, w) : undouMeyasu(0, 0, f, cnt, w);
       const k = isS ? r.suburi : r.nawa, p100 = isS ? r.suburi100 : r.nawa100;
       return `<p class="ima-kcal">いま 約<b class="num">${Math.round(k)}</b>kcal　<span>（${isS ? "100本" : "100回"}で約${Math.round(p100)}kcal）</span></p>`; })()}
-    <div class="kazu-btns">${steps.map(n => `<button data-add="${n}">＋${n}</button>`).join("")}</div>
-    <div class="kazu-btns minus">${steps.map(n => `<button data-add="-${n}">－${n}</button>`).join("")}</div>
-    <p class="hint">数えられたときだけでOK。${!isS ? "膝や足首に違和感が出たら、すぐやめましょう。" : ""}</p>
+    ${my && !my.tani ? "" : `<div class="kazu-btns">${steps.map(n => `<button data-add="${n}">＋${n}</button>`).join("")}</div>
+    <div class="kazu-btns minus">${steps.map(n => `<button data-add="-${n}">－${n}</button>`).join("")}</div>`}
+    <p class="hint">${my ? "強さは途中で変えてもOK（変えた時間ごとに計算します）。" : ""}${my && !my.tani ? "" : "数えられたときだけでOK。"}疲れたら「休憩」を押せば、タイマーは止まります。${s.phase === "nawatobi" ? "膝や足首に違和感が出たら、すぐやめましょう。" : ""}</p>
     <div class="sosa">
-      <button class="btn btn-sub" id="ichijiBtn">${ugoku ? "一時停止" : "再開"}</button>
-      <button class="btn btn-warn" id="owariBtn">運動を終える</button>
+      <button class="btn btn-warn" id="owariBtn">${jotai === "mae" ? "やめる" : "運動を終える"}</button>
     </div>
   </div>`;
 
+  on("osuBtn", "click", undouOsu);
   onAll("[data-phase]", "click", b => phaseKirikae(b.dataset.phase));
+  on("shmTasuTab", "click", () => shumokuHiraku(null, "undou"));
+  onAll("[data-lv]", "click", b => { const s2 = sessionYomu(); if (!s2 || !isMy(s2.phase)) return; myLvKaeru(s2, s2.phase, Number(b.dataset.lv)); sessionKaku(s2); hyouji(); });
   onAll("[data-add]", "click", b => {
     const s2 = sessionYomu(); if (!s2) return;
-    const k = s2.phase === "suburi" ? "suburiCount" : "nawaCount";
-    s2[k] = Math.max(0, s2[k] + Number(b.dataset.add)); sessionKaku(s2); hyouji();
-  });
-  on("ichijiBtn", "click", () => {
-    otoJunbi();
-    const s2 = sessionYomu(); if (!s2) return;
-    const k = s2.phase === "suburi" ? "suburiClock" : "nawaClock";
-    s2[k] = s2[k].since ? tomeru(s2[k]) : ugokasu(s2[k]);
-    sessionKaku(s2); hyouji();
+    setCount(s2, s2.phase, Math.max(0, getCount(s2, s2.phase) + Number(b.dataset.add))); sessionKaku(s2); hyouji();
   });
   on("owariBtn", "click", () => {
     const s2 = sessionYomu(); if (!s2) return;
-    s2.suburiClock = tomeru(s2.suburiClock); s2.nawaClock = tomeru(s2.nawaClock); sessionKaku(s2);
+    if (undouJotai(s2) === "mae" && !s2.suburiCount && !s2.nawaCount && !myTsukatta(s2).length){ sessionKaku(null); overlay = null; hyouji(); return; }
+    zenTomeru(s2); sessionKaku(s2);
+    const st2 = setteiYomu();
     shuryo = {
       suburiMin:String(Math.round(s2.suburiClock.acc / 60000)),
       suburiCount:s2.suburiCount ? String(s2.suburiCount) : "",
       nawaMin:String(Math.round(s2.nawaClock.acc / 60000)),
       nawaCount:s2.nawaCount ? String(s2.nawaCount) : "",
+      my:myTsukatta(s2).map(id => { const m = shumokuToru(id, st2); const e = s2.custom[id];
+        if (!m) return null;
+        myEntry(s2, "my:" + id);
+        const tsukatta = myLvTsukatta(e), hitotsu = tsukatta.length === 1;
+        return { id, namae:m.namae, tsuyosa:m.tsuyosa, lvSel:hitotsu ? tsukatta[0] : null,
+          mets:hitotsu ? m.tsuyosa[tsukatta[0]].mets : Math.round(myHeikinMets(e, m) * 10) / 10,
+          tani:m.tani || "", min:String(Math.round(e.clock.acc / 60000)), count:e.count ? String(e.count) : "" }; }).filter(Boolean),
       fatigue:null, pain:[]
     };
     overlay = "shuryo"; hyouji(); window.scrollTo(0,0);
   });
-  if (ugoku) timerId = setInterval(() => { if (overlay === "undou") hyouji(); }, 1000);
+  if (jotai !== "mae") timerId = setInterval(() => { if (overlay === "undou") hyouji(); }, 1000);
 }
 
 /* ---------- 終了記録 ---------- */
@@ -1611,7 +1805,12 @@ function egakuShuryo(){
   const d = shuryo;
   const sm = seisu(d.suburiMin, 0), nm = seisu(d.nawaMin, 0);
   const w = genzaiTaiju(s.date);
-  const meyasu = () => undouMeyasu(seisu(shuryo.suburiMin, 0), seisu(shuryo.suburiCount, 0), seisu(shuryo.nawaMin, 0), seisu(shuryo.nawaCount, 0), w);
+  const meyasu = () => {
+    const r = undouMeyasu(seisu(shuryo.suburiMin, 0), seisu(shuryo.suburiCount, 0), seisu(shuryo.nawaMin, 0), seisu(shuryo.nawaCount, 0), w);
+    r.my = (shuryo.my || []).map(x => ({ namae:x.namae, kcal:kcalMets(x.mets, w, shumokuFun(seisu(x.min, 0), seisu(x.count, 0), x.tani)), p10:kcalMets(x.mets, w, 10) }));
+    r.goukei += r.my.reduce((a, x) => a + x.kcal, 0);
+    return r;
+  };
   const goal = (s.menuSuburi||0) + (s.menuNawa||0);
   const zenSaikou = Object.values(kirokuZenbu()).filter(r => r.date !== s.date).reduce((a,r) => Math.max(a, r.suburiCount||0), 0);
   const sc = seisu(d.suburiCount, 0);
@@ -1626,6 +1825,11 @@ function egakuShuryo(){
     <div class="gyo"><label>素振り本数</label><input class="field num" id="shSc" type="number" inputmode="numeric" value="${esc(d.suburiCount)}" placeholder="任意"></div>
     <div class="gyo"><label>縄跳び（分）</label><input class="field num" id="shNm" type="number" inputmode="numeric" value="${esc(d.nawaMin)}"></div>
     <div class="gyo"><label>縄跳び回数</label><input class="field num" id="shNc" type="number" inputmode="numeric" value="${esc(d.nawaCount)}" placeholder="任意"></div>
+    ${(d.my || []).map((x, i) => `
+    <div class="gyo"><label class="c-my">${esc(x.namae)}（分）</label><input class="field num" data-shmy="${i}" data-k="min" type="number" inputmode="numeric" value="${esc(x.min)}"></div>
+    <div class="chip-retsu lv-retsu" style="justify-content:flex-end">${(x.tsuyosa || []).map((l, j) => `<button class="chip ${x.lvSel === j ? 'eranda' : ''}" data-shlv="${i}:${j}">${LV_T[j]}・${esc(l.t)}</button>`).join("")}</div>
+    ${x.lvSel === null && x.tsuyosa ? `<p class="hint" style="text-align:right;margin-top:0">途中で強さを変えたので、平均の${x.mets}METsで計算</p>` : ""}
+    ${x.tani ? `<div class="gyo"><label>${esc(x.namae)}（${esc(x.tani)}）</label><input class="field num" data-shmy="${i}" data-k="count" type="number" inputmode="numeric" value="${esc(x.count)}" placeholder="任意"></div>` : ""}`).join("")}
     <p class="hint">タイマーと実際が違うときは、数字を書き換えてください。下の消費の目安は、書き換えるとすぐ変わります。</p>
     <div id="shMeyasu">${undouMeyasuHtml(meyasu())}</div>
   </section>
@@ -1640,15 +1844,34 @@ function egakuShuryo(){
     on(id, "input", e => { shuryo[k] = e.target.value; const el = $("shMeyasu"); if (el) el.innerHTML = undouMeyasuHtml(meyasu()); });
     on(id, "change", () => hyouji());
   });
+  app.querySelectorAll("[data-shmy]").forEach(el => {
+    el.addEventListener("input", e => { shuryo.my[Number(el.dataset.shmy)][el.dataset.k] = e.target.value; const m = $("shMeyasu"); if (m) m.innerHTML = undouMeyasuHtml(meyasu()); });
+    el.addEventListener("change", () => hyouji());
+  });
+  onAll("[data-shlv]", "click", b => { const [i, j] = b.dataset.shlv.split(":").map(Number); const x = shuryo.my[i];
+    x.lvSel = j; x.mets = x.tsuyosa[j].mets; hyouji(); });
   onAll("[data-hirou]", "click", b => { shuryo.fatigue = Number(b.dataset.hirou); hyouji(); });
   onAll("[data-itami]", "click", b => { itamiToggle(shuryo.pain, b.dataset.itami); hyouji(); });
-  on("shModoru", "click", () => { shuryo = null; overlay = "undou"; hyouji(); });
+  on("shModoru", "click", () => {
+    const s2 = sessionYomu();
+    if (s2 && undouJotai(s2) !== "mae"){ s2.jotai = "kyukei"; s2.kyukeiSince = Date.now(); sessionKaku(s2); }
+    shuryo = null; overlay = "undou"; hyouji();
+  });
   on("shHozon", "click", () => {
     const cur = kirokuToru(s.date) || {};
     const scN = d.suburiCount.trim() === "" ? null : seisu(d.suburiCount, 0);
     const ncN = d.nawaCount.trim() === "" ? null : seisu(d.nawaCount, 0);
+    // 自分の種目は「ほかにした運動」へ
+    const sonota = (cur.sonota || []).slice();
+    (d.my || []).forEach(x => {
+      const c = seisu(x.count, 0), f = shumokuFun(seisu(x.min, 0), c, x.tani);
+      const namae = x.tsuyosa && x.lvSel !== null && x.lvSel !== undefined ? `${x.namae}（${x.tsuyosa[x.lvSel].t}）` : x.namae;
+      if (f > 0 || c > 0) sonota.push(Object.assign({ id:shinId(), shurui:"custom", shumokuId:x.id, namae, mets:x.mets, fun:f },
+        c > 0 && x.tani ? { kaisu:c, tani:x.tani } : {}));
+    });
     // 同じ日に2回運動したときは足し合わせる
     kirokuKaku(s.date, {
+      sonota,
       suburiMin:(cur.suburiMin||0) + seisu(d.suburiMin, 0),
       suburiCount: scN === null ? (cur.suburiCount ?? null) : (cur.suburiCount||0) + scN,
       nawatobiMin:(cur.nawatobiMin||0) + seisu(d.nawaMin, 0),
@@ -1657,6 +1880,106 @@ function egakuShuryo(){
       pain:Array.from(new Set([...(cur.pain||[]), ...d.pain]))
     });
     sessionKaku(null); shuryo = null; overlay = null; tab = "home"; hyouji(); window.scrollTo(0,0);
+  });
+}
+
+/* ---------- 種目を足す・直す（v1.21・強さは v1.22） ---------- */
+let shm = null;
+function shumokuHiraku(id, modoru){
+  const m = id ? shumokuToru(id) : null;
+  shm = m ? { id:m.id, namae:m.namae, kata:m.kata, tsuyosa:m.tsuyosa.map(l => Object.assign({}, l)), lv:m.lv, tani:m.tani || "", meyasu:m.meyasu ? String(m.meyasu) : "", menu:!!m.menu, modoru, err:null, kesu:false }
+          : { id:null, namae:"", kata:"aruku", tsuyosa:kataTsuyosa("aruku"), lv:1, tani:"", meyasu:"", menu:true, modoru, err:null, kesu:false };
+  overlay = "shumoku"; hyouji(); window.scrollTo(0,0);
+}
+function shumokuModoru(){
+  const mo = shm ? shm.modoru : "settei";
+  shm = null;
+  if (mo === "undou" && sessionYomu()){ overlay = "undou"; }
+  else { overlay = null; if (mo === "settei"){ tab = "settei"; setteiDraft = null; } }
+  hyouji();
+  if (mo === "settei"){ const el = $("shmCard"); if (el && el.scrollIntoView) el.scrollIntoView(); }
+}
+function egakuShumoku(){
+  const d = shm;
+  if (!d){ overlay = null; hyouji(); return; }
+  const w = genzaiTaiju(kyoNoHizuke());
+  app.innerHTML = `
+  <div class="gamen-head"><button class="modoru" id="shmModoru">← やめる</button><span class="gamen-title">${d.id ? "種目を直す" : "種目を足す"}</span></div>
+  ${d.id ? "" : `<section class="card">
+    <h2 class="midashi">よく使う種目（タップで入ります）</h2>
+    <div class="chip-retsu">${SHUMOKU_REI.map((x, i) => `<button class="chip ${d.namae === x.namae ? 'eranda' : ''}" data-shm-rei="${i}">${x.namae}</button>`).join("")}</div>
+  </section>`}
+  <section class="card">
+    <div class="settei-tate"><label>種目の名前</label>
+      <input class="field" id="shmNamae" type="text" maxlength="12" value="${esc(d.namae)}" placeholder="例：ウォーキング" style="text-align:left"></div>
+    <div class="settei-tate mt12"><label>種類（強さの言い方が自動で変わります）</label>
+      <div class="chip-retsu">${SHUMOKU_KATA.map(x => `<button class="chip ${d.kata === x.v ? 'eranda' : ''}" data-shm-kata="${x.v}">${x.t}</button>`).join("")}</div></div>
+    <div class="settei-tate mt12"><label>ふだんの強さ（運動画面でその日ごとに変えられます）</label>
+      <div class="lv-hyo">${d.tsuyosa.map((l, i) => `<button class="lv-btn ${d.lv === i ? 'eranda' : ''}" data-shm-lv="${i}">
+        <b>${LV_T[i]}</b><span>${esc(l.t)}</span><em class="num">10分 約${Math.round(kcalMets(l.mets, w, 10))}kcal</em></button>`).join("")}</div>
+      <details class="shosai mt8"><summary>強さの言い方・数字を直す</summary>
+        ${d.tsuyosa.map((l, i) => `<div class="settei-gyo"><label>${LV_T[i]}</label>
+          <input class="field" data-lvt="${i}" type="text" maxlength="10" value="${esc(l.t)}" style="width:42%;font-size:14px;text-align:left">
+          <input class="field num" data-lvm="${i}" type="number" inputmode="decimal" step="0.1" value="${esc(String(l.mets))}" style="width:26%"></div>`).join("")}
+        <p class="hint">右の数字はMETs（じっと座っている時の何倍か）。1〜15で。体重 ${su1(w)}kg で計算しています。</p>
+      </details></div>
+    <div class="settei-tate mt12"><label>数える単位</label>
+      <div class="chip-retsu">${SHUMOKU_TANI.map(x => `<button class="chip ${d.tani === x.v ? 'eranda' : ''}" data-shm-tani="${x.v}">${x.t}</button>`).join("")}</div>
+      <p class="hint">ウォーキングなどは「数えない」でOK。時間と強さで計算します。</p></div>
+    <div class="settei-gyo mt12"><label>毎日の目安（分・空なら自由に）</label>
+      <input class="field num" id="shmMeyasu" type="number" inputmode="numeric" value="${esc(d.meyasu)}" placeholder="—"></div>
+    <label class="radio mt12"><input type="checkbox" id="shmMenu" ${d.menu ? "checked" : ""}> 運動画面のメニューに加える</label>
+    <p class="hint">加えると、運動画面のタブ（素振り・縄跳びの横）に並び、スタート・休憩・再開が使えます。外しても「ほかにした運動」からは選べます。</p>
+    ${d.err ? `<p class="err">${esc(d.err)}</p>` : ""}
+  </section>
+  <button class="btn btn-accent mt16" id="shmHozon">${d.id ? "保存する" : (d.menu ? "メニューに加える" : "種目を保存する")}</button>
+  ${d.id ? (d.kesu ? `<div class="card mt12"><p class="hint" style="margin:0 0 8px">「${esc(d.namae)}」を消しますか？ これまでの記録は消えません。</p>
+      <button class="btn btn-warn" id="shmKesuOk">消す</button><button class="btn btn-sub mt8" id="shmKesuNo">やめる</button></div>`
+    : `<button class="btn btn-sub mt8" id="shmKesu">この種目を消す</button>`) : ""}`;
+
+  on("shmModoru", "click", shumokuModoru);
+  on("shmNamae", "input", e => { shm.namae = e.target.value; });
+  on("shmMeyasu", "input", e => { shm.meyasu = e.target.value; });
+  on("shmMenu", "change", e => { shm.menu = e.target.checked; hyouji(); });
+  onAll("[data-shm-rei]", "click", b => { const x = SHUMOKU_REI[Number(b.dataset.shmRei)];
+    Object.assign(shm, { namae:x.namae, kata:x.kata, tsuyosa:kataTsuyosa(x.kata), lv:1, tani:x.tani, meyasu:String(x.meyasu), err:null }); hyouji(); });
+  onAll("[data-shm-kata]", "click", b => { shm.kata = b.dataset.shmKata; shm.tsuyosa = kataTsuyosa(shm.kata); hyouji(); });
+  onAll("[data-shm-lv]", "click", b => { shm.lv = Number(b.dataset.shmLv); hyouji(); });
+  app.querySelectorAll("[data-lvt]").forEach(el => el.addEventListener("input", e => { shm.tsuyosa[Number(el.dataset.lvt)].t = e.target.value; }));
+  app.querySelectorAll("[data-lvm]").forEach(el => {
+    el.addEventListener("input", e => { shm.tsuyosa[Number(el.dataset.lvm)].mets = e.target.value; });
+    el.addEventListener("change", () => { const det = el.closest("details"); hyouji(); const d2 = app.querySelector("details.shosai"); if (d2 && det) d2.open = true; });
+  });
+  onAll("[data-shm-tani]", "click", b => { shm.tani = b.dataset.shmTani; hyouji(); });
+  on("shmKesu", "click", () => { shm.kesu = true; hyouji(); });
+  on("shmKesuNo", "click", () => { shm.kesu = false; hyouji(); });
+  on("shmKesuOk", "click", () => {
+    const st = setteiYomu(); st.shumoku = shumokuList(st).filter(x => x.id !== shm.id); setteiKaku(st);
+    shumokuModoru();
+  });
+  on("shmHozon", "click", () => {
+    const namae = shm.namae.trim().slice(0, 12);
+    if (!namae){ shm.err = "種目の名前を入れてください。"; hyouji(); return; }
+    const tsuyosa = shm.tsuyosa.map((l, i) => ({ t:String(l.t || "").trim().slice(0, 10) || LV_T[i], mets:Math.round(shosu(String(l.mets)) * 10) / 10 }));
+    if (tsuyosa.some(l => !(l.mets >= 1 && l.mets <= 15))){ shm.err = "強さの数字（METs）は1〜15にしてください。"; hyouji(); return; }
+    const st = setteiYomu(); const list = shumokuList(st).slice();
+    if (list.some(x => x.namae === namae && x.id !== shm.id)){ shm.err = "同じ名前の種目があります。"; hyouji(); return; }
+    const meyasu = Math.max(0, Math.min(300, seisu(shm.meyasu, 0)));
+    const obj = { id:shm.id || shinId(), namae, kata:shm.kata, tsuyosa, lv:shm.lv, mets:tsuyosa[shm.lv].mets, tani:shm.tani, meyasu, menu:shm.menu };
+    const i = list.findIndex(x => x.id === obj.id);
+    if (i >= 0) list[i] = obj; else { if (list.length >= SHUMOKU_MAX){ shm.err = `種目は${SHUMOKU_MAX}個までです。`; hyouji(); return; } list.push(obj); }
+    st.shumoku = list; setteiKaku(st);
+    // 運動中に足したときは、その種目を選んだ状態で戻る
+    if (shm.modoru === "undou" && obj.menu){
+      const s2 = sessionYomu();
+      if (s2 && s2.phase !== "my:" + obj.id){
+        const chu = undouJotai(s2) === "chu";
+        zenTomeru(s2); s2.phase = "my:" + obj.id; myEntry(s2, s2.phase);
+        if (chu) setClock(s2, s2.phase, ugokasu(getClock(s2, s2.phase)));
+        sessionKaku(s2);
+      }
+    }
+    shumokuModoru();
   });
 }
 
@@ -1700,9 +2023,9 @@ function egakuShusei(){
   </section>
   <section class="card">
     <h2 class="midashi">ほかにした運動</h2>
-    ${d.sonota.map(x => `<div class="sonota-gyo"><span>${esc(sonotaNamae(x))}　<span class="num">${x.fun}分</span></span><button class="batsu" data-ss-del="${x.id}">×</button></div>`).join("")}
+    ${d.sonota.map(x => `<div class="sonota-gyo"><span>${esc(sonotaNamae(x))}　<span class="num">${sonotaFunHyoji(x)}</span></span><button class="batsu" data-ss-del="${x.id}">×</button></div>`).join("")}
     <div class="sonota-add">
-      <select id="ssSel" class="field">${SONOTA_SHURUI.map(x => `<option value="${x.v}" ${d.sonotaSel===x.v?'selected':''}>${x.t}</option>`).join("")}</select>
+      <select id="ssSel" class="field">${sonotaSentakushi().map(x => `<option value="${x.v}" ${d.sonotaSel===x.v?'selected':''}>${x.t}</option>`).join("")}</select>
       <input id="ssFun" class="field num" type="number" inputmode="numeric" value="${esc(d.sonotaFun)}" placeholder="分">
       <button class="btn-mini" id="ssAdd">追加</button>
     </div>
@@ -1725,7 +2048,7 @@ function egakuShusei(){
   on("ssFun", "input", e => { shusei.sonotaFun = e.target.value; });
   on("ssAdd", "click", () => {
     const f = seisu(shusei.sonotaFun, 0); if (!f) return;
-    shusei.sonota.push({ id:shinId(), shurui:shusei.sonotaSel, fun:f }); shusei.sonotaFun = ""; hyouji();
+    shusei.sonota.push(sonotaKoumoku(shusei.sonotaSel, f)); shusei.sonotaFun = ""; hyouji();
   });
   onAll("[data-ss-del]", "click", b => { shusei.sonota = shusei.sonota.filter(x => x.id !== b.dataset.ssDel); hyouji(); });
   onAll("[data-hirou]", "click", b => { const v = Number(b.dataset.hirou); shusei.fatigue = shusei.fatigue === v ? null : v; hyouji(); });
@@ -2425,6 +2748,9 @@ function egakuTeibanHenshu(){
 /* ---------- 燃焼ラボ（運動とカロリーの相談）----------
    1) この運動を○分（○回）したら何kcal？ 2) ○kcal燃やすには何分？
    3) 食べ物ごとの「燃やすのに必要な時間」早見表（定番も入る） 4) 今日の作戦の残り */
+function nlUndou(){
+  return NL_UNDOU.slice(0, 2).concat(shumokuList().map(x => ({ v:"my:" + x.id, t:x.namae, mets:x.mets })), NL_UNDOU.slice(2));
+}
 const NL_UNDOU = [
   { v:"suburi", t:"木刀素振り", mets:METS.suburi, kaisu:"本", pace:SUBURI_PACE },
   { v:"nawa",   t:"縄跳び",     mets:METS.nawatobi, kaisu:"回", pace:NAWA_PACE, kaisuMets:NAWA_TOBU_METS, chu:"30秒休み込み" },
@@ -2451,7 +2777,7 @@ function egakuNensho(){
   const st = setteiYomu();
   const kyo = kyoNoHizuke();
   const w = genzaiTaiju(kyo);
-  const u = NL_UNDOU.find(x => x.v === nl.shurui) || NL_UNDOU[0];
+  const u = nlUndou().find(x => x.v === nl.shurui) || NL_UNDOU[0];
   const kaisuOk = !!u.kaisu;
   const keisan = () => {
     const f = seisu(nl.fun, 0), c = seisu(nl.kaisu, 0);
@@ -2483,7 +2809,7 @@ function egakuNensho(){
 
   <section class="card">
     <h2 class="midashi">この運動をしたら、何kcal？</h2>
-    <div class="chip-retsu">${NL_UNDOU.map(x => `<button class="chip ${nl.shurui===x.v?'eranda':''}" data-nl-u="${x.v}">${x.t}</button>`).join("")}</div>
+    <div class="chip-retsu">${nlUndou().map(x => `<button class="chip ${nl.shurui===x.v?'eranda':''}" data-nl-u="${x.v}">${esc(x.t)}</button>`).join("")}</div>
     <div class="nl-nyu mt12">
       <input class="field num" id="nlFun" type="number" inputmode="numeric" value="${esc(nl.fun)}" placeholder="—"><span>分</span>
       ${kaisuOk ? `<span class="c-dim">または</span><input class="field num" id="nlKaisu" type="number" inputmode="numeric" value="${esc(nl.kaisu)}" placeholder="—"><span>${u.kaisu}</span>` : ""}
@@ -2511,7 +2837,7 @@ function egakuNensho(){
   </section>`;
 
   kodoBind(w, kyo);
-  onAll("[data-nl-u]", "click", b => { nl.shurui = b.dataset.nlU; if (!NL_UNDOU.find(x => x.v === nl.shurui).kaisu) nl.kaisu = ""; hyouji(); });
+  onAll("[data-nl-u]", "click", b => { nl.shurui = b.dataset.nlU; if (!(nlUndou().find(x => x.v === nl.shurui) || {}).kaisu) nl.kaisu = ""; hyouji(); });
   const kekkaKoshin = () => { const el = $("nlKekka"); if (el) el.textContent = Math.round(keisan()); };
   on("nlFun", "input", e => { nl.fun = e.target.value; if (e.target.value && $("nlKaisu")){ nl.kaisu = ""; $("nlKaisu").value = ""; } kekkaKoshin(); });
   on("nlKaisu", "input", e => { nl.kaisu = e.target.value; if (e.target.value){ nl.fun = ""; $("nlFun").value = ""; } kekkaKoshin(); });
@@ -2627,7 +2953,7 @@ async function kodoBunrui(w){
 }
 
 function nlHyoHtml(kcal, w){
-  return NL_UNDOU.map(x => `<div><span>${x.t}</span><b class="num">${funHyoji(nlFunHitsuyo(kcal, x.mets, w))}</b>${x.kaisu ? `<small>（約${Math.round(kcal / kcalMets(x.kaisuMets || x.mets, w, 100 / x.pace) * 100)}${x.kaisu}）</small>` : "<small></small>"}</div>`).join("");
+  return nlUndou().map(x => `<div><span>${esc(x.t)}</span><b class="num">${funHyoji(nlFunHitsuyo(kcal, x.mets, w))}</b>${x.kaisu ? `<small>（約${Math.round(kcal / kcalMets(x.kaisuMets || x.mets, w, 100 / x.pace) * 100)}${x.kaisu}）</small>` : "<small></small>"}</div>`).join("");
 }
 
 /* ---------- 推移 ---------- */
@@ -2928,6 +3254,13 @@ function egakuSettei(){
       <button class="chip ${d.nawaInterval?'eranda':''}" id="sdInterval">${d.nawaInterval ? "オン" : "オフ"}</button></div>
   </section>
 
+  <section class="card" id="shmCard">
+    <h2 class="midashi">運動の種目（自分で足す）</h2>
+    ${shumokuList(s).length ? shumokuList(s).map(x => `<div class="shm-gyo"><button class="tb-gyo" data-shm-edit="${x.id}"><span>${esc(x.namae)}${x.menu ? `<span class="shm-tag">メニュー</span>` : ""}</span><span class="num c-dim">${esc(x.tsuyosa[x.lv].t)}${x.meyasu ? "・" + x.meyasu + "分" : ""}　直す ›</span></button></div>`).join("")
+      : `<p class="hint" style="margin:0">ウォーキング・スクワットなど、素振りと縄跳び以外の種目を足せます。メニューに加えると、運動画面のタブに並び、タイマーと回数がそのまま使えます。</p>`}
+    ${shumokuList(s).length < SHUMOKU_MAX ? `<button class="btn btn-sub mt12" id="shmTasu">＋ 種目を足す</button>` : `<p class="hint">種目は${SHUMOKU_MAX}個までです。</p>`}
+  </section>
+
   <section class="card">
     <h2 class="midashi">AI（食事のカロリー推定）</h2>
     <div class="settei-tate"><label>GeminiのAPIキー（Google AI Studioでコピーして貼り付け）</label>
@@ -2996,6 +3329,8 @@ function egakuSettei(){
     if (el.tagName === "INPUT") el.addEventListener("change", () => hyouji());
   });
   on("sdInterval", "click", () => { setteiDraft.nawaInterval = !setteiDraft.nawaInterval; hyouji(); });
+  on("shmTasu", "click", () => shumokuHiraku(null, "settei"));
+  onAll("[data-shm-edit]", "click", b => shumokuHiraku(b.dataset.shmEdit, "settei"));
   on("sdSaikeisan", "click", () => saikeisanHiraku("settei"));
   on("bkHyo", "click", async () => {
     try{ const ok = await hyoKakidashi(); setteiMsg = ok ? "表を書き出しました。スプレッドシートやNumbersで開いてください。" : null; setteiErr = null; }
