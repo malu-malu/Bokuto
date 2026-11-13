@@ -299,6 +299,18 @@ details.shosai summary{font-size:12.5px;color:var(--text-dim);cursor:pointer;pad
 .fk-kankei b{color:var(--shoku)}
 .chart-yotei{fill:none;stroke:var(--text-dim);stroke-width:1.6;stroke-dasharray:4 4;opacity:.8}
 .yotei-rei{display:inline-block;width:18px;border-top:2px dashed var(--text-dim);vertical-align:middle;margin-right:6px}
+.kd{border-color:rgba(255,181,71,.4)}
+.kd-bunrui{margin-top:12px}
+.kd-midashi{display:flex;justify-content:space-between;align-items:baseline;padding:6px 0;border-bottom:1px solid var(--line);font-size:12px;font-weight:800;color:var(--text-dim);letter-spacing:.06em}
+.kd-midashi b{font-size:14px;color:var(--shoku)}
+.kd-gyo{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line);font-size:13.5px}
+.kd-namae{flex:1;min-width:0;overflow-wrap:anywhere}
+.kd-namae small{display:block;font-size:10.5px;color:var(--text-dim)}
+.kd-fun{width:4.2em;font-size:15px;text-align:right;padding:6px 8px}
+.kd-tani{font-size:12px;color:var(--text-dim)}
+.kd-kcal{width:3.2em;text-align:right;font-size:15px}
+.kd-goukei{display:flex;justify-content:space-between;align-items:baseline;margin-top:12px;font-size:13px;color:var(--text-dim)}
+.kd-goukei b{font-size:26px;color:var(--shoku);font-weight:900}
 .link-btn{font-size:12.5px;color:var(--shoku);text-decoration:underline;padding:4px 0}
 .kettei-bar{position:fixed;left:0;right:0;bottom:0;z-index:40;padding:10px 16px calc(12px + env(safe-area-inset-bottom));background:rgba(10,13,19,.95);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-top:1px solid var(--line)}
 .kettei-bar p{margin:0 auto 6px;max-width:30rem;font-size:12px;color:var(--text-dim);text-align:center}
@@ -442,8 +454,13 @@ body.overlay.kettei{padding-bottom:calc(120px + env(safe-area-inset-bottom))}
                     目安と今日の量、体重グラフに目標までの予定線（点線）、その日のこと
                     （お酒・夜食・寝不足・外食）と歩数の記録、体重リマインダーをiPhoneの
                     カレンダーに追加
+   v1.18 2026-11-14 記録を表（CSV）で書き出せるように：日ごとのまとめ・食事の一覧の2つ。
+                    スプレッドシートやNumbersで開いて読める（バックアップのJSONとは別）
+   v1.19 2026-11-14 燃焼ラボに「今日の行動から計算」：1日の行動を話す・書くと、AIが行動ごとに
+                    分類（運動・移動・仕事・家事・休息）して時間と強さを出し、体重から消費kcalを
+                    計算。時間は書き換え可。チェックしたものだけ今日の運動に足す
    =========================================================== */
-const APP_VERSION = "1.17";
+const APP_VERSION = "1.19";
 
 /* ---------- 保存層 ---------- */
 const Kioku = (() => {
@@ -671,12 +688,14 @@ const SONOTA_SHURUI = [
   { v:"kaji",     t:"家事・掃除",   mets:3.3 },
   { v:"sonota",   t:"その他",       mets:3.0 }
 ];
+function sonotaMets(x){ return typeof x.mets === "number" ? x.mets : sonotaInfo(x.shurui).mets; }
+function sonotaNamae(x){ return x.namae || sonotaInfo(x.shurui).t; }
 function sonotaInfo(v){ return SONOTA_SHURUI.find(x => x.v === v) || SONOTA_SHURUI[SONOTA_SHURUI.length - 1]; }
 function kcalUndou(r, w){
   if (!r) return 0;
   const h = m => (Number(m)||0) / 60;
   let k = METS.suburi*w*h(r.suburiMin) + METS.nawatobi*w*h(r.nawatobiMin) + METS.shoko*w*h(shokoFun(r));
-  (r.sonota||[]).forEach(s => { k += sonotaInfo(s.shurui).mets * w * h(s.fun); });
+  (r.sonota||[]).forEach(s => { k += sonotaMets(s) * w * h(s.fun); });
   return Math.round(k * 1.05);
 }
 function kcalSesshu(r){ return ((r && r.meals) || []).reduce((a,m) => a + (Number(m.kcal)||0), 0); }
@@ -1173,6 +1192,7 @@ let shusei = null;       // 過去の記録の修正の下書き
 let setteiDraft = null, setteiMsg = null, setteiErr = null, setteiTestChu = false;
 let suiiMetric = "goukei", suiiKikan = "1kagetsu";
 let nl = { shurui:"suburi", fun:"20", kaisu:"", kcal:"" };   // 燃焼ラボの入力
+let kd = { text:"", list:null, loading:false, err:null, kiku:false, msg:null, comment:"" };   // 1日の行動を話して計算
 let tasseiIma = false, intervalMae = -1;
 let teibanKiroku_msg = null, shokujiMsg = null;
 
@@ -1362,7 +1382,7 @@ function egakuHome(){
   <section class="card">
     <h2 class="midashi">ほかにした運動</h2>
     ${(r && (r.sonota||[]).length) ? r.sonota.map(x => `
-      <div class="sonota-gyo"><span>${esc(sonotaInfo(x.shurui).t)}　<span class="num">${x.fun}分</span></span>
+      <div class="sonota-gyo"><span>${esc(sonotaNamae(x))}　<span class="num">${x.fun}分</span></span>
       <button class="batsu" data-sonota-del="${x.id}" aria-label="削除">×</button></div>`).join("") : `<p class="hint" style="margin:0">ウォーキングなど、素振り・縄跳び以外に動いた分を足せます。</p>`}
     <div class="sonota-add">
       <select id="sonotaSel" class="field">${SONOTA_SHURUI.map(x => `<option value="${x.v}" ${sonotaSentaku===x.v?'selected':''}>${x.t}</option>`).join("")}</select>
@@ -1680,7 +1700,7 @@ function egakuShusei(){
   </section>
   <section class="card">
     <h2 class="midashi">ほかにした運動</h2>
-    ${d.sonota.map(x => `<div class="sonota-gyo"><span>${esc(sonotaInfo(x.shurui).t)}　<span class="num">${x.fun}分</span></span><button class="batsu" data-ss-del="${x.id}">×</button></div>`).join("")}
+    ${d.sonota.map(x => `<div class="sonota-gyo"><span>${esc(sonotaNamae(x))}　<span class="num">${x.fun}分</span></span><button class="batsu" data-ss-del="${x.id}">×</button></div>`).join("")}
     <div class="sonota-add">
       <select id="ssSel" class="field">${SONOTA_SHURUI.map(x => `<option value="${x.v}" ${d.sonotaSel===x.v?'selected':''}>${x.t}</option>`).join("")}</select>
       <input id="ssFun" class="field num" type="number" inputmode="numeric" value="${esc(d.sonotaFun)}" placeholder="分">
@@ -2459,6 +2479,8 @@ function egakuNensho(){
     <div class="nl-chips">${sanshoUndou.map(x => `<div><span>${x.t}</span><b class="num">${funHyoji(nlFunHitsuyo(oobaa > 0 ? oobaa : nokoriUndou, x.mets, w))}</b></div>`).join("")}</div>
   </section>` : ""}
 
+  ${kodoHtml(w)}
+
   <section class="card">
     <h2 class="midashi">この運動をしたら、何kcal？</h2>
     <div class="chip-retsu">${NL_UNDOU.map(x => `<button class="chip ${nl.shurui===x.v?'eranda':''}" data-nl-u="${x.v}">${x.t}</button>`).join("")}</div>
@@ -2488,12 +2510,122 @@ function egakuNensho(){
     <p class="hint">☆はあなたの定番。食べ物のkcalは一般的な目安です。体重が減ると、同じ運動で燃える量も少し減ります。</p>
   </section>`;
 
+  kodoBind(w, kyo);
   onAll("[data-nl-u]", "click", b => { nl.shurui = b.dataset.nlU; if (!NL_UNDOU.find(x => x.v === nl.shurui).kaisu) nl.kaisu = ""; hyouji(); });
   const kekkaKoshin = () => { const el = $("nlKekka"); if (el) el.textContent = Math.round(keisan()); };
   on("nlFun", "input", e => { nl.fun = e.target.value; if (e.target.value && $("nlKaisu")){ nl.kaisu = ""; $("nlKaisu").value = ""; } kekkaKoshin(); });
   on("nlKaisu", "input", e => { nl.kaisu = e.target.value; if (e.target.value){ nl.fun = ""; $("nlFun").value = ""; } kekkaKoshin(); });
   on("nlKcal", "input", e => { nl.kcal = e.target.value; const el = $("nlHyo"); if (el) el.innerHTML = nlHyoHtml(seisu(nl.kcal, 0) || moyasu, w); });
 }
+/* ---------- 1日の行動を話して、分類して、消費kcalを出す ----------
+   AIは行動ごとの時間と強さ（METs）と分類だけを出す。kcalはアプリが体重から計算する。
+   仕事や家事などふだんの動きは、1日の摂取目安の「活動量」にすでに入っているので、
+   今日の運動に足すのはチェックしたもの（初めは「運動」と、まとまった歩き）だけ。 */
+const KD_BUNRUI = ["運動", "移動・歩き", "仕事", "家事・生活", "休息・睡眠"];
+function kodoKcal(x, w){ return kcalMets(Number(x.mets) || 1, w, seisu(x.fun, 0)); }
+function kodoHtml(w){
+  const st = setteiYomu();
+  const ai = !!st.geminiKey;
+  const l = kd.list;
+  const goukei = l ? l.reduce((a, x) => a + kodoKcal(x, w), 0) : 0;
+  const goukeiFun = l ? l.reduce((a, x) => a + seisu(x.fun, 0), 0) : 0;
+  const tsuika = l ? l.filter(x => x.erabu) : [];
+  return `<section class="card kd">
+    <h2 class="midashi">今日の行動から計算</h2>
+    <div class="memo-waku">
+      <textarea class="field" id="kdText" placeholder="話すか書くだけでOK&#10;例：朝30分歩いて、授業を4時間、会議1時間、帰りに駅まで15分歩いた。夜は素振り20分">${esc(kd.text)}</textarea>
+      <button class="mic ${kd.kiku ? "kiku" : ""}" id="kdMic" aria-label="音声で入力">${kd.kiku ? "■" : '<svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>'}</button>
+    </div>
+    ${kd.kiku ? `<p class="hint c-shoku">聞いています…話し終わったら止まります</p>` : ""}
+    <button class="btn btn-shoku mt12" id="kdAi" ${!ai || kd.loading ? "disabled" : ""}>${kd.loading ? "分類しています…" : "AIで分類して計算する"}</button>
+    ${!ai ? `<p class="hint">設定タブでGeminiのAPIキーを入れると使えます。</p>` : ""}
+    ${kd.err ? `<p class="err">${esc(kd.err)}</p>` : ""}
+    ${kd.msg ? `<p class="ok-msg">${esc(kd.msg)}</p>` : ""}
+    ${l ? `
+      ${KD_BUNRUI.filter(b => l.some(x => x.bunrui === b)).map(b => {
+        const g = l.filter(x => x.bunrui === b);
+        return `<div class="kd-bunrui"><div class="kd-midashi"><span>${b}</span><b class="num">${Math.round(g.reduce((a, x) => a + kodoKcal(x, w), 0))}kcal</b></div>
+          ${g.map(x => { const i = l.indexOf(x); return `<div class="kd-gyo">
+            <label class="sk-check"><input type="checkbox" data-kd-chk="${i}" ${x.erabu ? "checked" : ""}></label>
+            <span class="kd-namae">${esc(x.name)}${x.suitei ? `<small>（時間は推定）</small>` : ""}</span>
+            <input class="field num kd-fun" data-kd-fun="${i}" type="number" inputmode="numeric" value="${esc(x.fun)}"><span class="kd-tani">分</span>
+            <b class="num kd-kcal" id="kdK${i}">${Math.round(kodoKcal(x, w))}</b>
+          </div>`; }).join("")}</div>`;
+      }).join("")}
+      <div class="kd-goukei"><span>合計 ${funHyoji(goukeiFun)}</span><b class="num" id="kdGoukei">${Math.round(goukei)}kcal</b></div>
+      ${kd.comment ? `<p class="hint">${esc(kd.comment)}</p>` : ""}
+      <p class="hint">仕事や家事などのふだんの動きは、1日の摂取目安（${mokuhyoKcal(st, w)}kcal）を出すときの「活動量」にすでに入っています。今日の運動に足すのは、チェックしたものだけにしてください（初めは「運動」と、10分以上のまとまった歩きにチェックしています）。時間は書き換えられます。</p>
+      <button class="btn btn-accent mt8" id="kdTasu" ${tsuika.length ? "" : "disabled"}>チェックした${tsuika.length}件を今日の運動に足す（${Math.round(tsuika.reduce((a, x) => a + kodoKcal(x, w), 0))}kcal）</button>
+    ` : ""}
+  </section>`;
+}
+function kodoBind(w, kyo){
+  on("kdText", "input", e => { kd.text = e.target.value; });
+  on("kdMic", "click", () => {
+    if (!SR){ alert("この画面では音声認識が使えません。入力欄をタップして、キーボードのマイクボタンで話してください。"); return; }
+    if (kikiChu){ try{ kikiChu.stop(); }catch{} return; }
+    const r = new SR(); r.lang = "ja-JP"; r.interimResults = false; r.continuous = false;
+    r.onresult = e => { const t = Array.from(e.results).map(x => x[0].transcript).join(""); kd.text = (kd.text ? kd.text + "、" : "") + t; };
+    r.onerror = e => { if (e.error !== "aborted") kd.err = "音声を聞き取れませんでした。キーボードのマイクボタンでも話せます。"; };
+    r.onend = () => { kikiChu = null; kd.kiku = false; hyouji(); };
+    try{ r.start(); kikiChu = r; kd.kiku = true; kd.err = null; hyouji(); }catch{ kikiChu = null; }
+  });
+  on("kdAi", "click", () => kodoBunrui(w));
+  const goukeiKoshin = () => {
+    const l = kd.list; if (!l) return;
+    l.forEach((x, i) => { const el = $("kdK" + i); if (el) el.textContent = Math.round(kodoKcal(x, w)); });
+    const g = $("kdGoukei"); if (g) g.textContent = Math.round(l.reduce((a, x) => a + kodoKcal(x, w), 0)) + "kcal";
+  };
+  app.querySelectorAll("[data-kd-fun]").forEach(el => {
+    el.addEventListener("input", e => { kd.list[Number(el.dataset.kdFun)].fun = e.target.value; goukeiKoshin(); });
+    el.addEventListener("change", () => hyouji());
+  });
+  app.querySelectorAll("[data-kd-chk]").forEach(el => el.addEventListener("change", () => { kd.list[Number(el.dataset.kdChk)].erabu = el.checked; hyouji(); }));
+  on("kdTasu", "click", () => {
+    const cur = kirokuToru(kyo);
+    const list = (cur && cur.sonota) ? cur.sonota.slice() : [];
+    const tasu = kd.list.filter(x => x.erabu && seisu(x.fun, 0) > 0);
+    tasu.forEach(x => list.push({ id:shinId(), shurui:"ai", namae:x.name, mets:Number(x.mets) || 3, fun:seisu(x.fun, 0) }));
+    kirokuKaku(kyo, { sonota:list });
+    kd.msg = `${tasu.length}件を今日の「ほかにした運動」に足しました（約${Math.round(tasu.reduce((a, x) => a + kodoKcal(x, w), 0))}kcal）。ホームで確認・削除できます。`;
+    kd.list = null; kd.text = ""; hyouji();
+  });
+}
+async function kodoBunrui(w){
+  const st = setteiYomu();
+  if ($("kdText")) kd.text = $("kdText").value;
+  if (!kd.text.trim()){ kd.err = "今日した行動を話すか書いてください。"; hyouji(); return; }
+  kd.loading = true; kd.err = null; kd.msg = null; hyouji();
+  const prompt = [
+    "次の話から、その人がその日にした行動を1つずつ取り出し、時間（分）と身体活動の強さ（METs）と分類を出してください。",
+    "METsは、国立健康・栄養研究所の「改訂版 身体活動のメッツ（METs）表」の値を目安にしてください。",
+    "参考：座って授業・デスクワーク1.5、立って授業2.5〜3.0、会議（座る）1.5、ゆっくり歩く3.0、ふつうに歩く3.5、速歩き4.3、階段をのぼる4.0、電車で立つ1.3〜2.0、車の運転2.5、料理2.0〜3.3、掃除3.3、買い物2.3、入浴1.5、睡眠0.95、木刀の素振り4.5、縄跳び（休みを入れて）7.0、筋トレ3.5、ストレッチ2.5。",
+    "利用者は特別支援学校の教員で、授業は立って動きながら行うことが多い。授業や職員会議などの内容は推測でよい。",
+    "時間が言われていない行動は、ふつうの長さで推定し、suitei を true にしてください。",
+    `分類は次のどれか1つ：${KD_BUNRUI.join("、")}。`,
+    "",
+    "話：" + kd.text,
+    "",
+    '次のJSONだけを返してください：{"katsudo":[{"name":"行動の名前（短く）","fun":分の数値,"mets":数値,"bunrui":"分類","suitei":true/false}],"comment":"全体についてのひと言（1文）"}'
+  ].join("\n");
+  try{
+    const t = await geminiYobu([{ text:prompt }], st.geminiKey, st.geminiModel, true);
+    let o;
+    try{ o = JSON.parse(String(t).replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "").trim()); }
+    catch{ throw new Error("AIの答えを読み取れませんでした。もう一度試してください。"); }
+    kd.list = (Array.isArray(o.katsudo) ? o.katsudo : []).map(x => {
+      const bunrui = KD_BUNRUI.includes(x.bunrui) ? x.bunrui : "家事・生活";
+      const fun = Math.max(0, Math.round(Number(x.fun) || 0));
+      const mets = Math.min(15, Math.max(0.9, Number(x.mets) || 2));
+      const erabu = bunrui === "運動" || (bunrui === "移動・歩き" && mets >= 3 && fun >= 10);
+      return { name:String(x.name || "行動").slice(0, 30), fun:String(fun), mets, bunrui, suitei:!!x.suitei, erabu };
+    });
+    kd.comment = String(o.comment || "").slice(0, 120);
+    if (!kd.list.length) kd.err = "行動を見つけられませんでした。「○○を○分」のように話してみてください。";
+  }catch(e){ kd.err = e.message; }
+  kd.loading = false; hyouji();
+}
+
 function nlHyoHtml(kcal, w){
   return NL_UNDOU.map(x => `<div><span>${x.t}</span><b class="num">${funHyoji(nlFunHitsuyo(kcal, x.mets, w))}</b>${x.kaisu ? `<small>（約${Math.round(kcal / kcalMets(x.kaisuMets || x.mets, w, 100 / x.pace) * 100)}${x.kaisu}）</small>` : "<small></small>"}</div>`).join("");
 }
@@ -2655,6 +2787,46 @@ function backupSaisoku(){
   if (sa >= 14) return `最後のバックアップから${sa}日たちました`;
   return null;
 }
+/* 表（CSV）で書き出す：日ごとのまとめと、食事の一覧の2つ。スプレッドシートで開ける */
+function csvSel(v){
+  if (v === null || v === undefined) return "";
+  const t = String(v);
+  return /[",\n\r]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t;
+}
+function csvTsukuru(gyo){ return "\uFEFF" + gyo.map(r => r.map(csvSel).join(",")).join("\r\n"); }   // 先頭のBOMでExcelでも文字化けしない
+function hyoKakidashi(){
+  const zenbu = kirokuZenbu();
+  const hibi = Object.keys(zenbu).sort();
+  const w0 = genzaiTaiju(kyoNoHizuke());
+  const hi = [["日付","曜日","体重kg","ウエストcm","素振り分","素振り本数","縄跳び分","縄跳び回数","一段昇降分","ほかの運動","運動kcal（目安）","食べたkcal","kcal未入力の食事","たんぱく質g","疲労度","痛み","その日のこと","歩数"]];
+  const shoku = [["日付","時刻","区分","料理名","kcal","たんぱく質g","追加注文","メモ"]];
+  hibi.forEach(h => {
+    const r = zenbu[h];
+    const w = typeof r.weightKg === "number" ? r.weightKg : w0;
+    const meals = r.meals || [];
+    hi.push([h, YOBI[yobiBango(h)], r.weightKg, r.waistCm, r.suburiMin || "", r.suburiCount, r.nawatobiMin || "", r.nawatobiCount,
+      shokoFun(r) || "", (r.sonota || []).map(x => `${sonotaNamae(x)}${x.fun}分`).join("・"),
+      goukeiFun(r) ? kcalUndou(r, w) : "", meals.length ? kcalSesshu(r) : "", meals.filter(m => !kcalAri(m.kcal)).length || "",
+      meals.length ? (hiNoPro(r).g || "") : "", r.fatigue, itamiHyoji(r.pain), (r.tags || []).map(tagT).join("・"), r.hosu]);
+    meals.forEach(m => {
+      const mp = mealPro(m);
+      shoku.push([h, m.jikan || "", kubunT(m.kubun), m.namae, kcalAri(m.kcal) ? m.kcal : "未入力", mp.g ? Math.round(mp.g) : "",
+        (m.tsuika || []).map(t => `${t.namae}${kcalAri(t.kcal) ? t.kcal + "kcal" : ""}`).join("・"), m.memo || ""]);
+    });
+  });
+  const hiduke = kyoNoHizuke().replace(/-/g, "");
+  const files = [
+    { namae:`bokuto_hibi_${hiduke}.csv`, naiyo:csvTsukuru(hi) },
+    { namae:`bokuto_shokuji_${hiduke}.csv`, naiyo:csvTsukuru(shoku) }
+  ];
+  const type = "text/csv";
+  const fileObjs = typeof File === "function" ? files.map(f => new File([f.naiyo], f.namae, { type })) : null;
+  if (fileObjs && navigator.canShare && navigator.canShare({ files:fileObjs })){
+    return navigator.share({ files:fileObjs, title:"Bokutoの記録" }).then(() => true).catch(e => { if (e && e.name === "AbortError") return false; throw e; });
+  }
+  return files.reduce((p, f) => p.then(() => fileWatasu(f.namae, f.naiyo, type)), Promise.resolve(true));
+}
+
 function fileWatasu(namae, naiyo, type){
   const blob = new Blob([naiyo], { type });
   const file = typeof File === "function" ? new File([blob], namae, { type }) : null;
@@ -2790,7 +2962,10 @@ function egakuSettei(){
     <p class="hint" style="margin:0">記録はこのiPhoneの中だけにあります。ときどきファイルに書き出して、「ファイル」アプリやGoogleドライブに保存してください。機種変更のときは、新しいiPhoneで読み戻せます。</p>
     <p class="hint">最後のバックアップ：${s.backupBi ? hizukeHyoji(s.backupBi) : "まだありません"}</p>
     <label class="check mt8"><input type="checkbox" id="bkKey"> AIのキーも含める（ファイルを人に渡さない場合だけ）</label>
-    <button class="btn btn-accent mt12" id="bkDasu">書き出す</button>
+    <button class="btn btn-accent mt12" id="bkDasu">バックアップを書き出す（読み戻し用）</button>
+    <p class="hint">このファイルは中身を読むためではなく、アプリに読み戻すためのものです。開いても記号の並びに見えますが、全部の記録が入っています。</p>
+    <button class="btn btn-sub mt8" id="bkHyo">表で書き出す（見る用・CSV）</button>
+    <p class="hint">日ごとのまとめと、食事の一覧の2つの表です。Googleスプレッドシート・Numbers・Excelで開けます（読み戻しには使えません）。</p>
     <div class="btn btn-sub mt8 file-btn">バックアップから読み戻す<input type="file" accept="application/json,.json" id="bkFile"></div>
   </section>
 
@@ -2822,6 +2997,11 @@ function egakuSettei(){
   });
   on("sdInterval", "click", () => { setteiDraft.nawaInterval = !setteiDraft.nawaInterval; hyouji(); });
   on("sdSaikeisan", "click", () => saikeisanHiraku("settei"));
+  on("bkHyo", "click", async () => {
+    try{ const ok = await hyoKakidashi(); setteiMsg = ok ? "表を書き出しました。スプレッドシートやNumbersで開いてください。" : null; setteiErr = null; }
+    catch(e){ setteiErr = "書き出せませんでした：" + e.message; setteiMsg = null; }
+    hyouji();
+  });
   on("bkDasu", "click", async () => {
     try{ const ok = await backupKakidashi($("bkKey").checked); setteiMsg = ok ? "書き出しました。保存先（ファイル・ドライブなど）を確認してください。" : null; setteiErr = null; }
     catch(e){ setteiErr = "書き出せませんでした：" + e.message; setteiMsg = null; }
