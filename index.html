@@ -388,8 +388,10 @@ body.overlay.kettei{padding-bottom:calc(120px + env(safe-area-inset-bottom))}
                     AIで記録した過去の食事を、いまの設定でまとめて計算し直し、前後を
                     見比べて選んだものだけ入れ直せる（縮小写真・料理名・メモを使用）。
                     縮小写真を少し大きく保存し、食事にメモを残すように
+   v1.15 2026-11-14 記録したあとの食事を「☆ 定番にする」で、さかのぼって定番に登録できる
+                    （名前はその場で変えられる。追加注文つきは追加分も含めた全体で登録）
    =========================================================== */
-const APP_VERSION = "1.14";
+const APP_VERSION = "1.15";
 
 /* ---------- 保存層 ---------- */
 const Kioku = (() => {
@@ -1642,7 +1644,7 @@ function egakuShokuji(){
           <div class="meal-sosa">
             <button class="tsuika-btn" data-m-tsuika="${m.id}">＋ 追加注文</button>
             <button data-m-kcal="${m.id}">${(m.tsuika || []).length ? "最初の分を直す" : kcalAri(m.kcal) ? "この回のkcalを直す" : "kcalを入れる"}</button>
-            ${mealTeiban(m) ? `<button data-m-tb="${mealTeiban(m).id}">定番のkcalを変える</button>` : ""}
+            ${mealTeiban(m) ? `<button data-m-tb="${mealTeiban(m).id}">定番のkcalを変える</button>` : `<button data-m-teiban="${m.id}">☆ 定番にする</button>`}
             <button data-m-del="${m.id}">削除</button>
           </div>
         </div>
@@ -1659,6 +1661,29 @@ function egakuShokuji(){
     kirokuKaku(h, { meals:(cur.meals||[]).filter(m => m.id !== b.dataset.mDel) }); hyouji();
   });
   onAll("[data-m-tb]", "click", b => teibanHenshuHiraku(b.dataset.mTb, "shokuji"));
+  onAll("[data-m-teiban]", "click", b => {
+    const cur = kirokuToru(h);
+    const m = (cur.meals||[]).find(x => x.id === b.dataset.mTeiban); if (!m) return;
+    // 追加注文つきなら、追加分も含めた食事全体を定番にする
+    const motoNamae = (m.tsuika || []).length ? m.namae + "＋" + m.tsuika.map(t => t.namae).join("＋") : m.namae;
+    const namae = (prompt("定番の名前（ホームのボタンに出ます）", motoNamae) || "").trim();
+    if (!namae) return;
+    const st = setteiYomu();
+    st.teiban = st.teiban || [];
+    let t = st.teiban.find(x => x.namae === namae);
+    const kcal = kcalAri(m.kcal) ? Number(m.kcal) : null;
+    if (t){
+      if (!confirm(`「${namae}」はもう定番にあります。この食事をその定番の記録として結びつけますか？（定番のkcalは変えません）`)) return;
+    } else {
+      t = { id:shinId(), namae, kcal, kubun:m.kubun };
+      st.teiban.push(t);
+    }
+    setteiKaku(st);
+    if (!(m.tsuika || []).length) m.teibanId = t.id;   // 追加注文つきは、記録はそのまま（定番の修正の対象にしない）
+    kirokuKaku(h, { meals:cur.meals });
+    shokujiMsg = `「${namae}」（${kcalHyoji(t.kcal)}）を定番にしました。次からはホームのボタンを1回押すだけで記録できます。名前やkcalは設定タブの定番で直せます。`;
+    hyouji(); window.scrollTo(0,0);
+  });
   onAll("[data-m-tsuika]", "click", b => shokujiAddHiraku(h, null, b.dataset.mTsuika));
   onAll("[data-t-del]", "click", b => {
     const [mid, tid] = b.dataset.tDel.split("|");
