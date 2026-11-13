@@ -247,6 +247,15 @@ details.shosai summary{font-size:12.5px;color:var(--text-dim);cursor:pointer;pad
 .photo-ko{position:relative;border-radius:10px;overflow:hidden;aspect-ratio:1;background:var(--bg2)}
 .photo-ko img{width:100%;height:100%;object-fit:cover;display:block}
 .photo-batsu{position:absolute;top:6px;right:6px;width:30px;height:30px;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;font-size:16px}
+.sk-gyo{display:flex;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.sk-gyo:last-child{border-bottom:0}
+.sk-check input{width:22px;height:22px;accent-color:var(--accent)}
+.sk-thumb{width:52px;height:52px;border-radius:8px;object-fit:cover;background:var(--bg2);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--text-dim)}
+.sk-hon{flex:1;min-width:0}
+.sk-namae{font-size:13.5px;font-weight:700;overflow-wrap:anywhere}
+.sk-sub{font-size:11px;color:var(--text-dim)}
+.sk-kazu{font-size:13px;margin-top:2px}
+.sk-kazu b{color:var(--shoku);font-size:15px}
 .link-btn{font-size:12.5px;color:var(--shoku);text-decoration:underline;padding:4px 0}
 .kettei-bar{position:fixed;left:0;right:0;bottom:0;z-index:40;padding:10px 16px calc(12px + env(safe-area-inset-bottom));background:rgba(10,13,19,.95);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-top:1px solid var(--line)}
 .kettei-bar p{margin:0 auto 6px;max-width:30rem;font-size:12px;color:var(--text-dim);text-align:center}
@@ -372,8 +381,15 @@ body.overlay.kettei{padding-bottom:calc(120px + env(safe-area-inset-bottom))}
    v1.13 2026-11-13 1回の食事に写真を4枚まで入れ、まとめて1回でAI推定。運動の消費kcalを
                     入力途中に表示（運動中の画面・終わりの記録・ほかの運動）：時間から、
                     時間がなければ本数・回数から計算し、100本・100回あたりの目安も出す
+   v1.14 2026-11-14 食事のAI推定が低めに出る問題への対策：「正確さ優先」（標準）を追加し、
+                    ふつうのFlashで少し考えさせる。写真を大きめに送る。目標や残りkcalは
+                    アドバイスだけに使い、見積もりは実際の量どおり・迷ったら多めと指示。
+                    補正（＋10〜30%）を選べ、結果に「AIの数字→補正後」を表示。
+                    AIで記録した過去の食事を、いまの設定でまとめて計算し直し、前後を
+                    見比べて選んだものだけ入れ直せる（縮小写真・料理名・メモを使用）。
+                    縮小写真を少し大きく保存し、食事にメモを残すように
    =========================================================== */
-const APP_VERSION = "1.13";
+const APP_VERSION = "1.14";
 
 /* ---------- 保存層 ---------- */
 const Kioku = (() => {
@@ -426,6 +442,8 @@ const KITEI_SETTEI = {
   nawaInterval: true,
   geminiKey: "",
   geminiModel: "",
+  aiMode: "seikaku",   // "seikaku"（正確さ優先）| "hayasa"（速さ優先）
+  aiHosei: 0,          // AIの数字に足す割合（%）。低めに出ると感じるとき用
   gasUrl: "",
   gasToken: "",
   teiban: [],
@@ -855,13 +873,13 @@ function gazoShukusho(file, maxPx, q){
    ふだんは設定画面に貼ったGeminiのAPIキーで、iPhoneから直接呼ぶ。
    キーはiPhoneの中（このアプリの保存領域）にだけ置き、GitHubには載らない。
    以前のGAS経由の設定が残っている場合は、それも使える。 */
-const KITEI_MODEL = "gemini-flash-lite-latest";
+const KITEI_MODEL = "（正確さ優先：gemini-flash-latest／速さ優先：gemini-flash-lite-latest）";
 function aiTsukaeru(s){ s = s || setteiYomu(); return !!(s.geminiKey || (s.gasUrl && s.gasToken)); }
 
 /* 通信：まずふつうの方法で送り、ブラウザに止められたら（事前チェックが要らない）
    簡単な形式で送り直す。うまくいった方法は覚えておく。 */
 let tsushinHoho = null;
-const JIKANGIRE_BYO = 25;   // 1回の待ち時間の上限（秒）。超えたら次のモデルへ
+let JIKANGIRE_BYO = 25;   // 1回の待ち時間の上限（秒）。超えたら次のモデルへ（正確さ優先では長め）
 async function tsushin(url, key, body){
   const yobu = (u, opt) => {
     const ac = new AbortController();
@@ -880,12 +898,27 @@ async function tsushin(url, key, body){
 
 /* 混雑（503など）や使えないモデル（404）のときは、次のモデルに切り替えて試す */
 /* 速さ優先：軽いモデルから。考える時間（thinking）は最小にする */
-const KAWARI_MODELS = ["gemini-flash-lite-latest", "gemini-flash-latest", "gemini-2.5-flash-lite", "gemini-2.5-flash"];
+/* 正確さ優先：ふつうのFlashで少し考えさせる。速さ優先：軽いモデルで考える時間を最小に。
+   どちらも、時間切れや混雑のときは順に次のモデルへ切り替える */
+const MODEL_JUNBAN = {
+  seikaku: ["gemini-flash-latest", "gemini-2.5-flash", "gemini-flash-lite-latest", "gemini-2.5-flash-lite"],
+  hayasa:  ["gemini-flash-lite-latest", "gemini-flash-latest", "gemini-2.5-flash-lite", "gemini-2.5-flash"]
+};
+let KAWARI_MODELS = MODEL_JUNBAN.seikaku;
+let aiModeIma = "seikaku";
 function kangaeSettei(m){
-  return /^gemini-2\.5/.test(m) ? { thinkingBudget:0 } : { thinkingLevel:"minimal" };
+  const k25 = /^gemini-2\.5/.test(m);
+  if (aiModeIma === "hayasa") return k25 ? { thinkingBudget:0 } : { thinkingLevel:"minimal" };
+  return k25 ? { thinkingBudget:1024 } : { thinkingLevel:"low" };
+}
+function aiModeJunbi(s){
+  aiModeIma = s.aiMode === "hayasa" ? "hayasa" : "seikaku";
+  KAWARI_MODELS = MODEL_JUNBAN[aiModeIma];
+  JIKANGIRE_BYO = aiModeIma === "hayasa" ? 25 : 45;
 }
 let saigoModel = null;
-async function geminiYobu(parts, key, model, json){
+async function geminiYobu(parts, key, model, json, mode){
+  aiModeJunbi(mode ? { aiMode:mode } : setteiYomu());
   const junban = [];
   [model, ...KAWARI_MODELS].forEach(m => { if (m && !junban.includes(m)) junban.push(m); });
   let saigo = 0;
@@ -945,10 +978,14 @@ function shokujiPrompt(p){
     "市販品（例：スーパーの6個入りパン、コンビニのおにぎり）は、一般的な商品の1個あたりの量とカロリーで見積もってください。",
     "日本の一般的な家庭料理・外食の分量を基準にし、メモがあれば優先して反映してください（例：大盛り、味付け濃いめ、半分残した）。",
     "量が多い食事ほど少なく見積もりやすいので、器の大きさや盛りの高さに注意してください。",
+    "【大切】カロリーは、利用者の目標や今日の残りとは関係なく、実際に食べた量どおりに見積もってください。少なめに見積もらないでください。迷ったときは多めの方を選んでください。",
+    "外食・惣菜・揚げ物は、調理油・衣・ソース・ドレッシング・マヨネーズ・汁の分も必ず含めてください。ご飯・麺は器の大きさから量を見てください（外食の丼・定食・大盛りは特に多め）。",
     "",
     "食事区分：" + (p.kubun || "不明"),
     p.tsuikaMoto ? "【追加注文】この食事ではすでに「" + p.tsuikaMoto + "」を記録済みです。それは含めず、追加分だけを推定してください。adviceは追加後の合計を踏まえてください。" : "",
     (p.image ? "メモ：" : "食べたもの：") + (memo || "なし"),
+    "",
+    "【アドバイスを書くときだけ使う情報（カロリーの見積もりには使わないこと）】",
     `利用者：${pr.seibetsu || ""}、${pr.nenrei || ""}歳、身長${pr.shinchoCm || ""}cm、体重${pr.taijuKg || ""}kg、目標体重${pr.mokuhyoTaiju || ""}kg。`,
     `1日の摂取目安は約${pr.mokuhyoKcal || ""}kcal。今日この食事より前に食べた分は${pr.kyoSesshu || 0}kcal、今日の運動での消費は約${pr.kyoUndou || 0}kcal。`,
     "",
@@ -1065,6 +1102,7 @@ function hyouji(){
   else if (overlay === "shusei") egakuShusei();
   else if (overlay === "shokujiAdd") egakuShokujiAdd();
   else if (overlay === "teibanHenshu") egakuTeibanHenshu();
+  else if (overlay === "saikeisan") egakuSaikeisan();
   else if (tab === "shokuji") egakuShokuji();
   else if (tab === "suii") egakuSuii();
   else if (tab === "settei") egakuSettei();
@@ -1586,6 +1624,7 @@ function egakuShokuji(){
     ${minyu ? `<p class="hint c-shoku">kcal未入力が${minyu}件あります（合計に入っていません）</p>` : ""}
     <div class="bar ${tabeta > waku ? 'over':''}"><i style="width:${Math.min(100, Math.round(tabeta / waku * 100))}%"></i></div>
     <button class="btn btn-shoku mt12" id="mAdd">＋ 食事を記録する</button>
+    ${aiTsukaeru(s) ? `<button class="link-btn mt8" id="mSaikeisan">AIで記録した食事を、いまの設定で計算し直す</button>` : ""}
   </section>
   <section class="card">
     <h2 class="midashi">記録した食事</h2>
@@ -1613,6 +1652,7 @@ function egakuShokuji(){
   on("mPrev", "click", () => { shokujiHizuke = hizukeZurasu(h, -1); hyouji(); });
   on("mNext", "click", () => { if (h < kyo){ shokujiHizuke = hizukeZurasu(h, 1); hyouji(); } });
   on("mAdd", "click", () => shokujiAddHiraku(h));
+  on("mSaikeisan", "click", () => { shokujiMsg = null; saikeisanHiraku("shokuji"); });
   onAll("[data-m-del]", "click", b => {
     if (!confirm("この食事の記録を削除しますか？")) return;
     const cur = kirokuToru(h);
@@ -1791,7 +1831,8 @@ function egakuShokujiAdd(){
     <h2 class="midashi">AIの推定${d.furui ? "（書き足す前の計算）" : ""}</h2>
     ${d.furui ? `<p class="furui-msg">書き足した分はまだ入っていません。画面下の③「AIで計算し直す」で、全部まとめて計算し直します。</p>` : ""}
     ${(k.ryori||[]).map(x => `<div class="kekka-ryori"><span>${esc(x.name)}<span class="ryo">${esc(x.ryo || "")}</span></span><span class="num">${x.kcal}kcal</span></div>`).join("")}
-    ${k.pfc ? `<p class="hint">たんぱく質 ${k.pfc.p}g・脂質 ${k.pfc.f}g・炭水化物 ${k.pfc.c}g${k.kcalMin && k.kcalMax ? `／幅 ${k.kcalMin}〜${k.kcalMax}kcal` : ""}</p>` : ""}
+    <div class="kekka-goukei"><span class="c-dim" style="font-size:12px">${k.hosei ? `AIの数字 ${k.goukeiKcalAI}kcal → 補正＋${k.hosei}%` : "合計"}</span><span class="num">${k.goukeiKcal}<small style="font-size:14px">kcal</small></span></div>
+    ${k.pfc ? `<p class="hint">たんぱく質 ${k.pfc.p}g・脂質 ${k.pfc.f}g・炭水化物 ${k.pfc.c}g${k.kcalMin && k.kcalMax ? `／AIの見立ての幅 ${k.kcalMin}〜${k.kcalMax}kcal` : ""}</p>` : ""}
     ${k.advice ? `<div class="adv-box">${esc(k.advice)}</div>` : ""}
     ${d.furui ? "" : `<button class="btn btn-sub mt8" id="daKakitasu">＋ 食べたものを書き足す</button>`}
   </section>` : ""}
@@ -1851,8 +1892,10 @@ function egakuShokujiAdd(){
     try{
       for (const f of files.slice(0, amari)){
         // 枚数が多いほど1枚を小さくして、送る量を抑える
-        const px = files.length + draft.gazoList.length > 2 ? 640 : 768;
-        draft.gazoList.push({ gazo: await gazoShukusho(f, px, 0.68), thumb: await gazoShukusho(f, 200, 0.6) });
+        const seikaku = setteiYomu().aiMode !== "hayasa";
+        const ooi = files.length + draft.gazoList.length > 2;
+        const px = seikaku ? (ooi ? 768 : 1024) : (ooi ? 640 : 768);
+        draft.gazoList.push({ gazo: await gazoShukusho(f, px, 0.68), thumb: await gazoShukusho(f, 320, 0.6) });
       }
       draft.err = files.length > amari ? `写真は${GAZO_MAX}枚までなので、${amari}枚だけ入れました。` : null;
     }catch(err){ draft.err = err.message; }
@@ -1916,7 +1959,7 @@ function ketteiJotai(d, aiOk){
   const kcalOk = String(d.kcal).trim() !== "" && seisu(d.kcal, -1) >= 0;
   const naiyoAri = !!(d.gazo || d.memo.trim());
   let btnLabel, btnHint;
-  if (d.loading){ btnLabel = "推定しています…"; btnHint = "画面を開いたままお待ちください（ほかのアプリに切り替えると止まります）"; }
+  if (d.loading){ btnLabel = "推定しています…"; btnHint = setteiYomu().aiMode === "hayasa" ? "画面を開いたままお待ちください（ほかのアプリに切り替えると止まります）" : "正確さ優先なので10〜30秒ほどかかります。画面を開いたままお待ちください"; }
   else if (kcalOk){ btnLabel = `${d.tsuikaId ? "追加する" : "記録する"}（${seisu(d.kcal,0)}kcal）`; btnHint = d.tsuikaId ? "いまの記録の合計に足します" : d.teiban ? "記録して、定番にも登録します" : "押すと記録されます"; }
   else if (aiOk && naiyoAri){
     btnLabel = d.kekka ? "AIで計算し直す" : "AIでカロリーを出す";
@@ -1966,6 +2009,9 @@ async function aiSuitei(){
     if (moto) payload.tsuikaMoto = moto.namae + (kcalAri(moto.kcal) ? `（${moto.kcal}kcal）` : "");
     const j = await aiYobu(payload);
     if (!draft) return;
+    const hosei = Number(st.aiHosei) || 0;
+    j.goukeiKcalAI = j.goukeiKcal;
+    if (hosei > 0 && j.goukeiKcal > 0){ j.goukeiKcal = Math.round(j.goukeiKcal * (1 + hosei / 100) / 5) * 5; j.hosei = hosei; }
     draft.kekka = j;
     draft.namae = (j.ryori || []).map(x => x.name).join("・");
     draft.kcal = String(j.goukeiKcal ?? "");
@@ -2011,6 +2057,8 @@ function shokujiHozon(){
     id:shinId(), jikan: draft.h === kyoNoHizuke() ? jikanMoji() : "", kubun:draft.kubun,
     namae, kcal:n, teibanId: teibanId || undefined,
     naiyo: draft.kekka ? (draft.kekka.ryori || []) : [],
+    memo: draft.memo.trim() || undefined,
+    ai: draft.kekka ? true : undefined,
     advice: draft.kekka ? (draft.kekka.advice || "") : "",
     thumb: draft.thumb || undefined
   });
@@ -2020,6 +2068,114 @@ function shokujiHozon(){
   thumbSeiri();
   draftKesu();
   shokujiHizuke = draft.h; draft = null; overlay = null; tab = "shokuji"; hyouji(); window.scrollTo(0,0);
+}
+
+/* ---------- AIで記録した食事を、いまの設定で計算し直す ----------
+   元の写真は残していないので、縮小写真（直近14日）と、前に出た料理名・量・メモを使う。
+   新旧の数字を並べ、選んだものだけ入れ直す。追加注文つきは「最初の分」を入れ直す。 */
+let sk = null;
+function saikeisanTaisho(){
+  const out = [];
+  const zenbu = kirokuZenbu();
+  Object.keys(zenbu).sort().reverse().forEach(h => {
+    (zenbu[h].meals || []).forEach(m => {
+      const aiDatta = m.ai || (m.naiyo || []).length > 0;
+      if (!aiDatta) return;
+      const moto = (m.tsuika || []).length ? m.kcalMoto : m.kcal;
+      out.push({ h, id:m.id, namae:m.namae, kubun:m.kubun, thumb:m.thumb || null, memo:m.memo || "",
+        naiyo:m.naiyo || [], mae: kcalAri(moto) ? Number(moto) : null, ato:null, err:null, erabu:true });
+    });
+  });
+  return out.slice(0, 40);
+}
+function saikeisanHiraku(modori){
+  sk = { modori: modori || tab, list: saikeisanTaisho(), chu:false, owari:false, msg:null };
+  overlay = "saikeisan"; hyouji(); window.scrollTo(0,0);
+}
+async function saikeisanJikko(){
+  const st = setteiYomu();
+  sk.chu = true; hyouji();
+  for (const x of sk.list){
+    if (!sk || !sk.chu) return;
+    x.err = null;
+    try{
+      const naiyoMoji = x.naiyo.map(r => r.name + (x.thumb ? "" : (r.ryo ? `（${r.ryo}）` : ""))).join("、");
+      const payload = {
+        action:"meal", kubun:kubunT(x.kubun),
+        memo: `【計算し直し】以前の記録：${x.namae}${naiyoMoji ? "（内容：" + naiyoMoji + "）" : ""}${x.memo ? "。本人のメモ：" + x.memo : ""}。以前の数字にとらわれず、改めて量とカロリーを見積もってください。`,
+        profile:{ seibetsu: st.seibetsu === "josei" ? "女性" : "男性", nenrei:st.nenrei, shinchoCm:st.shinchoCm,
+          taijuKg:genzaiTaiju(x.h), mokuhyoTaiju:st.mokuhyoTaiju, mokuhyoKcal:mokuhyoKcal(st, genzaiTaiju(x.h)), kyoSesshu:0, kyoUndou:0 }
+      };
+      if (x.thumb){ payload.image = x.thumb.split(",")[1]; payload.mimeType = "image/jpeg"; }
+      const j = await aiYobu(payload);
+      const hosei = Number(st.aiHosei) || 0;
+      let k = j.goukeiKcal || 0;
+      if (hosei > 0 && k > 0) k = Math.round(k * (1 + hosei / 100) / 5) * 5;
+      x.ato = k; x.atoRyori = j.ryori || [];
+      if (!k) x.erabu = false;
+    }catch(e){ x.err = e.message.slice(0, 60); x.erabu = false; }
+    hyouji();
+    await new Promise(r => setTimeout(r, 800));   // 無料枠の回数制限に当たらないよう少し間をあける
+  }
+  if (sk){ sk.chu = false; sk.owari = true; hyouji(); }
+}
+function saikeisanHanei(){
+  const zenbu = kirokuZenbu();
+  let n = 0, sa = 0;
+  sk.list.forEach(x => {
+    if (!x.erabu || !x.ato) return;
+    const m = ((zenbu[x.h] || {}).meals || []).find(y => y.id === x.id); if (!m) return;
+    if ((m.tsuika || []).length){ m.kcalMoto = x.ato; mealKeisan(m); } else { m.kcal = x.ato; }
+    if ((x.atoRyori || []).length) m.naiyo = x.atoRyori;
+    m.saikeisan = kyoNoHizuke();
+    sa += x.ato - (x.mae || 0); n++;
+  });
+  kirokuHozon(zenbu);
+  const m2 = sk.modori; sk = null; overlay = null; tab = m2;
+  shokujiMsg = n ? `${n}件の食事を入れ直しました（合計 ${sa >= 0 ? "＋" : "−"}${Math.abs(sa)}kcal）。` : "入れ直した食事はありません。";
+  hyouji(); window.scrollTo(0,0);
+}
+function egakuSaikeisan(){
+  if (!sk){ overlay = null; hyouji(); return; }
+  const st = setteiYomu();
+  const ai = aiTsukaeru(st);
+  const zumi = sk.list.filter(x => x.ato !== null || x.err).length;
+  const erabu = sk.list.filter(x => x.erabu && x.ato);
+  const sa = erabu.reduce((a, x) => a + x.ato - (x.mae || 0), 0);
+  app.innerHTML = `
+  <div class="gamen-head"><button class="modoru" id="skModoru">← ${sk.chu ? "やめる" : "戻る"}</button><span class="gamen-title">AIで計算し直す</span></div>
+  <section class="card">
+    <p class="hint" style="margin:0">AIで記録した食事 ${sk.list.length}件を、いまの設定（${st.aiMode === "hayasa" ? "速さ優先" : "正確さ優先"}${Number(st.aiHosei) ? "・補正＋" + st.aiHosei + "%" : ""}）で計算し直します。
+    元の写真は残っていないので、小さな写真（直近14日分）と、前に出た料理名・メモを使います。写真がない記録は、料理名から計算します。
+    前と後を見比べて、入れ直したいものだけ選べます。</p>
+    ${!ai ? `<p class="err">設定タブでAIのキーを入れると使えます。</p>` : ""}
+    ${sk.list.length && ai && !sk.chu && !sk.owari ? `<button class="btn btn-shoku mt12" id="skKaishi">${sk.list.length}件を計算し直す（1件数秒〜30秒）</button>` : ""}
+    ${sk.chu ? `<p class="loading">計算しています… ${zumi} / ${sk.list.length}件　画面を開いたままお待ちください</p>` : ""}
+  </section>
+  ${sk.list.length ? `<section class="card">
+    ${sk.list.map((x, i) => `
+      <div class="sk-gyo">
+        <label class="sk-check"><input type="checkbox" data-sk="${i}" ${x.erabu && x.ato ? "checked" : ""} ${x.ato ? "" : "disabled"}></label>
+        ${x.thumb ? `<img class="sk-thumb" src="${x.thumb}" alt="">` : `<div class="sk-thumb">${esc(kubunT(x.kubun))}</div>`}
+        <div class="sk-hon">
+          <div class="sk-namae">${esc(x.namae)}</div>
+          <div class="sk-sub">${hizukeMijikai(x.h)} ${esc(kubunT(x.kubun))}${x.thumb ? "" : "（写真なし）"}</div>
+          <div class="sk-kazu"><span class="num">${x.mae === null ? "未入力" : x.mae + "kcal"}</span> →
+            ${x.err ? `<span class="c-shoku">${esc(x.err)}</span>` : x.ato === null ? `<span class="c-dim">${sk.chu ? "…" : "未計算"}</span>`
+              : `<b class="num">${x.ato}kcal</b> <small class="${x.ato - (x.mae || 0) >= 0 ? "c-shoku" : "c-suburi"}">（${x.ato - (x.mae || 0) >= 0 ? "＋" : "−"}${Math.abs(x.ato - (x.mae || 0))}）</small>`}</div>
+        </div>
+      </div>`).join("")}
+  </section>` : `<section class="card"><p class="hint" style="margin:0">AIで記録した食事がまだありません。</p></section>`}
+  ${sk.owari ? `<button class="btn btn-accent mt16" id="skHanei" ${erabu.length ? "" : "disabled"}>選んだ${erabu.length}件を入れ直す（合計 ${sa >= 0 ? "＋" : "−"}${Math.abs(sa)}kcal）</button>
+    <p class="hint">入れ直さなかったものは、前の数字のままです。</p>` : ""}`;
+
+  on("skModoru", "click", () => {
+    if (sk.chu && !confirm("計算を途中でやめますか？（まだ何も入れ直していません）")) return;
+    const m2 = sk.modori; sk = null; overlay = null; tab = m2; hyouji();
+  });
+  on("skKaishi", "click", saikeisanJikko);
+  onAll("[data-sk]", "change", el => { sk.list[Number(el.dataset.sk)].erabu = el.checked; hyouji(); });
+  on("skHanei", "click", saikeisanHanei);
 }
 
 /* ---------- 定番の編集（kcalを直して、過去の記録にも反映）---------- */
@@ -2128,7 +2284,7 @@ function egakuSettei(){
   if (!setteiDraft){
     setteiDraft = {
       shinchoCm:String(s.shinchoCm), nenrei:String(s.nenrei), mokuhyoTaiju:String(s.mokuhyoTaiju), mokuhyoBi:s.mokuhyoBi || "",
-      seibetsu:s.seibetsu, katsudo:s.katsudo, nawaInterval:s.nawaInterval, geminiKey:s.geminiKey, geminiModel:s.geminiModel, gasUrl:s.gasUrl, gasToken:s.gasToken
+      seibetsu:s.seibetsu, katsudo:s.katsudo, nawaInterval:s.nawaInterval, geminiKey:s.geminiKey, geminiModel:s.geminiModel, aiMode:s.aiMode || "seikaku", aiHosei:Number(s.aiHosei) || 0, gasUrl:s.gasUrl, gasToken:s.gasToken
     };
   }
   const d = setteiDraft;
@@ -2162,6 +2318,16 @@ function egakuSettei(){
       <input class="field" data-sd="geminiKey" type="password" value="${esc(d.geminiKey)}" placeholder="AIza…" autocapitalize="off" autocorrect="off" spellcheck="false"></div>
     <button class="btn btn-sub mt12" id="sdTest" ${setteiTestChu ? "disabled" : ""}>${setteiTestChu ? "確認中…" : "キーを試す"}</button>
     <p class="hint">キーはこのiPhoneの中にだけ保存され、GitHubには載りません。人に見せないでください。</p>
+    <div class="settei-tate"><label>AIの使い方</label>
+      <div class="chip-retsu">
+        <button class="chip ${d.aiMode!=='hayasa'?'eranda':''}" data-aimode="seikaku">正確さ優先</button>
+        <button class="chip ${d.aiMode==='hayasa'?'eranda':''}" data-aimode="hayasa">速さ優先</button>
+      </div>
+      <p class="hint">正確さ優先は、少し考えてから答えるので10〜30秒ほどかかります。速さ優先は速いぶん、低めに出やすくなります。</p></div>
+    <div class="settei-tate"><label>AIの数字の補正（いつも低めに出ると感じるとき）</label>
+      <div class="chip-retsu">${[0,10,20,30].map(n => `<button class="chip ${Number(d.aiHosei)===n?'eranda':''}" data-hosei="${n}">${n ? "＋" + n + "%" : "なし"}</button>`).join("")}</div>
+      <p class="hint">推定結果に「AIの数字 → 補正後」として両方表示します。袋の表示やお店のカロリー表示と比べて、ずれ具合を見て選んでください。</p></div>
+    <button class="btn btn-sub mt8" id="sdSaikeisan">AIで記録した食事を計算し直す</button>
     <details class="shosai mt8"><summary>詳しい設定</summary>
       <div class="settei-tate"><label>モデル名（ふだんは空でOK：${KITEI_MODEL}）</label><input class="field" data-sd="geminiModel" type="text" value="${esc(d.geminiModel)}" placeholder="${KITEI_MODEL}" autocapitalize="off" autocorrect="off"></div>
       <div class="settei-tate"><label>GASのURL（以前の方式。キーを貼ったなら不要）</label><input class="field" data-sd="gasUrl" type="url" value="${esc(d.gasUrl)}" placeholder="https://script.google.com/macros/s/…/exec" autocapitalize="off" autocorrect="off"></div>
@@ -2196,6 +2362,9 @@ function egakuSettei(){
     if (el.tagName === "INPUT") el.addEventListener("change", () => hyouji());
   });
   on("sdInterval", "click", () => { setteiDraft.nawaInterval = !setteiDraft.nawaInterval; hyouji(); });
+  on("sdSaikeisan", "click", () => saikeisanHiraku("settei"));
+  onAll("[data-aimode]", "click", b => { setteiDraft.aiMode = b.dataset.aimode; setteiMsg = "「設定を保存する」で決まります。"; hyouji(); });
+  onAll("[data-hosei]", "click", b => { setteiDraft.aiHosei = Number(b.dataset.hosei); setteiMsg = "「設定を保存する」で決まります。"; hyouji(); });
   onAll("[data-teema]", "click", b => { const s2 = setteiYomu(); s2.colorTeema = b.dataset.teema; setteiKaku(s2); teemaTekiyou(s2.colorTeema); hyouji(); });
   onAll("[data-tb-edit]", "click", b => teibanHenshuHiraku(b.dataset.tbEdit, "settei"));
   onAll("[data-tb-del]", "click", b => {
@@ -2207,7 +2376,7 @@ function egakuSettei(){
     try{
       const key = setteiDraft.geminiKey.trim();
       if (key){
-        const t = await geminiYobu([{ text:"「OK」とだけ返してください。" }], key, setteiDraft.geminiModel.trim(), false);
+        const t = await geminiYobu([{ text:"「OK」とだけ返してください。" }], key, setteiDraft.geminiModel.trim(), false, setteiDraft.aiMode);
         setteiMsg = `AIにつながりました（モデル：${saigoModel}／通信方法${tsushinHoho}）。「設定を保存する」を押してください。`;
       } else if (setteiDraft.gasUrl.trim()){
         const j = await gasYobu({ action:"ping" }, setteiDraft.gasUrl.trim(), setteiDraft.gasToken.trim());
@@ -2226,7 +2395,7 @@ function egakuSettei(){
     if (nn < 10 || nn > 110){ setteiErr = "年齢を確認してください。"; setteiMsg = null; hyouji(); return; }
     if (d.mokuhyoBi && d.mokuhyoBi <= kyoNoHizuke()){ setteiErr = "目標の日は明日以降にしてください。"; setteiMsg = null; hyouji(); return; }
     Object.assign(s2, { shinchoCm:sc, mokuhyoTaiju:mt, mokuhyoBi:d.mokuhyoBi || "", nenrei:nn, seibetsu:d.seibetsu, katsudo:d.katsudo,
-      nawaInterval:!!d.nawaInterval, geminiKey:d.geminiKey.trim(), geminiModel:d.geminiModel.trim(),
+      nawaInterval:!!d.nawaInterval, geminiKey:d.geminiKey.trim(), geminiModel:d.geminiModel.trim(), aiMode:d.aiMode, aiHosei:Number(d.aiHosei) || 0,
       gasUrl:d.gasUrl.trim(), gasToken:d.gasToken.trim() });
     setteiKaku(s2);
     setteiMsg = "保存しました。"; setteiErr = null; hyouji();
